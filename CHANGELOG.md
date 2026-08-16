@@ -1,18 +1,23 @@
 # Changelog
 
-## v4.0.0 — Experience Redesign + Performance
+## v4.0.1 — Route Focus Hotfix
 
-- Completed the v4 visual and interaction redesign across Home, Projects, Maker Notebook, Start Something, Bench, People, The Wall, and Mobile Workshop.
-- Added modal focus trapping, focus restoration, labelled dialogs, route focus management, loading skeletons, retryable errors, reduced motion, higher-contrast support, and improved live-region semantics.
-- Added Brotli/Gzip compression for JSON and static responses.
-- Added in-memory static asset caching with ETags and conditional `304 Not Modified` responses.
-- Added streamed project-file delivery with HTTP byte-range support for large media/CAD artifacts instead of buffering whole uploads in memory.
-- Switched repeat PWA shell loads to cache-first/stale-refresh behavior while explicitly excluding `/uploads/` from service-worker storage.
-- Added asynchronous image decoding and lazy loading across non-critical imagery while prioritizing the featured image.
-- Expanded `npm run qa` to cover performance and private-upload cache safeguards.
-- Kept the release schema-neutral for safe Railway deployment over the existing `/data` volume.
+- Removed the oversized browser focus outline from programmatically focused route headings such as **WHAT ARE YOU MAKING?**.
+- Preserved route-heading focus for screen readers and keyboard navigation while keeping visible focus rings on interactive controls.
+- No database or API changes.
 
-## 4.0.0 — Project experience + Maker Notebook (Batches 36–37)
+## v4.0.1 — Interaction Polish + Accessibility QA
+
+- Added modal focus trapping, focus restoration, labelled dialogs, and safer Escape behavior.
+- Added route loading skeletons, retryable error states, smoother route focus management, and reduced-motion fallbacks.
+- Improved keyboard navigation with `aria-current`, route heading focus, stronger focus rings, and skip-link behavior.
+- Improved live-region semantics for toasts/connectivity and added higher-contrast support.
+- Added more deliberate hover/press/upload/loading feedback while keeping motion restrained.
+- Improved touch target sizing and mobile modal controls.
+- Kept this release schema-neutral for safe Railway deployment over the existing `/data` volume.
+
+
+## 4.0.1 — Project experience + Maker Notebook (Batches 36–37)
 
 - Rebuilt Project pages around an image-led hero, stage journey, concise overview, and clear section navigation.
 - Moved operational metadata, files, team, tasks, GitHub, critique, and Clinic tooling into Deep-mode sections.

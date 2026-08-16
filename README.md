@@ -2,7 +2,7 @@
 
 **THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v4.0.0**
+Current version: **v4.0.1**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -12,7 +12,7 @@ The fundamental object is the **Project**, not the post. Projects can remain inc
 
 The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
 
-## v4.0.0 experience pass
+## v4.0.1 experience pass
 
 Run `npm run qa` before deployment to execute syntax and accessibility-regression checks.
 
@@ -354,7 +354,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v4.0.0 release"
+git commit -m "Initial THE WORKSHOP v4.0.1 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -362,8 +362,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v4.0.0 -m "THE WORKSHOP v4.0.0"
-git push origin v4.0.0
+git tag -a v4.0.1 -m "THE WORKSHOP v4.0.1"
+git push origin v4.0.1
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**
@@ -424,14 +424,3 @@ A software license has not been selected in this package. Until the repository o
 ## One-time Owner recovery
 
 Production deployments can explicitly recover an existing Owner account with `WORKSHOP_OWNER_RECOVERY=1`, the bootstrap Owner email/password, and a unique `WORKSHOP_OWNER_RECOVERY_ID`. Each recovery ID executes once, invalidates prior sessions, and is audit logged. See `DEPLOYMENT_RAILWAY.md` for the exact procedure.
-
-## v4 performance profile
-
-The v4 production server compresses JSON and static assets with Brotli/Gzip when supported, keeps static source assets in memory with ETag validation, streams uploaded project files with HTTP byte-range support, and uses cache-first PWA shell delivery on repeat visits. Private project uploads are deliberately excluded from service-worker caching.
-
-Run the repeatable release checks with:
-
-```bash
-npm run qa
-```
-
