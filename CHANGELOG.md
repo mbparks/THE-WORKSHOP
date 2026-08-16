@@ -1,14 +1,12 @@
 # CHANGELOG
 
-## v5.8.1 — Icon & Brand Consistency
+## v5.8.3 — Mobile Dark-Mode Icon Contrast
 
-- Replaced the legacy striped app icon with the canonical WORKSHOP nested-diamond mark used in the product header.
-- Added a single master mark plus consistent favicon, Apple touch, PWA, maskable, and Safari pinned-tab assets.
-- Standardized primary shell navigation and top-bar controls on one geometric line-icon family instead of mixed Unicode/browser glyphs.
-- Updated Maker ID to use the canonical WORKSHOP mark.
-- Kept the brand mark unique while normalizing utility icons to a 1.7px rounded-stroke visual language.
-
-# Changelog
+- Increased contrast of the mobile Theme and Notifications controls in dark mode.
+- Gave both controls an explicit light foreground and SVG stroke rather than relying on inherited browser button color.
+- Strengthened their dark-mode borders while preserving the existing panel treatment.
+- Left the recovered five-column mobile navigation and inline SVG shell architecture unchanged.
+- Added a QA regression check for explicit mobile dark-mode utility-icon contrast.
 
 ## v5.8.2 — Mobile Navigation + Inline Icon Recovery
 

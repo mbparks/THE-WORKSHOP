@@ -295,7 +295,7 @@ button:disabled,input:disabled,select:disabled,textarea:disabled{cursor:not-allo
   }
 }
 
-/* v5.8.2 mobile shell recovery: keep five equal navigation targets and inline icons. */
+/* v5.8.3 mobile shell recovery: keep five equal navigation targets and inline icons. */
 .nav-icon{display:inline-grid;place-items:center;flex:0 0 auto}.nav-icon .ui-icon{display:block}
 @media(max-width:850px){
   .mobile-nav{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;align-items:stretch!important;width:100%!important}
@@ -305,4 +305,14 @@ button:disabled,input:disabled,select:disabled,textarea:disabled{cursor:not-allo
   .mobile-nav>button .mobile-start-icon .ui-icon{width:25px;height:25px}
   .mobile-nav small{display:block!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
   .top-actions .icon-btn .ui-icon{display:block;margin:auto}
+}
+
+/* v5.8.3 — mobile dark-mode utility icon contrast */
+html[data-theme="dark"] .top-actions .icon-btn{color:var(--ink);border-color:var(--rule-strong);}
+html[data-theme="dark"] .top-actions .icon-btn .ui-icon{stroke:currentColor;opacity:1;}
+@media(max-width:780px){
+  html[data-theme="dark"] #theme-toggle,
+  html[data-theme="dark"] #notification-button{color:#f0eee5;background:color-mix(in srgb,var(--panel) 94%,#fff 2%);border-color:#555a51;}
+  html[data-theme="dark"] #theme-toggle .ui-icon,
+  html[data-theme="dark"] #notification-button .ui-icon{stroke:#f0eee5;opacity:1;}
 }

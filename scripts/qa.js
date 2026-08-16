@@ -74,6 +74,7 @@ const checks=[
   ,['Mobile navigation enforces five equal columns',css.includes('repeat(5,minmax(0,1fr))!important')]
   ,['Maker ID uses canonical WORKSHOP mark',app.includes('class="workshop-mark"')&&app.includes('maker-id-mark')]
   ,['Icon assets cached for PWA shell',!sw.includes('/ui-icons.svg')&&sw.includes('/icon-maskable-512.png')&&sw.includes('/apple-touch-icon.png')]
+  ,['Mobile dark utility icons have explicit high contrast',css.includes('v5.8.3 — mobile dark-mode utility icon contrast')&&css.includes('html[data-theme=\"dark\"] #theme-toggle')&&css.includes('stroke:#f0eee5')]
 
 ];
 let failed=0;
