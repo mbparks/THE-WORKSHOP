@@ -1,6 +1,6 @@
 # Deploy THE WORKSHOP on Railway
 
-This is the recommended low-maintenance deployment path for **THE WORKSHOP v3.5.2**.
+This is the recommended low-maintenance deployment path for **THE WORKSHOP v3.5.6**.
 
 THE WORKSHOP runs as one Node.js service with a SQLite database and uploaded files. Railway supplies the application container, HTTPS/public networking, GitHub-triggered deployments, logs, and a persistent Volume.
 
@@ -62,7 +62,7 @@ THE WORKSHOP must have persistent storage because SQLite and uploaded project fi
 /data
 ```
 
-Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v3.5.2 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
+Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v3.5.6 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
 
 The resulting layout is:
 
@@ -123,7 +123,7 @@ A healthy response includes:
 ```json
 {
   "ok": true,
-  "version": "3.5.2",
+  "version": "3.5.6",
   "database": "ok"
 }
 ```
@@ -265,3 +265,22 @@ Before inviting members:
 The current Railway architecture intentionally runs **one application replica with one persistent Volume**. Do not horizontally scale this SQLite deployment across multiple service replicas.
 
 If THE WORKSHOP eventually needs multi-region/multi-replica application servers, migrate the database to PostgreSQL and uploads to object storage first.
+
+## Emergency Owner recovery
+
+Use this only when the intended Owner account exists but its password is no longer known. Do **not** wipe the Railway volume.
+
+Temporarily add these variables and redeploy once:
+
+```env
+WORKSHOP_BOOTSTRAP_OWNER_NAME=Mike
+WORKSHOP_BOOTSTRAP_OWNER_EMAIL=YOUR_INTENDED_OWNER_EMAIL
+WORKSHOP_BOOTSTRAP_OWNER_PASSWORD=A_NEW_LONG_RANDOM_PASSWORD
+WORKSHOP_OWNER_RECOVERY=1
+WORKSHOP_OWNER_RECOVERY_ID=PASTE_A_NEW_RANDOM_VALUE_AT_LEAST_12_CHARACTERS
+```
+
+On startup, WORKSHOP will reset that account's password, reactivate it, promote it to Owner, invalidate its old sessions/tokens, and write an audit event. The recovery ID is stored as a one-time fingerprint and will not execute twice.
+
+After signing in successfully, remove `WORKSHOP_OWNER_RECOVERY`, `WORKSHOP_OWNER_RECOVERY_ID`, and the three `WORKSHOP_BOOTSTRAP_OWNER_*` values, then redeploy again.
+

@@ -1,6 +1,16 @@
 # Changelog
 
-## v3.5.5 — Railway persistence diagnostics
+
+## 3.5.6 — Owner recovery hardening
+
+- Added an explicit one-time Owner credential recovery path for production deployments.
+- `WORKSHOP_OWNER_RECOVERY=1` now allows the configured bootstrap Owner email to have its password deliberately replaced, account reactivated, and role restored to Owner.
+- Recovery requires a unique `WORKSHOP_OWNER_RECOVERY_ID`; each ID is accepted only once and is recorded in the database.
+- Recovery invalidates existing sessions and password-reset/verification tokens for the recovered account.
+- Recovery actions are written to the audit log without recording the password or recovery secret.
+- Updated CLI backup manifests to report v3.5.6.
+
+## v3.5.6 — Railway persistence diagnostics
 
 - `/api/health` now reports the resolved data directory and SQLite path.
 - Health output reports whether Railway supplied `RAILWAY_VOLUME_MOUNT_PATH`.

@@ -2,7 +2,7 @@
 
 **THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v3.5.5**
+Current version: **v3.5.6**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -348,7 +348,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v3.5.5 release"
+git commit -m "Initial THE WORKSHOP v3.5.6 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -356,8 +356,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v3.5.5 -m "THE WORKSHOP v3.5.5"
-git push origin v3.5.5
+git tag -a v3.5.6 -m "THE WORKSHOP v3.5.6"
+git push origin v3.5.6
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**
@@ -414,3 +414,7 @@ The primary product test remains:
 ## License
 
 A software license has not been selected in this package. Until the repository owner chooses and publishes one, do not assume permission to redistribute or modify the code beyond what copyright law otherwise permits.
+
+## One-time Owner recovery
+
+Production deployments can explicitly recover an existing Owner account with `WORKSHOP_OWNER_RECOVERY=1`, the bootstrap Owner email/password, and a unique `WORKSHOP_OWNER_RECOVERY_ID`. Each recovery ID executes once, invalidates prior sessions, and is audit logged. See `DEPLOYMENT_RAILWAY.md` for the exact procedure.

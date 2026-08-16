@@ -16,7 +16,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '3.5.5';
+const APP_VERSION = '3.5.6';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
 const RATE_LIMIT_DISABLED = process.env.WORKSHOP_RATE_LIMIT === '0';
@@ -684,7 +684,41 @@ function bootstrapOwnerFromEnvironment() {
     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
     .run(uid,email,displayName,'','','Owner',displayName.slice(0,2).toUpperCase(),now(),passwordHash(password),1,'Active','[]','[]','[]','[]','Members','Members','Members');
 }
+
+function recoverOwnerFromEnvironment() {
+  const enabled=String(process.env.WORKSHOP_OWNER_RECOVERY||'').trim()==='1';
+  if(!enabled)return;
+  const recoveryId=String(process.env.WORKSHOP_OWNER_RECOVERY_ID||'').trim();
+  const email=String(process.env.WORKSHOP_BOOTSTRAP_OWNER_EMAIL||'').trim().toLowerCase();
+  const password=String(process.env.WORKSHOP_BOOTSTRAP_OWNER_PASSWORD||'');
+  const displayName=String(process.env.WORKSHOP_BOOTSTRAP_OWNER_NAME||'Workshop Owner').trim()||'Workshop Owner';
+  if(recoveryId.length<12)throw new Error('WORKSHOP_OWNER_RECOVERY_ID must contain at least 12 characters. Use a new random value for each recovery.');
+  if(!email||!email.includes('@'))throw new Error('Owner recovery requires WORKSHOP_BOOTSTRAP_OWNER_EMAIL.');
+  if(password.length<10)throw new Error('Owner recovery requires WORKSHOP_BOOTSTRAP_OWNER_PASSWORD with at least 10 characters.');
+  const fingerprint=crypto.createHash('sha256').update(recoveryId).digest('hex');
+  const key=`ownerRecovery:${fingerprint}`;
+  if(db.prepare('SELECT 1 FROM site_settings WHERE key=?').get(key))return;
+  let target=db.prepare('SELECT * FROM users WHERE email=?').get(email);
+  let created=false;
+  if(!target){
+    const uid=id('u');
+    db.prepare(`INSERT INTO users (id,email,display_name,bio,city_region,role,avatar_seed,created_at,password_hash,email_verified,account_status,skills,tools,can_help,want_learn,profile_visibility,location_visibility,tool_cabinet_visibility)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+      .run(uid,email,displayName,'','','Owner',displayName.slice(0,2).toUpperCase(),now(),passwordHash(password),1,'Active','[]','[]','[]','[]','Members','Members','Members');
+    target=db.prepare('SELECT * FROM users WHERE id=?').get(uid);
+    created=true;
+  } else {
+    db.prepare("UPDATE users SET display_name=?,role='Owner',password_hash=?,email_verified=1,account_status='Active' WHERE id=?")
+      .run(displayName,passwordHash(password),target.id);
+    db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+    db.prepare('DELETE FROM auth_tokens WHERE user_id=?').run(target.id);
+  }
+  db.prepare('INSERT INTO site_settings (key,value,updated_at) VALUES (?,?,?)').run(key,JSON.stringify({email,targetId:target.id,created}),now());
+  audit('', 'owner.recovery', 'user', target.id, {email,created,recoveryFingerprint:fingerprint.slice(0,12)});
+  console.warn(`[WORKSHOP] One-time Owner recovery applied for ${email}. Remove WORKSHOP_OWNER_RECOVERY and WORKSHOP_OWNER_RECOVERY_ID after successful sign-in.`);
+}
 bootstrapOwnerFromEnvironment();
+recoverOwnerFromEnvironment();
 
 function projectSelect(userId='') {
   return `SELECT p.*, u.display_name owner_name,
