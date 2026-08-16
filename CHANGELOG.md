@@ -1,5 +1,13 @@
 # Changelog
 
+## v3.5.5 — Railway persistence diagnostics
+
+- `/api/health` now reports the resolved data directory and SQLite path.
+- Health output reports whether Railway supplied `RAILWAY_VOLUME_MOUNT_PATH`.
+- Health output reports the count of active Owner accounts without exposing credentials.
+- Intended to diagnose persistent-volume configuration safely in production.
+
+
 ## 3.5.4 — 2026-08-16
 
 ### Changed
