@@ -8,6 +8,9 @@
   <title>THE WORKSHOP — Green Shoe Garage</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#10130f">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -15,18 +18,18 @@
   <div id="app-shell">
     <header class="topbar">
       <a class="brand" href="#/home" aria-label="THE WORKSHOP home">
-        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="brand-mark" aria-hidden="true"></span>
         <span class="brand-copy"><strong>THE WORKSHOP</strong><small>by Green Shoe Garage</small></span>
       </a>
       <form id="global-search" class="global-search" role="search">
-        <span aria-hidden="true">⌕</span>
+        <svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#search"></use></svg>
         <input id="search-input" type="search" placeholder="Search the workshop" autocomplete="off" aria-label="Search projects, questions, people, and library">
         <kbd>/</kbd>
       </form>
       <div class="top-actions">
-        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">◐</button>
+        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark mode" aria-label="Toggle light/dark mode"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#theme"></use></svg></button>
         <button class="mode-toggle" id="mode-toggle" type="button" aria-label="Switch interface density"><span>SIMPLE</span></button>
-        <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications">⌁<b id="notification-dot" hidden></b></button>
+        <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#notifications"></use></svg><b id="notification-dot" hidden></b></button>
         <button class="user-chip" id="user-button" type="button" aria-label="Account"><span id="user-avatar">?</span><span id="user-name">ENTER</span></button>
       </div>
     </header>
@@ -34,23 +37,23 @@
     <div class="app-frame">
       <aside class="sidebar" aria-label="Primary navigation">
         <nav class="primary-nav">
-          <a href="#/home" data-route="home"><span>⌂</span>Home</a>
-          <a href="#/bench" data-route="bench"><span>▱</span>Bench</a>
-          <a href="#/builds" data-route="builds"><span>◇</span>Builds</a>
-          <a href="#/workshop" data-route="workshop"><span>☷</span>Workshop</a>
-          <a href="#/library" data-route="library"><span>▤</span>Library</a>
-          <a href="#/live" data-route="live"><span>◉</span>Live</a>
-          <a href="#/people" data-route="people"><span>◌</span>People</a>
+          <a href="#/home" data-route="home"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#home"></use></svg>Home</a>
+          <a href="#/bench" data-route="bench"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#bench"></use></svg>Bench</a>
+          <a href="#/builds" data-route="builds"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#builds"></use></svg>Builds</a>
+          <a href="#/workshop" data-route="workshop"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#workshop"></use></svg>Workshop</a>
+          <a href="#/library" data-route="library"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#library"></use></svg>Library</a>
+          <a href="#/live" data-route="live"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#live"></use></svg>Live</a>
+          <a href="#/people" data-route="people"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#people"></use></svg>People</a>
         </nav>
         <div id="context-nav" class="context-nav" aria-label="Section navigation"></div>
-        <button id="start-button" class="start-button" type="button"><span>＋</span> START SOMETHING</button>
+        <button id="start-button" class="start-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#add"></use></svg> START SOMETHING</button>
         <div class="side-secondary">
-          <a href="#/saved"><span>☆</span>Saved</a>
-          <a href="#/about"><span>i</span>About</a>
+          <a href="#/saved"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#saved"></use></svg>Saved</a>
+          <a href="#/about"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#info"></use></svg>About</a>
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v5.8.0</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v5.8.1</small></div>
         </div>
       </aside>
 
@@ -61,11 +64,11 @@
     </div>
 
     <nav class="mobile-nav" aria-label="Mobile navigation">
-      <a href="#/home" data-route="home"><span>⌂</span><small>Home</small></a>
-      <a href="#/builds" data-route="builds"><span>◇</span><small>Builds</small></a>
-      <button id="mobile-start" type="button" aria-label="Start something"><span>＋</span></button>
-      <a href="#/workshop" data-route="workshop"><span>☷</span><small>Workshop</small></a>
-      <a href="#/bench" data-route="bench"><span>▱</span><small>Me</small></a>
+      <a href="#/home" data-route="home"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#home"></use></svg><small>Home</small></a>
+      <a href="#/builds" data-route="builds"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#builds"></use></svg><small>Builds</small></a>
+      <button id="mobile-start" type="button" aria-label="Start something"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#add"></use></svg></button>
+      <a href="#/workshop" data-route="workshop"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#workshop"></use></svg><small>Workshop</small></a>
+      <a href="#/bench" data-route="bench"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#account"></use></svg><small>Me</small></a>
     </nav>
   </div>
 

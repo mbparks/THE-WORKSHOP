@@ -66,6 +66,12 @@ const checks=[
   ,['Operations Console exposes email delivery',app.includes('EMAIL DELIVERY')&&app.includes("/api/admin/email")]
   ,['Email delivery failures are logged',server.includes("status='Failed'")&&server.includes('email_deliveries')]
   ,['Mobile connectivity indicator clears bottom navigation',css.includes('v5.7.1 — Mobile connectivity indicator')&&css.includes('bottom:calc(84px + env(safe-area-inset-bottom))')&&css.includes('.offline-status:not(.is-offline)')]
+  ,['Canonical WORKSHOP mark used in shell',html.includes('class="brand-mark"')&&css.includes('/workshop-mark.svg')]
+  ,['PWA uses raster any and maskable icons',manifest.icons.some(i=>i.purpose==='any'&&i.src==='/icon-512.png')&&manifest.icons.some(i=>i.purpose==='maskable'&&i.src==='/icon-maskable-512.png')]
+  ,['Apple and favicon assets linked',html.includes('apple-touch-icon.png')&&html.includes('favicon.ico')&&html.includes('safari-pinned-tab.svg')]
+  ,['Primary shell uses SVG icon family',html.includes('/ui-icons.svg#home')&&html.includes('/ui-icons.svg#notifications')&&!html.includes('<span>⌂</span>')]
+  ,['Maker ID uses canonical WORKSHOP mark',app.includes('class="workshop-mark"')&&app.includes('maker-id-mark')]
+  ,['Icon assets cached for PWA shell',sw.includes('/ui-icons.svg')&&sw.includes('/icon-maskable-512.png')&&sw.includes('/apple-touch-icon.png')]
 
 ];
 let failed=0;

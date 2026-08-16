@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+ <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+ <symbol id="theme" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M12 4a8 8 0 0 1 0 16"/></symbol>
+ <symbol id="notifications" viewBox="0 0 24 24"><path d="M7 9a5 5 0 0 1 10 0c0 6 2 6 2 8H5c0-2 2-2 2-8Z"/><path d="M10 20h4"/></symbol>
+ <symbol id="home" viewBox="0 0 24 24"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4Z"/></symbol>
+ <symbol id="bench" viewBox="0 0 24 24"><path d="M5 8h14l-2 7H7L5 8Z"/><path d="M8 15v5M16 15v5"/></symbol>
+ <symbol id="builds" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" transform="rotate(45 12 12)"/></symbol>
+ <symbol id="workshop" viewBox="0 0 24 24"><path d="M5 6h4v4H5zM15 6h4v4h-4zM5 14h4v4H5zM15 14h4v4h-4z"/></symbol>
+ <symbol id="library" viewBox="0 0 24 24"><path d="M5 5h4v14H5zM10 5h4v14h-4zM15 5h4v14h-4z"/></symbol>
+ <symbol id="live" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10"/></symbol>
+ <symbol id="people" viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><circle cx="16" cy="10" r="2.5"/><path d="M4 20c.5-4 2.5-6 5-6s4.5 2 5 6M14 15c3 0 5 1.6 6 5"/></symbol>
+ <symbol id="saved" viewBox="0 0 24 24"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8Z"/></symbol>
+ <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 11v6M12 7h.01"/></symbol>
+ <symbol id="add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+ <symbol id="account" viewBox="0 0 24 24"><circle cx="12" cy="9" r="3"/><path d="M5 20c.6-4.2 3-6 7-6s6.4 1.8 7 6"/></symbol>
+</svg>

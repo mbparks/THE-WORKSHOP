@@ -1,6 +1,16 @@
+# CHANGELOG
+
+## v5.8.1 — Icon & Brand Consistency
+
+- Replaced the legacy striped app icon with the canonical WORKSHOP nested-diamond mark used in the product header.
+- Added a single master mark plus consistent favicon, Apple touch, PWA, maskable, and Safari pinned-tab assets.
+- Standardized primary shell navigation and top-bar controls on one geometric line-icon family instead of mixed Unicode/browser glyphs.
+- Updated Maker ID to use the canonical WORKSHOP mark.
+- Kept the brand mark unique while normalizing utility icons to a 1.7px rounded-stroke visual language.
+
 # Changelog
 
-## v5.8.0 — Transactional Notifications
+## v5.8.1 — Transactional Notifications
 
 - Added provider-agnostic transactional email delivery with Resend and local log providers.
 - Added Operations Console email configuration, test delivery, and recent delivery status/history.
