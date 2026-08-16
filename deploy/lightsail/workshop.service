@@ -1,0 +1,23 @@
+[Unit]
+Description=THE WORKSHOP — Gears of Resistance Maker Community
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=workshop
+Group=workshop
+WorkingDirectory=/opt/the-workshop
+EnvironmentFile=/etc/the-workshop/workshop.env
+ExecStart=/usr/bin/node /opt/the-workshop/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/the-workshop /var/backups/the-workshop
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Backup THE WORKSHOP database and uploads
+After=the-workshop.service
+
+[Service]
+Type=oneshot
+User=workshop
+Group=workshop
+WorkingDirectory=/opt/the-workshop
+EnvironmentFile=/etc/the-workshop/workshop.env
+ExecStart=/usr/bin/node /opt/the-workshop/scripts/backup.js
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/the-workshop /var/backups/the-workshop

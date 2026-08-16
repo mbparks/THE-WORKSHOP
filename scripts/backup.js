@@ -1,0 +1,17 @@
+'use strict';
+const fs=require('node:fs');
+const path=require('node:path');
+const { DatabaseSync }=require('node:sqlite');
+const ROOT=path.resolve(__dirname,'..');
+const DATA=process.env.WORKSHOP_DATA_DIR?path.resolve(process.env.WORKSHOP_DATA_DIR):path.join(ROOT,'data');
+const DB=process.env.WORKSHOP_DB||path.join(DATA,'workshop.db');
+const UPLOADS=path.join(DATA,'uploads');
+const OUTROOT=process.env.WORKSHOP_BACKUP_DIR||path.join(DATA,'backups');
+fs.mkdirSync(OUTROOT,{recursive:true});
+const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+const dir=path.join(OUTROOT,stamp);fs.mkdirSync(dir,{recursive:true});
+const db=new DatabaseSync(DB);db.exec('PRAGMA wal_checkpoint(FULL)');
+const out=path.join(dir,'workshop.sqlite'),escaped=out.replaceAll("'","''");db.exec(`VACUUM INTO '${escaped}'`);db.close();
+if(fs.existsSync(UPLOADS))fs.cpSync(UPLOADS,path.join(dir,'uploads'),{recursive:true});
+fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify({createdAt:new Date().toISOString(),version:'3.5.0',database:'workshop.sqlite',uploads:'uploads'},null,2));
+console.log(dir);

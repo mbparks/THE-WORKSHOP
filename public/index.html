@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#171714">
+  <meta name="description" content="THE WORKSHOP — The Gears of Resistance Maker Community">
+  <title>THE WORKSHOP — Gears of Resistance</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to workshop</a>
+  <div id="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#/home" aria-label="THE WORKSHOP home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="brand-copy"><strong>THE WORKSHOP</strong><small>by Gears of Resistance</small></span>
+      </a>
+      <form id="global-search" class="global-search" role="search">
+        <span aria-hidden="true">⌕</span>
+        <input id="search-input" type="search" placeholder="Search the workshop" autocomplete="off" aria-label="Search projects, questions, people, and library">
+        <kbd>/</kbd>
+      </form>
+      <div class="top-actions">
+        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark mode" aria-label="Toggle light/dark mode">◐</button>
+        <button class="mode-toggle" id="mode-toggle" type="button" aria-label="Switch interface density"><span>SIMPLE</span></button>
+        <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications">⌁<b id="notification-dot" hidden></b></button>
+        <button class="user-chip" id="user-button" type="button" aria-label="Account"><span id="user-avatar">?</span><span id="user-name">ENTER</span></button>
+      </div>
+    </header>
+
+    <div class="app-frame">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <nav class="primary-nav">
+          <a href="#/home" data-route="home"><span>⌂</span>Home</a>
+          <a href="#/bench" data-route="bench"><span>▱</span>Bench</a>
+          <a href="#/builds" data-route="builds"><span>◇</span>Builds</a>
+          <a href="#/workshop" data-route="workshop"><span>☷</span>Workshop</a>
+          <a href="#/library" data-route="library"><span>▤</span>Library</a>
+          <a href="#/live" data-route="live"><span>◉</span>Live</a>
+          <a href="#/lab" data-route="lab"><span>⌘</span>Lab</a>
+          <a href="#/wall" data-route="wall"><span>▧</span>The Wall</a>
+          <a href="#/mysteries" data-route="mysteries"><span>?</span>What Is This?</a>
+          <a href="#/teardown" data-route="teardown"><span>⌖</span>Teardown Club</a>
+          <a href="#/scrap" data-route="scrap"><span>♲</span>Scrap Bin</a>
+          <a href="#/people" data-route="people"><span>◌</span>People</a>
+        </nav>
+        <button id="start-button" class="start-button" type="button"><span>＋</span> START SOMETHING</button>
+        <div class="side-secondary">
+          <a href="#/saved"><span>☆</span>Saved</a>
+          <a href="#/about"><span>i</span>About</a>
+        </div>
+        <div class="side-status">
+          <span class="status-led" aria-hidden="true"></span>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v3.5.0</small></div>
+        </div>
+      </aside>
+
+      <main id="main" tabindex="-1">
+        <div id="route-view" aria-live="polite"></div>
+      </main>
+    </div>
+
+    <nav class="mobile-nav" aria-label="Mobile navigation">
+      <a href="#/home" data-route="home"><span>⌂</span><small>Home</small></a>
+      <a href="#/bench" data-route="bench"><span>▱</span><small>Bench</small></a>
+      <button id="mobile-start" type="button" aria-label="Start something"><span>＋</span></button>
+      <a href="#/workshop" data-route="workshop"><span>☷</span><small>Talk</small></a>
+      <a href="#/library" data-route="library"><span>▤</span><small>Library</small></a>
+    </nav>
+  </div>
+
+  <div id="overlay-root"></div>
+  <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
+
+  <template id="project-card-template">
+    <article class="project-card"></article>
+  </template>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

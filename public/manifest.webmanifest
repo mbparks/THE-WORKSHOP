@@ -1,0 +1,12 @@
+{
+  "name": "THE WORKSHOP — Gears of Resistance",
+  "short_name": "WORKSHOP",
+  "start_url": "/#/home",
+  "display": "standalone",
+  "background_color": "#171714",
+  "theme_color": "#171714",
+  "description": "A virtual communal workshop for making, design, experimentation, repair, craft, engineering, and art.",
+  "icons": [
+    {"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
