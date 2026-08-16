@@ -1,6 +1,6 @@
 # Deploy THE WORKSHOP on Railway
 
-This is the recommended low-maintenance deployment path for **THE WORKSHOP v5.7.0**.
+This is the recommended low-maintenance deployment path for **THE WORKSHOP v5.8.0**.
 
 THE WORKSHOP runs as one Node.js service with a SQLite database and uploaded files. Railway supplies the application container, HTTPS/public networking, GitHub-triggered deployments, logs, and a persistent Volume.
 
@@ -62,7 +62,7 @@ THE WORKSHOP must have persistent storage because SQLite and uploaded project fi
 /data
 ```
 
-Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v5.7.0 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
+Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v5.8.0 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
 
 The resulting layout is:
 
@@ -123,7 +123,7 @@ A healthy response includes:
 ```json
 {
   "ok": true,
-  "version": "5.7.0",
+  "version": "5.8.0",
   "database": "ok"
 }
 ```
@@ -283,4 +283,19 @@ WORKSHOP_OWNER_RECOVERY_ID=PASTE_A_NEW_RANDOM_VALUE_AT_LEAST_12_CHARACTERS
 On startup, WORKSHOP will reset that account's password, reactivate it, promote it to Owner, invalidate its old sessions/tokens, and write an audit event. The recovery ID is stored as a one-time fingerprint and will not execute twice.
 
 After signing in successfully, remove `WORKSHOP_OWNER_RECOVERY`, `WORKSHOP_OWNER_RECOVERY_ID`, and the three `WORKSHOP_BOOTSTRAP_OWNER_*` values, then redeploy again.
+
+
+
+### Transactional email
+
+For production request and password-recovery email, add these Railway variables after verifying the sender domain with your email provider:
+
+```text
+WORKSHOP_EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_...
+WORKSHOP_FROM_EMAIL=THE WORKSHOP <workshop@your-verified-domain.example>
+WORKSHOP_ADMIN_EMAIL=mike@greenshoegarage.com
+```
+
+`WORKSHOP_ADMIN_EMAIL` is optional; if omitted, WORKSHOP uses the first active Owner account email. After deployment, open **Operations Console → Email Delivery** and use **SEND TEST EMAIL** before relying on external notifications.
 

@@ -56,6 +56,16 @@ const checks=[
   ,['Admin session revocation is audited',server.includes('admin.user.sessions.revoke')]
   ,['Account anonymization removes login identity',server.includes('admin.user.anonymize')&&server.includes('removed-${target.id}')]
   ,['Destructive account action requires confirmation',server.includes('Type ANONYMIZE to confirm permanent account removal')&&app.includes('Type ANONYMIZE to continue')]
+  ,['Transactional email schema implemented',server.includes('CREATE TABLE IF NOT EXISTS email_deliveries')&&server.includes('CREATE TABLE IF NOT EXISTS email_preferences')]
+  ,['Resend provider uses native fetch',server.includes("fetch('https://api.resend.com/emails'")&&server.includes('RESEND_API_KEY')]
+  ,['Admin email falls back to Owner',server.includes("role='Owner'")&&server.includes('function adminEmail()')]
+  ,['Crew requests alert administrators',server.includes('New Maker Crew request')&&server.includes("'emailCrewRequests'")]
+  ,['Moderation reports alert administrators',server.includes('THE WORKSHOP moderation report')&&server.includes("'emailModerationReports'")]
+  ,['Meetup approval email workflow exists',server.includes("'crew_attendance'")&&server.includes('Attendance request')]
+  ,['Password reset can be emailed',server.includes("'password_reset'")&&server.includes('Reset your THE WORKSHOP password')]
+  ,['Operations Console exposes email delivery',app.includes('EMAIL DELIVERY')&&app.includes("/api/admin/email")]
+  ,['Email delivery failures are logged',server.includes("status='Failed'")&&server.includes('email_deliveries')]
+  ,['Mobile connectivity indicator clears bottom navigation',css.includes('v5.7.1 — Mobile connectivity indicator')&&css.includes('bottom:calc(84px + env(safe-area-inset-bottom))')&&css.includes('.offline-status:not(.is-offline)')]
 
 ];
 let failed=0;

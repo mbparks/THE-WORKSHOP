@@ -1,5 +1,25 @@
 # Changelog
 
+## v5.8.0 — Transactional Notifications
+
+- Added provider-agnostic transactional email delivery with Resend and local log providers.
+- Added Operations Console email configuration, test delivery, and recent delivery status/history.
+- New Maker Crew requests now create in-app admin alerts and optional action email.
+- New moderation reports now create in-app admin alerts and optional action email.
+- Private Crew meetup attendance requests notify organizers; approval decisions notify attendees.
+- Password recovery and administrator-generated reset links can now be delivered directly to the member.
+- Admin email defaults to `WORKSHOP_ADMIN_EMAIL`, then falls back to the first active Owner email.
+- Added user email preferences for account security, Crew attendance, and moderation/Crew decisions.
+- Email failures never block the corresponding WORKSHOP action and are recorded for operator review.
+
+
+## v5.7.1 — Mobile Connectivity Indicator Hotfix
+
+- Prevented the floating connectivity indicator from covering mobile bottom-navigation controls.
+- Collapsed the normal ONLINE state to a small status dot positioned above the navigation.
+- Offline and queued-sync states still expand into readable pills, also above the navigation.
+- Preserved the existing accessible live-region label and tap-to-flush behavior.
+
 ## v5.7.0 — Account Management
 
 - Added a dedicated Account Management workbench inside Operations Console for Owner and Administrator roles.
