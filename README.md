@@ -1,8 +1,8 @@
 # THE WORKSHOP
 
-**THE WORKSHOP — The Gears of Resistance Maker Community**
+**THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v3.5.2**
+Current version: **v3.5.4**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -124,7 +124,7 @@ The supplied production layout keeps code, mutable community data, secrets, and 
 - restrained notifications
 - Saved shelf and Collections
 
-### Gears of Resistance publishing
+### Green Shoe Garage publishing
 
 - Shop Notes
 - Build Alongs with **START MY VERSION**
@@ -348,7 +348,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v3.5.2 release"
+git commit -m "Initial THE WORKSHOP v3.5.4 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -356,8 +356,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v3.5.2 -m "THE WORKSHOP v3.5.2"
-git push origin v3.5.2
+git tag -a v3.5.4 -m "THE WORKSHOP v3.5.4"
+git push origin v3.5.4
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**

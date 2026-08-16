@@ -157,7 +157,7 @@ You can then change the password from THE WORKSHOP account settings.
 A useful final address would be something like:
 
 ```text
-workshop.gearsofresistance.com
+workshop.greenshoegarage.com
 ```
 
 In Railway:
@@ -171,7 +171,7 @@ In Railway:
 Then set:
 
 ```text
-WORKSHOP_PUBLIC_URL=https://workshop.gearsofresistance.com
+WORKSHOP_PUBLIC_URL=https://workshop.greenshoegarage.com
 ```
 
 and redeploy.

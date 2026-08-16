@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.5.4 — 2026-08-16
+
+### Changed
+
+- Updated THE WORKSHOP branding to **Green Shoe Garage** throughout the application, seeded content, metadata, manifests, service descriptions, and documentation.
+- Updated the example production custom domain to `workshop.greenshoegarage.com`.
+
+## 3.5.3 — 2026-08-16
+
+- Change Password now requires the new password to be entered twice and validates the match in both the browser and API.
+- Logging out now always returns the user to the Home screen.
+- Preserves the v3.5.2 modal event-routing fixes.
+
+
 ## 3.5.2 — 2026-08-16
 
 ### Fixed

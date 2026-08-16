@@ -1,5 +1,5 @@
 [Unit]
-Description=THE WORKSHOP — Gears of Resistance Maker Community
+Description=THE WORKSHOP — Green Shoe Garage Maker Community
 After=network-online.target
 Wants=network-online.target
 
