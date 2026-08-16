@@ -1,6 +1,6 @@
 # Install THE WORKSHOP on Amazon Lightsail
 
-This guide deploys **THE WORKSHOP v5.8.3** on a single Amazon Lightsail Ubuntu instance using:
+This guide deploys **THE WORKSHOP v5.8.4** on a single Amazon Lightsail Ubuntu instance using:
 
 - Ubuntu LTS;
 - Node.js 22;
@@ -217,7 +217,7 @@ Test the application directly from the server:
 curl --fail http://127.0.0.1:8787/api/health
 ```
 
-You should receive JSON reporting a healthy application and version `5.8.3`.
+You should receive JSON reporting a healthy application and version `5.8.4`.
 
 If this fails, fix the application before moving on to Nginx or TLS.
 
@@ -425,7 +425,7 @@ Example:
 
 ```bash
 sudo systemctl stop the-workshop
-sudo -u workshop git -C /opt/the-workshop checkout v5.8.3
+sudo -u workshop git -C /opt/the-workshop checkout v5.8.4
 sudo systemctl start the-workshop
 ```
 

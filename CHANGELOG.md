@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v5.8.4 — Mobile Maker Crew Access
+
+- Added a dedicated Maker Crew hub to the signed-in member’s mobile Bench / Me experience.
+- Primary Crew members now get one-tap shortcuts to Crew Home, Meetups, Local Bench, Bulletin Board, and Crew discovery.
+- Members without a Crew get a direct Find a Maker Crew call-to-action without requiring GPS or a home address.
+- Added Crew access to the Account sheet for quicker mobile navigation.
+- Replaced hash-conflicting Crew section anchors with router-safe Crew subroutes such as `#/crew/<id>/meetups`.
+- Added smooth section targeting for Meetups, Local Bench, Skills, Tools, Scrap, Questions, Bulletin, and Sessions.
+- Preserved the five-item mobile bottom navigation and dark-mode icon contrast fixes.
+
 ## v5.8.3 — Mobile Dark-Mode Icon Contrast
 
 - Increased contrast of the mobile Theme and Notifications controls in dark mode.
