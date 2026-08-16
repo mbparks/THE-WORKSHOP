@@ -7,10 +7,10 @@
   <meta name="description" content="THE WORKSHOP — The Green Shoe Garage Maker Community">
   <title>THE WORKSHOP — Green Shoe Garage</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/icon.svg" type="image/svg+xml">
-  <link rel="icon" href="/favicon.ico" sizes="any">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#10130f">
+  <link rel="icon" href="/icon.svg?v=5.8.2" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico?v=5.8.2" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=5.8.2">
+  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=5.8.2" color="#10130f">
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -22,14 +22,14 @@
         <span class="brand-copy"><strong>THE WORKSHOP</strong><small>by Green Shoe Garage</small></span>
       </a>
       <form id="global-search" class="global-search" role="search">
-        <svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#search"></use></svg>
+        <svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg>
         <input id="search-input" type="search" placeholder="Search the workshop" autocomplete="off" aria-label="Search projects, questions, people, and library">
         <kbd>/</kbd>
       </form>
       <div class="top-actions">
-        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark mode" aria-label="Toggle light/dark mode"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#theme"></use></svg></button>
+        <button class="icon-btn" id="theme-toggle" type="button" title="Toggle light/dark mode" aria-label="Toggle light/dark mode"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M12 4a8 8 0 0 1 0 16"/></svg></button>
         <button class="mode-toggle" id="mode-toggle" type="button" aria-label="Switch interface density"><span>SIMPLE</span></button>
-        <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#notifications"></use></svg><b id="notification-dot" hidden></b></button>
+        <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 9a5 5 0 0 1 10 0c0 6 2 6 2 8H5c0-2 2-2 2-8Z"/><path d="M10 20h4"/></svg><b id="notification-dot" hidden></b></button>
         <button class="user-chip" id="user-button" type="button" aria-label="Account"><span id="user-avatar">?</span><span id="user-name">ENTER</span></button>
       </div>
     </header>
@@ -37,23 +37,23 @@
     <div class="app-frame">
       <aside class="sidebar" aria-label="Primary navigation">
         <nav class="primary-nav">
-          <a href="#/home" data-route="home"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#home"></use></svg>Home</a>
-          <a href="#/bench" data-route="bench"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#bench"></use></svg>Bench</a>
-          <a href="#/builds" data-route="builds"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#builds"></use></svg>Builds</a>
-          <a href="#/workshop" data-route="workshop"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#workshop"></use></svg>Workshop</a>
-          <a href="#/library" data-route="library"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#library"></use></svg>Library</a>
-          <a href="#/live" data-route="live"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#live"></use></svg>Live</a>
-          <a href="#/people" data-route="people"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#people"></use></svg>People</a>
+          <a href="#/home" data-route="home"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4Z"/></svg></span>Home</a>
+          <a href="#/bench" data-route="bench"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 8h14l-2 7H7L5 8Z"/><path d="M8 15v5M16 15v5"/></svg></span>Bench</a>
+          <a href="#/builds" data-route="builds"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" transform="rotate(45 12 12)"/></svg></span>Builds</a>
+          <a href="#/workshop" data-route="workshop"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="6" width="4" height="4"/><rect x="15" y="6" width="4" height="4"/><rect x="5" y="14" width="4" height="4"/><rect x="15" y="14" width="4" height="4"/></svg></span>Workshop</a>
+          <a href="#/library" data-route="library"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5h4v14H5zM10 5h4v14h-4zM15 5h4v14h-4z"/></svg></span>Library</a>
+          <a href="#/live" data-route="live"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3"/><path d="M7 7a7 7 0 0 0 0 10M17 7a7 7 0 0 1 0 10"/></svg></span>Live</a>
+          <a href="#/people" data-route="people"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="9" cy="9" r="3"/><circle cx="16" cy="10" r="2.5"/><path d="M4 20c.5-4 2.5-6 5-6s4.5 2 5 6M14 15c3 0 5 1.6 6 5"/></svg></span>People</a>
         </nav>
         <div id="context-nav" class="context-nav" aria-label="Section navigation"></div>
-        <button id="start-button" class="start-button" type="button"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#add"></use></svg> START SOMETHING</button>
+        <button id="start-button" class="start-button" type="button"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg> START SOMETHING</button>
         <div class="side-secondary">
-          <a href="#/saved"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#saved"></use></svg>Saved</a>
-          <a href="#/about"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#info"></use></svg>About</a>
+          <a href="#/saved"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 4 2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.6-4.8 2.6.9-5.4-3.9-3.8 5.4-.8Z"/></svg></span>Saved</a>
+          <a href="#/about"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8"/><path d="M12 11v6M12 7h.01"/></svg></span>About</a>
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v5.8.1</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v5.8.2</small></div>
         </div>
       </aside>
 
@@ -64,11 +64,11 @@
     </div>
 
     <nav class="mobile-nav" aria-label="Mobile navigation">
-      <a href="#/home" data-route="home"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#home"></use></svg><small>Home</small></a>
-      <a href="#/builds" data-route="builds"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#builds"></use></svg><small>Builds</small></a>
-      <button id="mobile-start" type="button" aria-label="Start something"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#add"></use></svg></button>
-      <a href="#/workshop" data-route="workshop"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#workshop"></use></svg><small>Workshop</small></a>
-      <a href="#/bench" data-route="bench"><svg class="ui-icon" aria-hidden="true"><use href="/ui-icons.svg#account"></use></svg><small>Me</small></a>
+      <a href="#/home" data-route="home"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 11 8-7 8 7v9h-6v-6h-4v6H4Z"/></svg></span><small>Home</small></a>
+      <a href="#/builds" data-route="builds"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" transform="rotate(45 12 12)"/></svg></span><small>Builds</small></a>
+      <button id="mobile-start" type="button" aria-label="Start something"><span class="mobile-start-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></span></button>
+      <a href="#/workshop" data-route="workshop"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="5" y="6" width="4" height="4"/><rect x="15" y="6" width="4" height="4"/><rect x="5" y="14" width="4" height="4"/><rect x="15" y="14" width="4" height="4"/></svg></span><small>Workshop</small></a>
+      <a href="#/bench" data-route="bench"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="9" r="3"/><path d="M5 20c.6-4.2 3-6 7-6s6.4 1.8 7 6"/></svg></span><small>Me</small></a>
     </nav>
   </div>
 

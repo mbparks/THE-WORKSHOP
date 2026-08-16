@@ -69,9 +69,11 @@ const checks=[
   ,['Canonical WORKSHOP mark used in shell',html.includes('class="brand-mark"')&&css.includes('/workshop-mark.svg')]
   ,['PWA uses raster any and maskable icons',manifest.icons.some(i=>i.purpose==='any'&&i.src==='/icon-512.png')&&manifest.icons.some(i=>i.purpose==='maskable'&&i.src==='/icon-maskable-512.png')]
   ,['Apple and favicon assets linked',html.includes('apple-touch-icon.png')&&html.includes('favicon.ico')&&html.includes('safari-pinned-tab.svg')]
-  ,['Primary shell uses SVG icon family',html.includes('/ui-icons.svg#home')&&html.includes('/ui-icons.svg#notifications')&&!html.includes('<span>⌂</span>')]
+  ,['Primary shell uses inline SVG icon family',html.includes('class="nav-icon"')&&html.includes('viewBox="0 0 24 24"')&&!html.includes('/ui-icons.svg#')&&!html.includes('<span>⌂</span>')]
+  ,['Mobile navigation retains five destinations',(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/builds')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/workshop')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/bench')]
+  ,['Mobile navigation enforces five equal columns',css.includes('repeat(5,minmax(0,1fr))!important')]
   ,['Maker ID uses canonical WORKSHOP mark',app.includes('class="workshop-mark"')&&app.includes('maker-id-mark')]
-  ,['Icon assets cached for PWA shell',sw.includes('/ui-icons.svg')&&sw.includes('/icon-maskable-512.png')&&sw.includes('/apple-touch-icon.png')]
+  ,['Icon assets cached for PWA shell',!sw.includes('/ui-icons.svg')&&sw.includes('/icon-maskable-512.png')&&sw.includes('/apple-touch-icon.png')]
 
 ];
 let failed=0;

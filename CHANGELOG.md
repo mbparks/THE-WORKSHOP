@@ -10,7 +10,16 @@
 
 # Changelog
 
-## v5.8.1 — Transactional Notifications
+## v5.8.2 — Mobile Navigation + Inline Icon Recovery
+
+- Reverted the v5.8.1 shell markup regression that collapsed mobile navigation on iOS/Brave.
+- Replaced external SVG sprite references with inline SVG paths for reliable rendering across iOS browsers.
+- Restored five equal mobile navigation targets: Home, Builds, Start, Workshop, and Me.
+- Kept the canonical nested-diamond WORKSHOP brand assets introduced in v5.8.1.
+- Added icon metadata cache-busting and bumped the service-worker cache to force fresh shell assets after deployment.
+- Added release QA checks for inline icons and the five-column mobile navigation contract.
+
+## v5.8.0 — Transactional Notifications
 
 - Added provider-agnostic transactional email delivery with Resend and local log providers.
 - Added Operations Console email configuration, test delivery, and recent delivery status/history.
