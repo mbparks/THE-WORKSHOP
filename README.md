@@ -2,7 +2,7 @@
 
 **THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v4.0.3**
+Current version: **v5.7.0**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -12,11 +12,28 @@ The fundamental object is the **Project**, not the post. Projects can remain inc
 
 The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
 
-## v4.0.3 experience pass
+## v5.7.0 — Maker Crews
 
-Run `npm run qa` before deployment to execute syntax and accessibility-regression checks.
+This release adds **Maker Crews**, a privacy-conscious local chapter system built around ZIP/postal-code affiliation rather than GPS or home addresses. A Crew can use a compact identity such as **MC21502**, cover multiple nearby ZIPs, organize meetups, coordinate local projects and Sessions, exchange skills and scrap, and maintain a short-lived bulletin board.
 
-This release completes the first interaction/accessibility polish pass: modal focus management, keyboard route focus, loading skeletons, retryable error states, restrained motion, reduced-motion/contrast support, and larger mobile touch targets. It is schema-neutral and can be deployed over the existing persistent Railway data volume.
+Core local loop:
+
+**FIND → JOIN → MEET → MAKE → SHARE LOCALLY**
+
+Highlights:
+
+- ZIP/postal search with optional centroid-to-centroid approximate distance; no member GPS requirement.
+- Explicit join/leave and Public / Members / Private Crew-affiliation visibility.
+- Crew Member / Organizer / Moderator roles that do not grant global WORKSHOP permissions.
+- Local Projects, questions, Scrap Bin listings, Skill Exchange, and Tool Cabinet availability.
+- Meetups with public or protected exact addresses and optional organizer approval.
+- Crew Sessions and Assignments reusing the existing WORKSHOP Session system.
+- Crew request/approval workflow plus Crew Studio operations.
+- Maker Crews in global search, People navigation, Home's **Around Your Bench**, project badges, personal data export, and responsive/mobile layouts.
+
+Run `npm run qa` before deployment. The v5.7.0 suite currently contains **37 static release checks**, with separate runtime smoke tests used during development for privacy, migration, and Crew lifecycle verification.
+
+The migration is additive. Existing Projects, Sessions, accounts, and Railway `/data` content remain in place; new Crew tables and lightweight Crew relationship columns are created automatically at startup.
 
 ## Quick start
 
@@ -354,7 +371,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v4.0.3 release"
+git commit -m "Initial THE WORKSHOP v5.7.0 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -362,8 +379,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v4.0.3 -m "THE WORKSHOP v4.0.3"
-git push origin v4.0.3
+git tag -a v5.7.0 -m "THE WORKSHOP v5.7.0"
+git push origin v5.7.0
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**
@@ -424,3 +441,19 @@ A software license has not been selected in this package. Until the repository o
 ## One-time Owner recovery
 
 Production deployments can explicitly recover an existing Owner account with `WORKSHOP_OWNER_RECOVERY=1`, the bootstrap Owner email/password, and a unique `WORKSHOP_OWNER_RECOVERY_ID`. Each recovery ID executes once, invalidates prior sessions, and is audit logged. See `DEPLOYMENT_RAILWAY.md` for the exact procedure.
+
+## Sessions and participation
+
+WORKSHOP v4.7 adds a participation layer built around **SESSION → ASSIGNMENT → PROJECT → SHOW THE WORK → WALK THE BENCHES → MAKER ID**. Assignment responses remain normal Projects, reflections are written into the Project notebook, Session resources reuse the Library, Live events reuse the existing Live system, and final Session exhibitions reuse The Wall. There are no points, ranks, streaks, or competitive grading.
+
+Editors can author Sessions and Assignments in Deep mode through **Session Studio**.
+
+
+## Account Management
+
+Owners and Administrators can open **Account → Operations Console → Members → Manage** for account-security and lifecycle operations. Account Management supports role/state changes, one-time password reset links, forced password reset on next login, session revocation, and permanent anonymization/removal of an account. Security and destructive operations require an administrative reason and are written to the audit trail.
+
+A generated reset link is valid for 30 minutes. THE WORKSHOP does not currently send transactional email itself; administrators should deliver the generated link through a trusted channel.
+
+Permanent account removal deliberately uses an anonymized tombstone rather than deleting the user row outright. This removes credentials and personal identity while preserving project ownership references, moderation evidence, and audit integrity as **Removed member**. Harmful content itself can still be removed through the moderation queue.
+

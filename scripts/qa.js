@@ -30,9 +30,36 @@ const checks=[
   ['uploads stream with byte ranges',server.includes(`'Accept-Ranges':'bytes'`)&&server.includes('createReadStream')],
   ['service worker excludes private uploads',sw.includes("u.pathname.startsWith('/uploads/')")],
   ['service worker uses cache-first shell assets',sw.includes('return cached||fresh')],
-  ['lazy images decode asynchronously',app.includes('decoding=\"async\"')]
+  ['lazy images decode asynchronously',app.includes('decoding=\"async\"')],
+  ['Sessions API implemented',server.includes("pathname==='/api/sessions'")],
+  ['Assignments create linked projects',server.includes('/start$/')&&server.includes('assignment_projects')],
+  ['Show the Work writes notebook result',server.includes('SHOW THE WORK')&&server.includes('work_submissions')],
+  ['Walk the Benches is non-scored',server.includes('peer_reflections')&&!server.includes('peer_score')],
+  ['Maker ID implemented',app.includes('renderMakerId')&&server.includes('makerIdData')],
+  ['Session Studio implemented',app.includes('sessionStudio')],
+  ['Maker Crew schema implemented',server.includes('CREATE TABLE IF NOT EXISTS maker_crews')&&server.includes('maker_crew_members')],
+  ['Crew ZIP discovery implemented',server.includes('crewDiscovery')&&server.includes('maker_crew_postal_codes')],
+  ['Crew membership is explicit',server.includes("/join$/")&&server.includes('affiliation_visibility')],
+  ['Crew roles stay local',server.includes('isCrewOrganizer')&&server.includes('Crew organizer access required')],
+  ['Meetup exact-address privacy exists',server.includes('address_visibility')&&server.includes("showAddress=e.address_visibility==='Public'")],
+  ['Local tools do not expose storage location',server.includes('local_availability')&&app.includes('never publishes where this tool is stored')],
+  ['Crew bulletin board implemented',server.includes('maker_crew_bulletin_posts')&&app.includes('CREW BULLETIN BOARD')],
+  ['Crew Sessions reuse Session system',server.includes('canManageWorkshopSession')&&app.includes('crewSessionForm')],
+  ['Crew request approval implemented',server.includes('crew.request.review')&&app.includes('crew-request-review')],
+  ['Crew participation included in export',server.includes('crewMemberships')&&server.includes('crewAttendance')],
+  ['Maker Crews included in global search',server.includes("want('crews')")&&app.includes("['crews','Maker Crews']")],
+  ['Crew UI is responsive',css.includes('crew-pulse-grid')&&css.includes('@media(max-width:760px)')],
+  ['Crew identity respects affiliation visibility',server.includes('visiblePrimaryCrew')&&app.includes('maker-id-crew')&&app.includes('bench-crew-link')]
+  ,['Admin account details implemented',server.includes('reset-link|force-reset|sessions|anonymize')&&app.includes('ACCOUNT MANAGEMENT')]
+  ,['Admin reset links are time limited',server.includes("issueAuthToken(target.id,'reset',30)")&&app.includes('ONE-TIME RESET LINK')]
+  ,['Forced password reset revokes sessions',server.includes('force_password_reset=1')&&server.includes('account.forced_password.complete')]
+  ,['Admin session revocation is audited',server.includes('admin.user.sessions.revoke')]
+  ,['Account anonymization removes login identity',server.includes('admin.user.anonymize')&&server.includes('removed-${target.id}')]
+  ,['Destructive account action requires confirmation',server.includes('Type ANONYMIZE to confirm permanent account removal')&&app.includes('Type ANONYMIZE to continue')]
+
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
 if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}
+
 console.log(`\n${checks.length} QA checks passed for v${pkg.version}.`);

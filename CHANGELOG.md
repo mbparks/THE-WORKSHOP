@@ -1,5 +1,36 @@
 # Changelog
 
+## v5.7.0 — Account Management
+
+- Added a dedicated Account Management workbench inside Operations Console for Owner and Administrator roles.
+- Added account search by member name, email, role, and account state.
+- Added one-time 30-minute password reset-link generation with optional session invalidation.
+- Added Force Password Reset on Next Login; forced-reset sessions cannot dismiss the change-password dialog until the password is replaced.
+- Added explicit Sign Out All Sessions action.
+- Added Disabled as an administrative account state alongside Active, Suspended, and Banned.
+- Added permanent account anonymization/removal: credentials, email identity, profile data, memberships, sessions, recovery tokens, notifications, saves, and collections are removed while project/moderation history remains attributable to a non-identifying “Removed member” tombstone.
+- Added required administrative reasons and audit entries for reset links, forced resets, session revocation, role/state changes, and anonymization.
+- Added account-level audit history to the member-management dialog.
+- Added browser-accessible `#/reset/<token>` recovery links for production administration.
+- Expanded release QA from 38 to 44 checks.
+- Migration remains additive and preserves existing users/projects.
+
+## v5.7.0 — Maker Crews (Batches 52–60)
+
+- Added Maker Crew identities such as `MC21502`, with anchor ZIP/postal code plus optional multi-ZIP coverage.
+- Added explicit Crew membership, primary Crew, affiliation visibility, and local Member / Organizer / Moderator roles.
+- Added ZIP/postal discovery with optional approximate centroid distance and no member GPS requirement.
+- Added Crew pages centered on **WHAT’S HAPPENING NEARBY?** with local projects, questions, skills, tools, scrap, meetups, bulletin posts, announcements, and Crew Sessions.
+- Added Tool Cabinet local-help availability without publishing tool storage locations.
+- Added meetups with Public / Members visibility, protected exact addresses, RSVP states, optional organizer approval, and private attendance handling.
+- Added Crew Projects and Crew Sessions by composing the existing Project and Session systems rather than creating parallel content silos.
+- Added Crew request/approval workflow, coverage management, local member roles, Crew Studio, pause/archive support through Crew editing APIs, and global administrative review.
+- Added Crew bulletin posts with optional expiry and types such as Looking For, Can Help, Going, Found, and Question.
+- Added Home **Around Your Bench**, People → Maker Crews navigation, Crew project badges, Maker Crew global search, and personal export of Crew participation.
+- Added responsive Crew layouts and privacy-oriented copy throughout.
+- Expanded `npm run qa` from 25 to 37 release checks.
+- Migration is additive: existing content is preserved and Crew tables/relationship columns are created automatically.
+
 ## v4.0.3 — Safari Route Focus Hotfix
 
 - Removed programmatic DOM focus from route headings entirely, eliminating Safari's native blue focus highlight around large multiline headings such as **WHAT ARE YOU MAKING?**.
