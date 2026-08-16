@@ -4,6 +4,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const zlib = require('node:zlib');
 const { URL } = require('node:url');
 const { DatabaseSync } = require('node:sqlite');
 
@@ -16,7 +17,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '3.5.6';
+const APP_VERSION = '4.0.0';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
 const RATE_LIMIT_DISABLED = process.env.WORKSHOP_RATE_LIMIT === '0';
@@ -58,13 +59,26 @@ function safeUser(u) {
   if (!u) return null;
   return { id: u.id, email: u.email, displayName: u.display_name, bio: u.bio, cityRegion: u.city_region, role: u.role, avatarSeed: u.avatar_seed, skills:json(u.skills), tools:json(u.tools), canHelp:json(u.can_help), wantLearn:json(u.want_learn), profileVisibility:u.profile_visibility||'Members', locationVisibility:u.location_visibility||'Members', toolCabinetVisibility:u.tool_cabinet_visibility||'Members', emailVerified:Boolean(u.email_verified), membership:membershipFor(u.id), supporter:isSupporterUser(u) };
 }
+function encodeResponse(res, body, type, cacheControl='no-store', headers={}) {
+  const raw=Buffer.isBuffer(body)?body:Buffer.from(String(body));
+  const base={'Content-Type':type,'Cache-Control':cacheControl,'Vary':'Accept-Encoding',...headers};
+  const accepted=String(res._acceptEncoding||'');
+  if(raw.length>=1024 && /\bbr\b/.test(accepted)){
+    const encoded=zlib.brotliCompressSync(raw,{params:{[zlib.constants.BROTLI_PARAM_QUALITY]:4}});
+    res.writeHead(res._statusCode||200,{...base,'Content-Encoding':'br','Content-Length':encoded.length});res.end(encoded);return;
+  }
+  if(raw.length>=1024 && /\bgzip\b/.test(accepted)){
+    const encoded=zlib.gzipSync(raw,{level:6});
+    res.writeHead(res._statusCode||200,{...base,'Content-Encoding':'gzip','Content-Length':encoded.length});res.end(encoded);return;
+  }
+  res.writeHead(res._statusCode||200,{...base,'Content-Length':raw.length});res.end(raw);
+}
 function sendJson(res, code, payload, headers = {}) {
-  const body = JSON.stringify(payload);
-  res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...headers });
-  res.end(body);
+  res._statusCode=code;
+  encodeResponse(res,JSON.stringify(payload),'application/json; charset=utf-8','no-store',headers);
 }
 function sendText(res, code, body, type='text/plain; charset=utf-8') {
-  res.writeHead(code, { 'Content-Type': type }); res.end(body);
+  res._statusCode=code; encodeResponse(res,body,type,'no-store');
 }
 async function readBody(req, max = 2_000_000) {
   return await new Promise((resolve, reject) => {
@@ -1337,18 +1351,47 @@ function routeApi(req, res, url) {
 }
 
 const MIME = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.json':'application/json; charset=utf-8','.webmanifest':'application/manifest+json','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon'};
+const staticCache=new Map();
+function cachedStatic(file){
+  let hit=staticCache.get(file); if(hit)return hit;
+  const data=fs.readFileSync(file),stat=fs.statSync(file),etag=`"${crypto.createHash('sha1').update(data).digest('hex').slice(0,20)}"`;
+  hit={data,etag,mtime:stat.mtime.toUTCString(),br:data.length>=1024?zlib.brotliCompressSync(data,{params:{[zlib.constants.BROTLI_PARAM_QUALITY]:4}}):null,gzip:data.length>=1024?zlib.gzipSync(data,{level:6}):null};
+  staticCache.set(file,hit); return hit;
+}
+function serveUpload(req,res,file,row){
+  fs.stat(file,(err,stat)=>{
+    if(err)return sendText(res,404,'Not found');
+    const common={'Content-Type':row.mime_type||'application/octet-stream','Content-Disposition':'inline','X-Content-Type-Options':'nosniff','Cache-Control':'private, max-age=300','Accept-Ranges':'bytes'};
+    const range=String(req.headers.range||'');
+    if(range){
+      const m=range.match(/^bytes=(\d*)-(\d*)$/); if(!m)return res.writeHead(416,{'Content-Range':`bytes */${stat.size}`}).end();
+      let start=m[1]?Number(m[1]):0,end=m[2]?Number(m[2]):stat.size-1;
+      if(!m[1]&&m[2]){const tail=Math.min(Number(m[2]),stat.size);start=stat.size-tail;end=stat.size-1;}
+      if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<start||start>=stat.size)return res.writeHead(416,{'Content-Range':`bytes */${stat.size}`}).end();
+      end=Math.min(end,stat.size-1);res.writeHead(206,{...common,'Content-Range':`bytes ${start}-${end}/${stat.size}`,'Content-Length':end-start+1});
+      return fs.createReadStream(file,{start,end}).pipe(res);
+    }
+    res.writeHead(200,{...common,'Content-Length':stat.size});fs.createReadStream(file).pipe(res);
+  });
+}
 function serveStatic(req,res,url){
-  if(url.pathname.startsWith('/uploads/')){const name=decodeURIComponent(url.pathname.slice(9));const file=path.normalize(path.join(UPLOADS,name));if(!file.startsWith(UPLOADS))return sendText(res,403,'Forbidden');const row=db.prepare(`SELECT f.mime_type,p.visibility,p.owner_id,p.id project_id FROM project_files f JOIN projects p ON p.id=f.project_id WHERE f.stored_name=?`).get(name);if(!row)return sendText(res,404,'Not found');const viewer=currentUser(req);const allowed=row.visibility==='Public'||(row.visibility==='Members'&&viewer)||(viewer&&(viewer.id===row.owner_id||db.prepare('SELECT 1 FROM project_collaborators WHERE project_id=? AND user_id=?').get(row.project_id,viewer.id)));if(!allowed)return sendText(res,403,'This project file is not visible to you.');return fs.readFile(file,(err,data)=>{if(err)return sendText(res,404,'Not found');res.writeHead(200,{'Content-Type':row.mime_type||'application/octet-stream','Content-Disposition':'inline','X-Content-Type-Options':'nosniff','Cache-Control':'private, max-age=300'});res.end(data)});}
+  if(url.pathname.startsWith('/uploads/')){const name=decodeURIComponent(url.pathname.slice(9));const file=path.normalize(path.join(UPLOADS,name));if(!file.startsWith(UPLOADS))return sendText(res,403,'Forbidden');const row=db.prepare(`SELECT f.mime_type,p.visibility,p.owner_id,p.id project_id FROM project_files f JOIN projects p ON p.id=f.project_id WHERE f.stored_name=?`).get(name);if(!row)return sendText(res,404,'Not found');const viewer=currentUser(req);const allowed=row.visibility==='Public'||(row.visibility==='Members'&&viewer)||(viewer&&(viewer.id===row.owner_id||db.prepare('SELECT 1 FROM project_collaborators WHERE project_id=? AND user_id=?').get(row.project_id,viewer.id)));if(!allowed)return sendText(res,403,'This project file is not visible to you.');return serveUpload(req,res,file,row);}
 
   let rel = decodeURIComponent(url.pathname);
   if(rel==='/' || !path.extname(rel)) rel='/index.html';
   const file=path.normalize(path.join(PUBLIC,rel));
   if(!file.startsWith(PUBLIC)) return sendText(res,403,'Forbidden');
-  fs.readFile(file,(err,data)=>{ if(err)return sendText(res,404,'Not found'); res.writeHead(200,{'Content-Type':MIME[path.extname(file)]||'application/octet-stream','Cache-Control':path.extname(file)==='.html'?'no-cache':'public, max-age=300'}); res.end(data); });
+  let hit;try{hit=cachedStatic(file)}catch{return sendText(res,404,'Not found')}
+  if(req.headers['if-none-match']===hit.etag){res.writeHead(304,{'ETag':hit.etag,'Cache-Control':path.extname(file)==='.html'?'no-cache':'public, max-age=3600, must-revalidate'});return res.end();}
+  const headers={'Content-Type':MIME[path.extname(file)]||'application/octet-stream','Cache-Control':path.extname(file)==='.html'?'no-cache':'public, max-age=3600, must-revalidate','ETag':hit.etag,'Last-Modified':hit.mtime,'Vary':'Accept-Encoding'};
+  const accepted=String(req.headers['accept-encoding']||'');
+  if(hit.br&&/\bbr\b/.test(accepted)){res.writeHead(200,{...headers,'Content-Encoding':'br','Content-Length':hit.br.length});return res.end(hit.br)}
+  if(hit.gzip&&/\bgzip\b/.test(accepted)){res.writeHead(200,{...headers,'Content-Encoding':'gzip','Content-Length':hit.gzip.length});return res.end(hit.gzip)}
+  res.writeHead(200,{...headers,'Content-Length':hit.data.length});res.end(hit.data);
 }
 
 const server=http.createServer((req,res)=>{
-  const requestId=crypto.randomUUID();securityHeaders(res,requestId);
+  const requestId=crypto.randomUUID();res._acceptEncoding=req.headers['accept-encoding']||'';securityHeaders(res,requestId);
   const url=new URL(req.url,`http://${req.headers.host||'localhost'}`);
   if(!originAllowed(req))return sendJson(res,403,{error:'Request origin was not accepted.'});
   const ip=requestIp(req);

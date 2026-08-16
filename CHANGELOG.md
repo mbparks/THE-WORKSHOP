@@ -1,5 +1,33 @@
 # Changelog
 
+## v4.0.0 — Experience Redesign + Performance
+
+- Completed the v4 visual and interaction redesign across Home, Projects, Maker Notebook, Start Something, Bench, People, The Wall, and Mobile Workshop.
+- Added modal focus trapping, focus restoration, labelled dialogs, route focus management, loading skeletons, retryable errors, reduced motion, higher-contrast support, and improved live-region semantics.
+- Added Brotli/Gzip compression for JSON and static responses.
+- Added in-memory static asset caching with ETags and conditional `304 Not Modified` responses.
+- Added streamed project-file delivery with HTTP byte-range support for large media/CAD artifacts instead of buffering whole uploads in memory.
+- Switched repeat PWA shell loads to cache-first/stale-refresh behavior while explicitly excluding `/uploads/` from service-worker storage.
+- Added asynchronous image decoding and lazy loading across non-critical imagery while prioritizing the featured image.
+- Expanded `npm run qa` to cover performance and private-upload cache safeguards.
+- Kept the release schema-neutral for safe Railway deployment over the existing `/data` volume.
+
+## 4.0.0 — Project experience + Maker Notebook (Batches 36–37)
+
+- Rebuilt Project pages around an image-led hero, stage journey, concise overview, and clear section navigation.
+- Moved operational metadata, files, team, tasks, GitHub, critique, and Clinic tooling into Deep-mode sections.
+- Redesigned Build Logs as a maker notebook with distinct visual language for ideas, tests, failures, decisions, revisions, and results.
+- Structured measurements, observations, test results, problems, decisions, and next questions into readable evidence blocks.
+- Improved notebook composition with entry-specific prompts while preserving autosave and existing APIs.
+- Added responsive project/notebook layouts without database schema changes.
+
+## 3.9.0 — Experience foundation (Batches 33–35)
+
+- Introduced a unified visual system for typography, surfaces, spacing, controls, cards, project states, focus behavior, and light/dark themes.
+- Reduced primary navigation to Home, Bench, Builds, Workshop, Library, Live, and People; added contextual section navigation and a purpose-built mobile nav.
+- Rebuilt Home as an editorial workshop entrance centered on “WHAT ARE YOU MAKING?”, with workshop pulse, featured bench work, community projects, useful questions, Shop Notes, prompts, The Wall, Live, Field Instruments, and Shop Manual content.
+- Project cards now support real cover imagery, stronger stage/maker hierarchy, and technical notebook metadata.
+- Added reduced-motion handling and responsive editorial layouts.
 
 ## 3.5.6 — Owner recovery hardening
 

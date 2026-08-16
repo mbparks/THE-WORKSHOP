@@ -40,13 +40,9 @@
           <a href="#/workshop" data-route="workshop"><span>☷</span>Workshop</a>
           <a href="#/library" data-route="library"><span>▤</span>Library</a>
           <a href="#/live" data-route="live"><span>◉</span>Live</a>
-          <a href="#/lab" data-route="lab"><span>⌘</span>Lab</a>
-          <a href="#/wall" data-route="wall"><span>▧</span>The Wall</a>
-          <a href="#/mysteries" data-route="mysteries"><span>?</span>What Is This?</a>
-          <a href="#/teardown" data-route="teardown"><span>⌖</span>Teardown Club</a>
-          <a href="#/scrap" data-route="scrap"><span>♲</span>Scrap Bin</a>
           <a href="#/people" data-route="people"><span>◌</span>People</a>
         </nav>
+        <div id="context-nav" class="context-nav" aria-label="Section navigation"></div>
         <button id="start-button" class="start-button" type="button"><span>＋</span> START SOMETHING</button>
         <div class="side-secondary">
           <a href="#/saved"><span>☆</span>Saved</a>
@@ -54,25 +50,25 @@
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v3.5.6</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v4.0.0</small></div>
         </div>
       </aside>
 
-      <main id="main" tabindex="-1">
+      <main id="main" tabindex="-1" aria-label="Workshop content">
         <div id="route-view" aria-live="polite"></div>
       </main>
     </div>
 
     <nav class="mobile-nav" aria-label="Mobile navigation">
       <a href="#/home" data-route="home"><span>⌂</span><small>Home</small></a>
-      <a href="#/bench" data-route="bench"><span>▱</span><small>Bench</small></a>
+      <a href="#/builds" data-route="builds"><span>◇</span><small>Builds</small></a>
       <button id="mobile-start" type="button" aria-label="Start something"><span>＋</span></button>
-      <a href="#/workshop" data-route="workshop"><span>☷</span><small>Talk</small></a>
-      <a href="#/library" data-route="library"><span>▤</span><small>Library</small></a>
+      <a href="#/workshop" data-route="workshop"><span>☷</span><small>Workshop</small></a>
+      <a href="#/bench" data-route="bench"><span>▱</span><small>Me</small></a>
     </nav>
   </div>
 
-  <div id="overlay-root"></div>
+  <div id="overlay-root" aria-live="off"></div>
   <div id="toast-root" aria-live="polite" aria-atomic="true"></div>
 
   <template id="project-card-template">

@@ -1,12 +1,13 @@
 {
   "name": "the-workshop",
-  "version": "3.5.6",
+  "version": "4.0.0",
   "private": true,
   "description": "THE WORKSHOP \u2014 The Green Shoe Garage Maker Community",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "backup": "node scripts/backup.js"
+    "backup": "node scripts/backup.js",
+    "qa": "node --check server.js && node --check public/app.js && node scripts/qa.js"
   },
   "engines": {
     "node": ">=22.5.0"
