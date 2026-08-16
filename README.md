@@ -2,7 +2,7 @@
 
 **THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v5.8.4**
+Current version: **v5.8.3**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -12,9 +12,9 @@ The fundamental object is the **Project**, not the post. Projects can remain inc
 
 The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
 
-## v5.8.4 — Mobile Maker Crew Access
+## v5.8.3 — Transactional Notifications
 
-This release improves **mobile access to Maker Crews** while preserving the five fixed bottom-navigation destinations. The signed-in Me / Bench screen now exposes a primary Crew hub with direct shortcuts to Crew Home, Meetups, Local Bench, Bulletin Board, and Crew discovery. Members without a Crew get a direct local-discovery call-to-action.
+This release adds **action-oriented transactional email** for requests and security events while preserving WORKSHOP’s restrained notification philosophy. Maker Crews remain fully integrated from v5.6. A Crew can use a compact identity such as **MC21502**, cover multiple nearby ZIPs, organize meetups, coordinate local projects and Sessions, exchange skills and scrap, and maintain a short-lived bulletin board.
 
 Core local loop:
 
@@ -31,14 +31,14 @@ Highlights:
 - Crew request/approval workflow plus Crew Studio operations.
 - Maker Crews in global search, People navigation, Home's **Around Your Bench**, project badges, personal data export, and responsive/mobile layouts.
 
-Run `npm run qa` before deployment. The v5.8.4 suite currently contains **65 static release checks**, with separate runtime smoke tests used during development for privacy, migration, and Crew lifecycle verification.
+Run `npm run qa` before deployment. The v5.8.3 suite currently contains **54 static release checks**, with separate runtime smoke tests used during development for privacy, migration, and Crew lifecycle verification.
 
 The migration is additive. Existing Projects, Sessions, accounts, and Railway `/data` content remain in place; new Crew tables and lightweight Crew relationship columns are created automatically at startup.
 
 
 ## Transactional email configuration
 
-THE WORKSHOP remains zero-dependency and uses native Node `fetch` for email delivery. v5.8.4 supports **Resend** as the first production provider plus a `log` provider for local testing. If email is disabled or misconfigured, in-app notifications continue to work and the Operations Console records the delivery as Skipped or Failed.
+THE WORKSHOP remains zero-dependency and uses native Node `fetch` for email delivery. v5.8.3 supports **Resend** as the first production provider plus a `log` provider for local testing. If email is disabled or misconfigured, in-app notifications continue to work and the Operations Console records the delivery as Skipped or Failed.
 
 Recommended Railway variables:
 
@@ -389,7 +389,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v5.8.4 release"
+git commit -m "Initial THE WORKSHOP v5.8.3 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -397,8 +397,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v5.8.4 -m "THE WORKSHOP v5.8.4"
-git push origin v5.8.4
+git tag -a v5.8.3 -m "THE WORKSHOP v5.8.3"
+git push origin v5.8.3
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**
@@ -474,4 +474,11 @@ Owners and Administrators can open **Account → Operations Console → Members 
 A generated reset link is valid for 30 minutes. When transactional email is configured, WORKSHOP queues the reset message to the member automatically and still shows the URL to administrators as a fallback.
 
 Permanent account removal deliberately uses an anonymized tombstone rather than deleting the user row outright. This removes credentials and personal identity while preserving project ownership references, moderation evidence, and audit integrity as **Removed member**. Harmful content itself can still be removed through the moderation queue.
+
+
+## Terms & Community Conduct
+
+THE WORKSHOP includes a versioned, readable Terms & Community Conduct agreement at `#/terms` and in [`TERMS.md`](TERMS.md). New members must separately confirm that they are 18+ and accept the current Terms version. Existing accounts that predate the current Terms are prompted once after authentication. Acceptance stores only the Terms version and timestamp.
+
+The short-form community rule is **“Don’t be an idiot.”** The full terms cover conduct, privacy, safety, intellectual-property responsibility, moderation, local meetups/exchanges, account security, and information-quality limitations. These are operational boilerplate and should be reviewed by qualified counsel before being relied on as final legal terms for a public production service.
 

@@ -78,6 +78,10 @@ const checks=[
   ,['Mobile Bench exposes Maker Crew hub',app.includes('mobile-crew-hub')&&app.includes('MY MAKER CREW')&&app.includes('FIND A MAKER CREW')]
   ,['Crew shortcuts use router-safe deep links',app.includes('/meetups')&&app.includes('/bulletin')&&app.includes('sectionMap={meetups:')&&!app.includes('href=\"#crew-meetups\"')]
 
+  ,['Signup requires 18+ confirmation',app.includes('name=\"age18\"')&&app.includes('I confirm that I am 18 years of age or older')&&server.includes("if(!age18)return sendJson")&&server.includes('age_18_confirmed_at')]
+  ,['Signup requires versioned Terms acceptance',app.includes('name="terms"')&&app.includes('Terms &amp; Community Conduct')&&server.includes("if(!terms)return sendJson")&&server.includes('terms_version_accepted')&&server.includes('TERMS_VERSION')]
+  ,['Existing accounts receive current Terms gate',app.includes('showTermsAcceptance')&&app.includes('termsCurrentAccepted')&&server.includes("pathname === '/api/account/terms'")]
+  ,['Public Terms route exists',app.includes("route==='terms'")&&app.includes('Don’t be an idiot.')&&fs.existsSync(path.join(root,'TERMS.md'))]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

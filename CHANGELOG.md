@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v5.8.6 — Terms & Community Conduct
+
+- Added a public `#/terms` Terms & Community Conduct page with the plain-language rule: “Don’t be an idiot.”
+- Added concise rules covering 18+ eligibility, harassment/abuse, lawful and safe making, privacy, user-content rights, moderation, Maker Crew meetups/exchanges, account security, service availability, and reporting.
+- New registrations must explicitly accept the current Terms version in addition to the existing 18+ confirmation.
+- Added server-side Terms acceptance enforcement for signup so the checkbox cannot be bypassed by calling the API directly.
+- Records the accepted Terms version and timestamp without collecting additional identity data.
+- Existing accounts that predate the Terms receive a one-time, non-dismissible acceptance prompt on their next authenticated session, with a logout alternative.
+- Added a permanent Terms link from About and the Account sheet.
+- Added `TERMS.md` alongside the existing Code of Conduct for deployment/repository review.
+- Added release QA checks for versioned Terms acceptance and the public Terms route.
+
+## v5.8.5 — 18+ Signup Confirmation
+
+- Added a required “I confirm that I am 18 years of age or older” checkbox to account creation.
+- Enforced the confirmation on the registration API so it cannot be bypassed client-side.
+- Records only the confirmation timestamp; no birth date is collected.
+- Added a regression check for the signup age gate.
+
 ## v5.8.4 — Mobile Maker Crew Access
 
 - Added a dedicated Maker Crew hub to the signed-in member’s mobile Bench / Me experience.
