@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'3.5.0' },
+  meta: { version:'3.5.1' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -64,7 +64,14 @@ function setTitle(title) { document.title = title ? `${title} — THE WORKSHOP` 
 function closeOverlay(){ overlayRoot.innerHTML=''; }
 function modal({title,eyebrow='',body='',size='',onOpen}){
   overlayRoot.innerHTML=`<div class="overlay" data-action="close-overlay"><section class="modal ${size}" role="dialog" aria-modal="true" aria-label="${esc(title)}" data-stop-close><header class="modal-head"><div>${eyebrow?`<div class="eyebrow">${esc(eyebrow)}</div>`:''}<h2>${esc(title)}</h2></div><button class="close-btn" type="button" data-action="close-overlay" aria-label="Close">×</button></header><div class="modal-body">${body}</div></section></div>`;
-  const m=$('.modal',overlayRoot); m.addEventListener('click',e=>e.stopPropagation());
+  const m=$('.modal',overlayRoot);
+  // Modal content must not trigger the backdrop's close action, but controls inside
+  // the modal still need to participate in the application's delegated action system.
+  // Route data-action clicks locally before stopping propagation.
+  m.addEventListener('click',e=>{
+    if(e.target.closest('[data-action]')) handleClick(e);
+    e.stopPropagation();
+  });
   if(onOpen) onOpen(m);
 }
 function tags(items=[], limit=4){ return (items||[]).slice(0,limit).map(t=>`<span class="tag">${esc(t)}</span>`).join(''); }
@@ -89,7 +96,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'3.5.0'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'3.5.1'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});

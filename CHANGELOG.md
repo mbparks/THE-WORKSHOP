@@ -1,6 +1,14 @@
 # Changelog
 
-## v3.5.0 — Railway-ready production deployment
+
+## 3.5.1 — 2026-08-16
+
+### Fixed
+
+- Fixed modal action buttons not firing because modal click propagation bypassed the global `data-action` dispatcher.
+- Restored Change Password, Export Data, Supporter Membership, account deletion, and other delegated actions launched from modal surfaces.
+
+## v3.5.1 — Railway-ready production deployment
 
 - Added Railway config-as-code and Docker deployment files.
 - Added persistent-volume auto-detection via `RAILWAY_VOLUME_MOUNT_PATH`.
@@ -11,7 +19,7 @@
 
 THE WORKSHOP uses visible semantic-style version numbers so the deployed UI can be matched to the source release.
 
-## v3.5.0 — Lightsail + repository readiness
+## v3.5.1 — Lightsail + repository readiness
 
 - Added `DEPLOYMENT_LIGHTSAIL.md` with a complete Lightsail/Ubuntu/Nginx/systemd/Certbot deployment procedure.
 - Added `WORKSHOP_DATA_DIR` so mutable SQLite/uploads can live outside the Git checkout.

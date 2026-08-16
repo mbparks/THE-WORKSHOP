@@ -1,6 +1,6 @@
 # Deploy THE WORKSHOP on Railway
 
-This is the recommended low-maintenance deployment path for **THE WORKSHOP v3.5.0**.
+This is the recommended low-maintenance deployment path for **THE WORKSHOP v3.5.1**.
 
 THE WORKSHOP runs as one Node.js service with a SQLite database and uploaded files. Railway supplies the application container, HTTPS/public networking, GitHub-triggered deployments, logs, and a persistent Volume.
 
@@ -62,7 +62,7 @@ THE WORKSHOP must have persistent storage because SQLite and uploaded project fi
 /data
 ```
 
-Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v3.5.0 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
+Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v3.5.1 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
 
 The resulting layout is:
 
@@ -123,7 +123,7 @@ A healthy response includes:
 ```json
 {
   "ok": true,
-  "version": "3.5.0",
+  "version": "3.5.1",
   "database": "ok"
 }
 ```
