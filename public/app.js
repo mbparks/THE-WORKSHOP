@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'3.5.1' },
+  meta: { version:'3.5.2' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -69,7 +69,12 @@ function modal({title,eyebrow='',body='',size='',onOpen}){
   // the modal still need to participate in the application's delegated action system.
   // Route data-action clicks locally before stopping propagation.
   m.addEventListener('click',e=>{
-    if(e.target.closest('[data-action]')) handleClick(e);
+    const actionTarget=e.target.closest('[data-action]');
+    // `closest()` can walk *out* of the modal and find the overlay backdrop,
+    // whose action is `close-overlay`. Only dispatch actions that actually live
+    // inside this modal; normal inputs/labels must never be interpreted as a
+    // backdrop click.
+    if(actionTarget && m.contains(actionTarget)) handleClick(e);
     e.stopPropagation();
   });
   if(onOpen) onOpen(m);
@@ -96,7 +101,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'3.5.1'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'3.5.2'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});

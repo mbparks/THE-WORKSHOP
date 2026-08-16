@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.5.2 — 2026-08-16
+
+### Fixed
+
+- Fixed a regression where clicking or focusing ordinary controls inside a modal could be misidentified as a click on the modal backdrop.
+- Login/register fields now remain open and interactive while typing.
+- Preserved the v3.5.1 delegated modal-action fix for account controls such as Change Password.
+
 
 ## 3.5.1 — 2026-08-16
 
