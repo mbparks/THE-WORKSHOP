@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'4.0.1' },
+  meta: { version:'4.0.2' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -152,7 +152,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'4.0.1'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'4.0.2'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -234,7 +234,12 @@ async function renderRoute(){
       view.setAttribute('aria-busy','false');
       requestAnimationFrame(()=>{
         const heading=$('h1',view);
-        if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true})}
+        const announcer=$('#route-announcer');
+        if(announcer){
+          const label=(heading?.textContent||document.title.split(' — ')[0]||'Workshop').replace(/\s+/g,' ').trim();
+          announcer.textContent='';
+          setTimeout(()=>{announcer.textContent=`${label} loaded`;},20);
+        }
         window.scrollTo({top:0,behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
       });
     }

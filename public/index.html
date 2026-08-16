@@ -50,12 +50,13 @@
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v4.0.1</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v4.0.2</small></div>
         </div>
       </aside>
 
       <main id="main" tabindex="-1" aria-label="Workshop content">
-        <div id="route-view" aria-live="polite"></div>
+        <div id="route-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+        <div id="route-view"></div>
       </main>
     </div>
 

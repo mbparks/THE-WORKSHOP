@@ -2,7 +2,7 @@
 
 **THE WORKSHOP — The Green Shoe Garage Maker Community**
 
-Current version: **v4.0.1**
+Current version: **v4.0.2**
 
 THE WORKSHOP is a maker-community application built around one question:
 
@@ -12,7 +12,7 @@ The fundamental object is the **Project**, not the post. Projects can remain inc
 
 The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
 
-## v4.0.1 experience pass
+## v4.0.2 experience pass
 
 Run `npm run qa` before deployment to execute syntax and accessibility-regression checks.
 
@@ -354,7 +354,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v4.0.1 release"
+git commit -m "Initial THE WORKSHOP v4.0.2 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -362,8 +362,8 @@ git push -u origin main
 Then create/tag the release:
 
 ```bash
-git tag -a v4.0.1 -m "THE WORKSHOP v4.0.1"
-git push origin v4.0.1
+git tag -a v4.0.2 -m "THE WORKSHOP v4.0.2"
+git push origin v4.0.2
 ```
 
 Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**

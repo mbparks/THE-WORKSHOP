@@ -1,12 +1,19 @@
 # Changelog
 
-## v4.0.1 — Route Focus Hotfix
+## v4.0.2 — Safari Route Focus Hotfix
+
+- Removed programmatic DOM focus from route headings entirely, eliminating Safari's native blue focus highlight around large multiline headings such as **WHAT ARE YOU MAKING?**.
+- Added a dedicated visually hidden `aria-live` route announcer so screen-reader users still receive route-change context without moving keyboard focus.
+- Removed the now-unnecessary heading-focus CSS workaround.
+- No database schema changes.
+
+## v4.0.2 — Route Focus Hotfix
 
 - Removed the oversized browser focus outline from programmatically focused route headings such as **WHAT ARE YOU MAKING?**.
 - Preserved route-heading focus for screen readers and keyboard navigation while keeping visible focus rings on interactive controls.
 - No database or API changes.
 
-## v4.0.1 — Interaction Polish + Accessibility QA
+## v4.0.2 — Interaction Polish + Accessibility QA
 
 - Added modal focus trapping, focus restoration, labelled dialogs, and safer Escape behavior.
 - Added route loading skeletons, retryable error states, smoother route focus management, and reduced-motion fallbacks.
@@ -17,7 +24,7 @@
 - Kept this release schema-neutral for safe Railway deployment over the existing `/data` volume.
 
 
-## 4.0.1 — Project experience + Maker Notebook (Batches 36–37)
+## 4.0.2 — Project experience + Maker Notebook (Batches 36–37)
 
 - Rebuilt Project pages around an image-led hero, stage journey, concise overview, and clear section navigation.
 - Moved operational metadata, files, team, tasks, GitHub, critique, and Clinic tooling into Deep-mode sections.
