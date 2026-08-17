@@ -1,5 +1,14 @@
 # Changelog
 
+## v7.2.0 — Embeddable Bench Widgets
+
+- added MY BENCH → EMBED MY BENCH with a live privacy-aware widget builder
+- added revocable opaque embed tokens; members can disable or rotate a widget at any time
+- added card/compact layouts and Auto/Dark/Light themes
+- members choose whether to publish bio, city/region, Maker Crew, Craft Path level, GearHead badge, skills, and up to four recent Public projects
+- embed widgets never expose private projects, Craft Path evidence, account/email data, tool locations, private meetup details, or protected files
+- added a dedicated frameable `/embed/bench/:token` response with a narrow no-script CSP while keeping the main WORKSHOP app non-frameable
+
 ## v7.1.1 — Craft Path
 
 - Replaced the large MY BENCH initials circle with the supplied maker emblem as a craft identity mark.

@@ -544,3 +544,8 @@ Each member can track their own making practice from **MY BENCH** through three 
 - **Master — Gold**: demonstrate sustained documented practice, teach from experience, contribute back, support shared work, show revision at depth, and reflect on the responsibilities and limits of your practice.
 
 Progress is self-attested. Every requirement has a checkbox and an optional evidence note/link. The current craft mark is shown on the member Bench; personal evidence is returned only to the member viewing their own Bench. A level is earned only after all expectations in that level and all prior levels are complete. There are no points, XP, streaks, leaderboards, or popularity-based promotions.
+
+
+## Embeddable Bench widgets
+
+Members can open **MY BENCH → EMBED MY BENCH** to generate a revocable iframe widget for a personal website. The widget uses an opaque token and publishes only the member-selected fields. Recent-project tiles are limited to projects whose WORKSHOP visibility is **Public**. Members can disable the widget or rotate the token at any time to invalidate existing embed codes.

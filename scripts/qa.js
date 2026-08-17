@@ -131,6 +131,13 @@ const checks=[
   ,['Craft Path is self tracked without XP',app.includes('SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD')&&!server.includes('craft_xp')]
   ,['Craft rank uses bronze silver gold assets',app.includes('/craft-apprentice.png')&&app.includes('/craft-journeyman.png')&&app.includes('/craft-master.png')]
   ,['Craft Path appears on My Bench',app.includes('craftPathView(d.craft)')&&app.includes('Optional evidence note or link')]
+  ,['Bench embed persistence schema',server.includes('CREATE TABLE IF NOT EXISTS bench_embeds')&&server.includes('benchEmbedRecord')]
+  ,['Bench embed is tokenized and revocable',server.includes('/api/bench-embed/rotate')&&server.includes('crypto.randomBytes(24)')&&app.includes('ROTATE TOKEN')]
+  ,['Bench embed has selective public fields',app.includes('showBio')&&app.includes('showLocation')&&app.includes('showCrew')&&app.includes('showCraft')&&app.includes('showGearhead')&&app.includes('showSkills')&&app.includes('showProjects')]
+  ,['Bench embed only publishes public projects',server.includes("visibility='Public' ORDER BY updated_at DESC LIMIT ?")]
+  ,['Bench embed can be framed externally',server.includes("frame-ancestors *")&&server.includes("res.removeHeader('X-Frame-Options')")]
+  ,['My Bench exposes embed builder',app.includes('EMBED MY BENCH')&&app.includes('function benchEmbedForm')]
+  ,['Disabled Bench embed previews remain owner-only',server.includes("viewer?.id!==row.user_id")&&server.includes('Bench widget has been disabled or replaced.')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
