@@ -138,6 +138,8 @@ const checks=[
   ,['Bench embed can be framed externally',server.includes("frame-ancestors *")&&server.includes("res.removeHeader('X-Frame-Options')")]
   ,['My Bench exposes embed builder',app.includes('EMBED MY BENCH')&&app.includes('function benchEmbedForm')]
   ,['Disabled Bench embed previews remain owner-only',server.includes("viewer?.id!==row.user_id")&&server.includes('Bench widget has been disabled or replaced.')]
+  ,['Bench widget live preview allowed by shell CSP',server.includes("frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com")]
+  ,['Bench widget preview stays on current origin',app.includes("const preview=new URL(src.pathname+src.search,location.origin)")&&app.includes('frame.src=preview.toString()')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
