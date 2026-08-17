@@ -1,3 +1,11 @@
+# v7.0.2 — Dual GearHead Stripe Plans
+
+- Added separate monthly and annual GearHead Stripe Price IDs.
+- Added $5/month and $50/year checkout choices with annual savings shown clearly.
+- Checkout validates the requested plan server-side and never accepts a client-supplied Stripe Price ID.
+- Stripe checkout/subscription metadata now records the selected WORKSHOP plan.
+- Preserved `STRIPE_GEARHEAD_PRICE_ID` as a backward-compatible single-price fallback.
+
 ## v6.4.0 — GearHead Participatory Crew + Hardening
 
 - Added GearHead Contributions for testing notes, corrections, tutorial reviews, BOM checks, alternate-process notes, documentation, and other useful supporter contributions.

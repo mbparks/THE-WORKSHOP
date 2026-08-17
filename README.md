@@ -75,7 +75,7 @@ npm start
 Then open:
 
 ```text
-http://127.0.1.1:8787
+http://127.0.2.1:8787
 ```
 
 For development watch mode:
@@ -87,7 +87,7 @@ npm run dev
 Health check:
 
 ```bash
-curl http://127.0.1.1:8787/api/health
+curl http://127.0.2.1:8787/api/health
 ```
 
 ## Recommended deployment: Railway
@@ -243,7 +243,7 @@ See **`.env.example`** for a production template.
 | Variable | Default | Purpose |
 |---|---|---|
 | `NODE_ENV` | unset | Set `production` for public deployment; enables Secure session cookies |
-| `HOST` | `127.0.1.1` | HTTP bind address |
+| `HOST` | `127.0.2.1` | HTTP bind address |
 | `PORT` | `8787` | HTTP port |
 | `WORKSHOP_DEV_AUTH` | `1` | Set `0` in production to disable seeded development authentication |
 | `WORKSHOP_PUBLIC_URL` | empty | Canonical public origin used for mutation-origin validation |
@@ -257,7 +257,7 @@ Example production environment:
 
 ```text
 NODE_ENV=production
-HOST=127.0.1.1
+HOST=127.0.2.1
 PORT=8787
 WORKSHOP_DEV_AUTH=0
 WORKSHOP_PUBLIC_URL=https://workshop.example.com
@@ -420,7 +420,7 @@ node --check scripts/backup.js
 Run the server and verify:
 
 ```bash
-curl --fail http://127.0.1.1:8787/api/health
+curl --fail http://127.0.2.1:8787/api/health
 ```
 
 ## Updating versions
@@ -516,3 +516,20 @@ Configure the Stripe webhook endpoint as `/api/stripe/webhook`. The application 
 Native GearHead video uploads use FFprobe for runtime metadata and FFmpeg to generate a poster image. The Docker image installs FFmpeg automatically. `WORKSHOP_MAX_VIDEO_MB` controls the raw upload ceiling and defaults to 750 MB. Protected media remains entitlement-checked and byte-range streamed.
 
 GearHead editors can also duplicate an entry or save it as a reusable publishing template from the entry controls. Templates copy publishing structure/defaults, not protected uploaded file bytes.
+
+
+### GearHead Crew Stripe plans (v7.0.2)
+
+THE WORKSHOP can present both GearHead billing choices at checkout:
+
+- Monthly — $5/month
+- Annual — $50/year (save $10 versus 12 monthly payments)
+
+Configure the corresponding Stripe recurring Price IDs:
+
+```text
+STRIPE_GEARHEAD_MONTHLY_PRICE_ID=price_...
+STRIPE_GEARHEAD_ANNUAL_PRICE_ID=price_...
+```
+
+`STRIPE_GEARHEAD_PRICE_ID` remains supported as a legacy single-price fallback during deployment transitions. Either monthly or annual subscription grants the same GearHead Crew entitlement.

@@ -314,3 +314,20 @@ WORKSHOP_MAX_VIDEO_MB=750
 Create a recurring Stripe Price for GearHead Crew and place its `price_...` ID in `STRIPE_GEARHEAD_PRICE_ID`. Configure Stripe to send subscription webhooks to `https://workshop.greenshoegarage.com/api/stripe/webhook`. The webhook secret is required before WORKSHOP reports Stripe as fully configured. Customer billing self-service uses Stripe's hosted Customer Portal.
 
 The v7 Dockerfile installs FFmpeg/FFprobe for native GearHead video metadata and automatic poster generation.
+
+
+### GearHead Crew Stripe plans (v7.0.2)
+
+THE WORKSHOP can present both GearHead billing choices at checkout:
+
+- Monthly — $5/month
+- Annual — $50/year (save $10 versus 12 monthly payments)
+
+Configure the corresponding Stripe recurring Price IDs:
+
+```text
+STRIPE_GEARHEAD_MONTHLY_PRICE_ID=price_...
+STRIPE_GEARHEAD_ANNUAL_PRICE_ID=price_...
+```
+
+`STRIPE_GEARHEAD_PRICE_ID` remains supported as a legacy single-price fallback during deployment transitions. Either monthly or annual subscription grants the same GearHead Crew entitlement.
