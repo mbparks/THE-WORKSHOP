@@ -12,6 +12,12 @@ The fundamental object is the **Project**, not the post. Projects can remain inc
 
 The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
 
+## GearHead participatory crew — v6.4
+
+GearHead Crew members can now contribute testing notes, corrections, tutorial reviews, BOM checks, alternate-process notes, and documentation through `#/gearhead-contributions`. Editors review those contributions without public scores or voting. `#/gearhead-projects` hosts occasional GearHead Crew shared-build briefs; starting one creates a normal linked WORKSHOP Project on the member's Bench.
+
+GearHead Studio 2.0 consolidates publishing/program/membership-health signals. Protected GearHead media and downloads are explicitly excluded from service-worker caching and are served with private `no-store` semantics plus lightweight download throttling.
+
 ## v5.8.3 — Transactional Notifications
 
 This release adds **action-oriented transactional email** for requests and security events while preserving WORKSHOP’s restrained notification philosophy. Maker Crews remain fully integrated from v5.6. A Crew can use a compact identity such as **MC21502**, cover multiple nearby ZIPs, organize meetups, coordinate local projects and Sessions, exchange skills and scrap, and maintain a short-lived bulletin board.
@@ -482,3 +488,31 @@ THE WORKSHOP includes a versioned, readable Terms & Community Conduct agreement 
 
 The short-form community rule is **“Don’t be an idiot.”** The full terms cover conduct, privacy, safety, intellectual-property responsibility, moderation, local meetups/exchanges, account security, and information-quality limitations. These are operational boilerplate and should be reviewed by qualified counsel before being relied on as final legal terms for a public production service.
 
+
+## The GearHead Crew
+
+v6 adds **The GearHead Crew**, the public-facing identity for WORKSHOP supporters. The existing internal `Supporter` role and membership-provider abstraction remain compatible, while gated material is consistently labeled **GEARHEAD CREW ONLY**.
+
+GearHead Crew supports standalone tutorials, Shop Films, Bench Cam / Bench Roll entries, field notes, protected revisioned downloads, early-access material, Field Instrument previews, After Hours events, scheduled public release, mixed-access project files, search metadata, notifications, and the GearHead Crew Studio for editorial management.
+
+The community itself remains open to ordinary Members; GearHead entitlement adds deeper Green Shoe Garage material rather than removing normal member-to-member participation.
+
+The desktop left navigation also includes **GET SWAG**, which opens the Green Shoe Garage Redbubble shop in a new tab.
+
+## GearHead Crew v7 — Stripe, native media, templates
+
+The GearHead entitlement layer can now connect directly to Stripe Checkout while retaining manual, gift, invite, complimentary, lifetime, and provider-sync membership paths. Stripe billing is optional; without Stripe environment variables the existing provider-neutral membership paths continue to work.
+
+Required production variables for live Stripe billing:
+
+```text
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_GEARHEAD_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+Configure the Stripe webhook endpoint as `/api/stripe/webhook`. The application creates hosted subscription Checkout Sessions and on-demand Customer Portal sessions; signed webhook events synchronize the existing `membership_connections` entitlement records.
+
+Native GearHead video uploads use FFprobe for runtime metadata and FFmpeg to generate a poster image. The Docker image installs FFmpeg automatically. `WORKSHOP_MAX_VIDEO_MB` controls the raw upload ceiling and defaults to 750 MB. Protected media remains entitlement-checked and byte-range streamed.
+
+GearHead editors can also duplicate an entry or save it as a reusable publishing template from the entry controls. Templates copy publishing structure/defaults, not protected uploaded file bytes.

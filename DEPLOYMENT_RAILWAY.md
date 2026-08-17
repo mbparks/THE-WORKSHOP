@@ -299,3 +299,18 @@ WORKSHOP_ADMIN_EMAIL=mike@greenshoegarage.com
 
 `WORKSHOP_ADMIN_EMAIL` is optional; if omitted, WORKSHOP uses the first active Owner account email. After deployment, open **Operations Console → Email Delivery** and use **SEND TEST EMAIL** before relying on external notifications.
 
+
+## Stripe GearHead billing (v7)
+
+Optional Railway variables:
+
+```text
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_GEARHEAD_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+WORKSHOP_MAX_VIDEO_MB=750
+```
+
+Create a recurring Stripe Price for GearHead Crew and place its `price_...` ID in `STRIPE_GEARHEAD_PRICE_ID`. Configure Stripe to send subscription webhooks to `https://workshop.greenshoegarage.com/api/stripe/webhook`. The webhook secret is required before WORKSHOP reports Stripe as fully configured. Customer billing self-service uses Stripe's hosted Customer Portal.
+
+The v7 Dockerfile installs FFmpeg/FFprobe for native GearHead video metadata and automatic poster generation.

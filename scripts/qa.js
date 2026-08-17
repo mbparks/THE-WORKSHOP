@@ -82,11 +82,50 @@ const checks=[
   ,['Signup requires versioned Terms acceptance',app.includes('name="terms"')&&app.includes('Terms &amp; Community Conduct')&&server.includes("if(!terms)return sendJson")&&server.includes('terms_version_accepted')&&server.includes('TERMS_VERSION')]
   ,['Existing accounts receive current Terms gate',app.includes('showTermsAcceptance')&&app.includes('termsCurrentAccepted')&&server.includes("pathname === '/api/account/terms'")]
   ,['Public Terms route exists',app.includes("route==='terms'")&&app.includes('Don’t be an idiot.')&&fs.existsSync(path.join(root,'TERMS.md'))]
+  ,['GearHead Crew entitlement is server enforced',server.includes('function canAccessLevel')&&server.includes('isSupporterUser')&&server.includes('GEARHEAD CREW ONLY')]
+  ,['GearHead standalone content schema exists',server.includes('CREATE TABLE IF NOT EXISTS gearhead_entries')&&server.includes('gearhead_tutorial_steps')&&server.includes('gearhead_files')]
+  ,['GearHead protected files require entitlement',server.includes("url.pathname.startsWith('/gearhead-files/')")&&server.includes('!isSupporterUser(viewer)&&!canEditEditorial(viewer)')]
+  ,['GearHead hub and Studio implemented',app.includes('async function renderGearhead()')&&app.includes('GearHead Crew Studio')&&server.includes("pathname==='/api/gearhead'")]
+  ,['GearHead tutorials support structured steps',app.includes('Add Tutorial Step')&&server.includes('gearhead_tutorial_steps')]
+  ,['GearHead scheduled public release implemented',server.includes('public_release_at')&&app.includes('GearHead-only until')]
+  ,['After Hours uses GearHead live access',server.includes("event_type='After Hours'")&&app.includes("'After Hours'")&&server.includes("ensureColumn('live_events','visibility'")]
+  ,['Project files support GearHead-only access',server.includes("ensureColumn('project_files','access_level'")&&app.includes('GEARHEAD CREW ONLY')&&server.includes("req.headers['x-file-access']")]
+  ,['GearHead notification preference exists',server.includes("ensureColumn('email_preferences','gearhead'")&&server.includes('gearheadNotify')]
+  ,['GET SWAG external navigation exists',html.includes('https://www.redbubble.com/people/GreenShoeGarage/shop')&&html.includes('GET SWAG')&&html.includes('target="_blank"')]
+  ,['GearHead home has editorial shelves',app.includes('DEEP DIVES')&&app.includes('BENCH ROLLS')&&app.includes('CONTINUE WHERE YOU LEFT OFF')]
+  ,['GearHead fast publishing exists',app.includes('Post to GearHead Crew')&&app.includes('gearhead-quick-type')]
+  ,['Bench Roll ordered media implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_media')&&server.includes('/media-upload')&&app.includes('bench-roll-grid')]
+  ,['GearHead video metadata implemented',server.includes("ensureColumn('gearhead_entries','poster_url'")&&server.includes("ensureColumn('gearhead_entries','transcript'")&&app.includes('Video chapters')]
+  ,['Deep Dive builder supports structured evidence',server.includes("ensureColumn('gearhead_tutorial_steps','measurements'")&&server.includes("ensureColumn('gearhead_tutorial_steps','code_text'")&&app.includes('MEASUREMENTS / SETTINGS')]
+  ,['GearHead uploaded media remains entitlement protected',server.includes("url.pathname.startsWith('/gearhead-media/')")&&server.includes('canAccessLevel(row.access_level,viewer,row.created_by)')]
+  ,['GearHead File Vault implemented',server.includes("pathname==='/api/gearhead/vault'")&&app.includes('renderGearheadVault')&&app.includes('GearHead File Vault')]
+  ,['Early Access feedback implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_early_feedback')&&server.includes('/feedback$/')&&app.includes('Early Access Feedback')]
+  ,['Early Access preview metadata implemented',server.includes("ensureColumn('gearhead_entries','known_issues'")&&server.includes("ensureColumn('gearhead_entries','requirements'")&&app.includes('KNOWN ISSUES')&&app.includes('RELEASE NOTES')]
+  ,['After Hours RSVP implemented',server.includes('gearhead_after_hours_rsvps')&&server.includes('gearhead-rsvp')&&app.includes('RSVP / REMINDER')]
+  ,['GearHead Crew requests implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_requests')&&app.includes('Request from the Crew')&&app.includes('On the Bench')]
+  ,['GearHead membership lifecycle supports gifts',server.includes("'Gift','Complimentary','Lifetime'")&&server.includes('/api/membership/cancel')]
+  ,['Provider-neutral membership sync exists',server.includes('/api/membership/provider-sync')&&server.includes('WORKSHOP_MEMBERSHIP_SYNC_SECRET')]
+  ,['GearHead self-service membership UI exists',app.includes('membership-self-service')&&app.includes('CANCEL GEARHEAD ACCESS')]
+  ,['GearHead digest exists',server.includes('/api/gearhead/digest-preferences')&&server.includes('/api/admin/gearhead/digest')]
+  ,['GearHead archive exists',server.includes("pathname==='/api/gearhead/archive'")&&app.includes('renderGearheadArchive')]
+  ,['GearHead public previews exist',server.includes("ensureColumn('gearhead_entries','preview_text'")&&app.includes('PUBLIC PREVIEW')]
+  ,['GearHead release pipeline auto-publishes',server.includes('function releaseDueGearhead')&&server.includes("access_level='Public'")]
+  ,['GearHead contributions implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_contributions')&&app.includes('GearHead Contributions')&&app.includes('SEND CONTRIBUTION')]
+  ,['GearHead Crew Projects spawn linked projects',server.includes('gearhead_crew_project_responses')&&server.includes('crew_project_start')&&app.includes('START MY VERSION')]
+  ,['GearHead Studio 2.0 implemented',server.includes("pathname==='/api/gearhead/studio2'")&&app.includes('GearHead Crew Studio 2.0')]
+  ,['Protected GearHead media excluded from service-worker cache',sw.includes("u.pathname.startsWith('/gearhead-files/')")&&sw.includes("u.pathname.startsWith('/gearhead-media/')")]
+  ,['Protected GearHead downloads use no-store and throttling',server.includes('allowGearheadDownload')&&server.includes("row.privateNoStore=true")&&server.includes("'Cache-Control':row.privateNoStore?'private, no-store'")]
+
+  ,['Stripe Checkout route',server.includes('/api/membership/stripe-checkout')]
+  ,['Stripe webhook signature verification',server.includes('verifyStripeSignature')]
+  ,['Stripe Customer Portal route',server.includes('/api/membership/stripe-portal')]
+  ,['native GearHead video upload',server.includes('video-upload')&&server.includes('ffprobe')&&server.includes('ffmpeg')]
+  ,['GearHead templates',server.includes('gearhead_templates')&&app.includes('gearheadTemplates')]
+  ,['GearHead duplication',server.includes('/duplicate')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
 if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}
-
 console.log(`\n${checks.length} QA checks passed for v${pkg.version}.`);
 
 // v5.8.8 regression checks

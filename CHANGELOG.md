@@ -1,3 +1,24 @@
+## v6.4.0 — GearHead Participatory Crew + Hardening
+
+- Added GearHead Contributions for testing notes, corrections, tutorial reviews, BOM checks, alternate-process notes, documentation, and other useful supporter contributions.
+- Added editorial contribution review states and member-facing review notes without votes, scores, or leaderboards.
+- Added GearHead Crew Projects: editorial shared-build briefs that let a GearHead start a normal linked WORKSHOP Project on their own Bench.
+- Added GearHead Crew Studio 2.0 with publishing/program/membership/health signals, pending contributions, Crew Projects, Early Access feedback/request counts, After Hours status, and provider failure visibility.
+- Excluded protected GearHead files and media from the service-worker cache explicitly.
+- Changed protected GearHead file/media responses to private no-store responses with Cookie variance and no-cache semantics.
+- Added lightweight per-user/IP throttling for protected GearHead downloads while preserving byte-range streaming.
+- Expanded QA to 102 checks and verified a v6.3.0 database migrates without losing users, projects, or existing GearHead content.
+
+## v6.0.0 — The GearHead Crew
+
+- Added The GearHead Crew supporter identity while retaining the existing Supporter role internally.
+- Added server-enforced `GEARHEAD CREW ONLY` access controls.
+- Added standalone GearHead entries for tutorials, shop films, bench cam, bench rolls, field notes, downloads, early access, Field Instrument previews, behind-the-scenes material, and Crew updates.
+- Added structured tutorial steps, protected revisioned files, scheduled public-release dates, After Hours live events, project-level protected files, GearHead notifications, Studio, and operational analytics.
+- Added a GearHead Crew destination to Library/secondary navigation.
+- Added `GET SWAG` to the left navigation linking to the Green Shoe Garage Redbubble shop.
+- The Workshop community remains open to everyone; GearHead access adds Green Shoe Garage material rather than restricting normal community participation.
+
 # CHANGELOG
 
 ## v5.8.6 — Terms & Community Conduct
