@@ -1,4 +1,9 @@
-## v7.2.4 — Better theme control + High Contrast mode
+## v7.2.5 — Almanac links
+
+- Added persistent external navigation links to **ALMANAC** (`https://mbparks.com/almanac`) and **ALMANAC II** (`https://mbparks.com/almanac2`).
+- Links open in a new tab and remain outside the internal router state.
+
+## v7.2.5 — Better theme control + High Contrast mode
 
 - Reworked the theme toggle icon so it reflects the current display mode more clearly.
 - Theme control now cycles through **Light → Dark → High Contrast**.
