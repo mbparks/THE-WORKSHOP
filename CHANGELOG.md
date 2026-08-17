@@ -1,3 +1,10 @@
+# v7.0.3 — Version & Cache Alignment Hotfix
+
+- Align all executable/runtime version markers to v7.0.3.
+- Fix stale v7.0.1 stamp in `start.sh` and backup manifests.
+- Version-query-bust `styles.css` and `app.js` so Railway/PWA/browser deployments cannot retain the previous shell assets after release.
+- Advance service-worker cache namespace to `workshop-v7.0.3`.
+
 # v7.0.2 — Dual GearHead Stripe Plans
 
 - Added separate monthly and annual GearHead Stripe Price IDs.
