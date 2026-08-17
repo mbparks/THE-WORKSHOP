@@ -353,3 +353,6 @@ html[data-theme="dark"] .top-actions .icon-btn .ui-icon{stroke:currentColor;opac
 .terms-accept-summary strong{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:11px;letter-spacing:.08em}
 .terms-accept-summary p{font-size:12px;line-height:1.55;color:var(--muted)}
 .terms-accept-summary a,.signup-age-confirm a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+
+/* v5.8.8 — explicit dialog dismissal */
+.dialog-exit{width:auto!important;min-width:58px;padding:0 10px;font:800 9px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.12em}

@@ -5,6 +5,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const zlib = require('node:zlib');
+const dns = require('node:dns').promises;
+const net = require('node:net');
 const { URL } = require('node:url');
 const { DatabaseSync } = require('node:sqlite');
 
@@ -17,7 +19,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '5.8.7';
+const APP_VERSION = '5.8.8';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -1049,12 +1051,44 @@ function crewPayload(c,viewer){
   return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
 }
 
+
+function privateIp(address){
+  if(!address)return true;
+  if(net.isIPv4(address)){const p=address.split('.').map(Number);return p[0]===10||p[0]===127||p[0]===0||(p[0]===169&&p[1]===254)||(p[0]===172&&p[1]>=16&&p[1]<=31)||(p[0]===192&&p[1]===168)||(p[0]===100&&p[1]>=64&&p[1]<=127);}
+  if(net.isIPv6(address)){const a=address.toLowerCase();return a==='::1'||a==='::'||a.startsWith('fc')||a.startsWith('fd')||a.startsWith('fe8')||a.startsWith('fe9')||a.startsWith('fea')||a.startsWith('feb');}
+  return true;
+}
+async function validateRemoteImageUrl(raw){
+  let u;try{u=new URL(String(raw||''));}catch{return null}
+  if(!['http:','https:'].includes(u.protocol)||u.username||u.password)return null;
+  const host=u.hostname.toLowerCase();if(host==='localhost'||host.endsWith('.local'))return null;
+  try{const rows=await dns.lookup(host,{all:true,verbatim:true});if(!rows.length||rows.some(x=>privateIp(x.address)))return null;}catch{return null}
+  return u;
+}
+async function proxyImage(res,raw){
+  let current=await validateRemoteImageUrl(raw);if(!current)return sendText(res,400,'Remote image URL is not allowed.');
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+  try{
+    for(let hop=0;hop<4;hop++){
+      const r=await fetch(current,{redirect:'manual',signal:controller.signal,headers:{'User-Agent':`THE-WORKSHOP/${APP_VERSION} image proxy`,'Accept':'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'}});
+      if(r.status>=300&&r.status<400){const loc=r.headers.get('location');if(!loc)return sendText(res,502,'Remote image redirect was incomplete.');current=await validateRemoteImageUrl(new URL(loc,current).href);if(!current)return sendText(res,403,'Remote image redirect was blocked.');continue;}
+      if(!r.ok)return sendText(res,502,`Remote image returned ${r.status}.`);
+      const type=String(r.headers.get('content-type')||'').split(';')[0].trim().toLowerCase();if(!type.startsWith('image/'))return sendText(res,415,'Remote URL did not return an image.');
+      const announced=Number(r.headers.get('content-length')||0);if(announced>12*1024*1024)return sendText(res,413,'Remote image is too large.');
+      const buf=Buffer.from(await r.arrayBuffer());if(buf.length>12*1024*1024)return sendText(res,413,'Remote image is too large.');
+      res.writeHead(200,{'Content-Type':type,'Content-Length':buf.length,'Cache-Control':'public, max-age=3600','X-Content-Type-Options':'nosniff'});return res.end(buf);
+    }
+    return sendText(res,508,'Too many remote image redirects.');
+  }catch(e){return sendText(res,502,e?.name==='AbortError'?'Remote image timed out.':'Remote image could not be loaded.');}finally{clearTimeout(timer)}
+}
+
 function routeApi(req, res, url) {
   const method = req.method || 'GET';
   const pathname = url.pathname;
   const me = currentUser(req);
 
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:true,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:true,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
 
   if (pathname === '/api/auth/register' && method === 'POST') return readBody(req).then(body=>{

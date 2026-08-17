@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'5.8.7' },
+  meta: { version:'5.8.8' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -83,7 +83,7 @@ function closeOverlay(){
 function modal({title,eyebrow='',body='',size='',onOpen}){
   state.lastFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
   const titleId=`modal-title-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
-  overlayRoot.innerHTML=`<div class="overlay" data-action="close-overlay"><section class="modal ${size}" role="dialog" aria-modal="true" aria-labelledby="${titleId}" data-stop-close><header class="modal-head"><div>${eyebrow?`<div class="eyebrow">${esc(eyebrow)}</div>`:''}<h2 id="${titleId}">${esc(title)}</h2></div><button class="close-btn" type="button" data-action="close-overlay" aria-label="Close dialog">×</button></header><div class="modal-body">${body}</div></section></div>`;
+  overlayRoot.innerHTML=`<div class="overlay"><section class="modal ${size}" role="dialog" aria-modal="true" aria-labelledby="${titleId}" data-stop-close><header class="modal-head"><div>${eyebrow?`<div class="eyebrow">${esc(eyebrow)}</div>`:''}<h2 id="${titleId}">${esc(title)}</h2></div><button class="close-btn dialog-exit" type="button" data-action="close-overlay" aria-label="Exit dialog">EXIT</button></header><div class="modal-body">${body}</div></section></div>`;
   document.body.classList.add('modal-open');
   const m=$('.modal',overlayRoot);
   m.addEventListener('click',e=>{
@@ -113,9 +113,16 @@ function modal({title,eyebrow='',body='',size='',onOpen}){
   });
 }
 function tags(items=[], limit=4){ return (items||[]).slice(0,limit).map(t=>`<span class="tag">${esc(t)}</span>`).join(''); }
+function imageSrc(raw){
+  const value=String(raw||'').trim();
+  if(!value)return '';
+  if(value.startsWith('/')||value.startsWith('data:')||value.startsWith('blob:'))return value;
+  try{const u=new URL(value,location.href);if(u.protocol==='http:'||u.protocol==='https:'){if(u.origin===location.origin)return u.href;return `/api/image-proxy?url=${encodeURIComponent(u.href)}`;}}catch{}
+  return value;
+}
 function projectCard(p){
   const visual=p.coverUrl
-    ? `<img src="${esc(p.coverUrl)}" alt="${esc(p.title||'Project cover')}" loading="lazy" decoding="async">`
+    ? `<img src="${esc(imageSrc(p.coverUrl))}" alt="${esc(p.title||'Project cover')}" loading="lazy" decoding="async">`
     : `<span>${esc(p.coverEmoji||'✦')}</span>`;
   const latest=`${Number(p.logCount||0)} ${Number(p.logCount)===1?'notebook entry':'notebook entries'}`;
   return `<a class="project-card" href="#/projects/${encodeURIComponent(p.id)}">
@@ -153,7 +160,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'5.8.7'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'5.8.8'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -183,7 +190,7 @@ function updateUserUI(){
 async function refreshNotificationDot(){ try{const d=await api('/api/notifications');$('#notification-dot').hidden=!d.items.some(n=>!Number(n.read));}catch{$('#notification-dot').hidden=true;} }
 function toggleTheme(){ state.theme=state.theme==='dark'?'light':'dark'; document.documentElement.dataset.theme=state.theme; localStorage.setItem('workshop-theme',state.theme); }
 function toggleMode(){ state.deep=!state.deep; document.body.classList.toggle('deep',state.deep); localStorage.setItem('workshop-mode',state.deep?'deep':'simple'); updateUserUI(); toast(`${state.deep?'Deep':'Simple'} mode`); }
-function handleKeys(e){ if(e.key==='Escape'&&overlayRoot.firstElementChild){e.preventDefault();closeOverlay();return} if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){e.preventDefault();$('#search-input').focus();} }
+function handleKeys(e){ if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){e.preventDefault();$('#search-input').focus();} }
 
 function routeSkeleton(){
   return `<div class="view route-skeleton" aria-label="Loading workshop content"><div class="skeleton-line short"></div><div class="skeleton-line title"></div><div class="skeleton-line copy"></div><div class="skeleton-grid">${Array.from({length:3},()=>'<div class="skeleton-card"><i></i><b></b><span></span><span></span></div>').join('')}</div></div>`;
@@ -267,7 +274,7 @@ async function renderHome(){
   const questionCount=d.questions.length;
   const noteCount=d.notes.length;
   const liveCopy=d.liveEvent ? (d.liveEvent.status==='Live'?'LIVE NOW':'NEXT EVENT') : 'NO EVENT SET';
-  const featureVisual=featured ? (featured.coverUrl?`<img src="${esc(featured.coverUrl)}" alt="" loading="eager" decoding="async" fetchpriority="high">`:`<span>${esc(featured.coverEmoji||'✦')}</span>`) : '';
+  const featureVisual=featured ? (featured.coverUrl?`<img src="${esc(imageSrc(featured.coverUrl))}" alt="" loading="eager" decoding="async" fetchpriority="high">`:`<span>${esc(featured.coverEmoji||'✦')}</span>`) : '';
   view.innerHTML=`<div class="view home-view">
     <section class="workshop-hero">
       <div class="hero-main">
@@ -911,7 +918,7 @@ function renderNotebookEntry(l,p,isOwner){
 async function renderProject(pid){
   const d=await api(`/api/projects/${encodeURIComponent(pid)}`), p=d.project; setTitle(p.title);
   const isOwner=state.me && state.me.id===p.ownerId, canWork=Boolean(d.canCollaborate);
-  const latest=d.logs?.[0], cover=p.coverUrl?`<img src="${esc(p.coverUrl)}" alt="${esc(p.title)} cover" decoding="async">`:`<span>${esc(p.coverEmoji||'✦')}</span>`;
+  const latest=d.logs?.[0], cover=p.coverUrl?`<img src="${esc(imageSrc(p.coverUrl))}" alt="${esc(p.title)} cover" decoding="async">`:`<span>${esc(p.coverEmoji||'✦')}</span>`;
   const peopleCount=1+(d.collaborators?.length||0), fileCount=d.files?.length||0;
   view.innerHTML=`<div class="view project-view-v4">
     <header class="project-hero-v4">
@@ -1060,7 +1067,7 @@ async function renderBench(uid=''){
     <section class="bench-practice-v4"><div><span>MAKES / KNOWS</span>${u.skills?.length?`<p>${esc(u.skills.join(' · '))}</p>`:'<p>Still filling in this bench.</p>'}</div><div><span>CAN HELP WITH</span>${u.canHelp?.length?`<p>${esc(u.canHelp.join(' · '))}</p>`:'<p>Nothing listed yet.</p>'}</div><div><span>WANTS TO LEARN</span>${u.wantLearn?.length?`<p>${esc(u.wantLearn.join(' · '))}</p>`:'<p>Nothing listed yet.</p>'}</div></section>
     ${isMine?`<section class="mobile-crew-hub" aria-label="Maker Crew shortcuts">${local.crew?`<div class="mobile-crew-hub-head"><div><span class="technical-index">MY MAKER CREW</span><h2>${esc(local.crew.code)}</h2><p>${esc(local.crew.name)}${local.crew.cityRegion?` · ${esc(local.crew.cityRegion)}`:''}</p></div><a class="crew-mobile-open" href="#/crew/${encodeURIComponent(local.crew.id)}">OPEN →</a></div><div class="mobile-crew-actions"><a href="#/crew/${encodeURIComponent(local.crew.id)}/meetups"><strong>MEETUPS</strong><small>${local.crew.nextEvent?esc(local.crew.nextEvent.title):'See the local calendar'}</small></a><a href="#/crew/${encodeURIComponent(local.crew.id)}/bench"><strong>LOCAL BENCH</strong><small>${Number(local.crew.projectCount||0)} Crew project${Number(local.crew.projectCount||0)===1?'':'s'}</small></a><a href="#/crew/${encodeURIComponent(local.crew.id)}/bulletin"><strong>BULLETIN</strong><small>${local.crew.bulletin?.length?`${local.crew.bulletin.length} recent note${local.crew.bulletin.length===1?'':'s'}`:'What does someone nearby need?'}</small></a><a href="#/crews"><strong>FIND CREWS</strong><small>Search another ZIP</small></a></div>`:`<div class="mobile-crew-empty"><span class="technical-index">MAKER CREWS</span><h2>Find makers near your bench.</h2><p>Join by ZIP affiliation—no GPS or home address required.</p><a class="button" href="#/crews">FIND A MAKER CREW →</a></div>`}</section>`:''}
     ${isMine&&d.currentAssignments?.length?`<section class="bench-assignments-v47"><div class="editorial-head"><div><span class="section-number">00</span><h2>Current Assignments</h2></div><a href="#/sessions">ALL SESSIONS →</a></div><div class="bench-assignment-strip">${d.currentAssignments.map(x=>`<a href="#/assignment/${encodeURIComponent(x.assignment_id)}"><span class="technical-index">${esc(x.session_title)}</span><strong>${esc(x.assignment_title)}</strong><small>${x.confirmation_code?`WORK RECORDED · ${esc(x.confirmation_code)}`:`${esc(x.stage)} · IN PROGRESS`}</small></a>`).join('')}</div></section>`:''}
-    ${lead?`<section class="bench-feature-v4"><div class="editorial-head"><div><span class="section-number">01</span><h2>Currently Making</h2></div><span>${active.length} ON THE BENCH</span></div><a class="bench-feature-project" href="#/projects/${esc(lead.id)}"><div class="bench-feature-art">${lead.coverUrl?`<img src="${esc(lead.coverUrl)}" alt="" decoding="async">`:`<span>${esc(lead.coverEmoji||'✦')}</span>`}</div><div><span class="technical-index">${esc(lead.stage)} · UPDATED ${ago(lead.updatedAt||lead.updated_at)}</span><h3>${esc(lead.title)}</h3><p>${esc(lead.description)}</p><strong>OPEN PROJECT →</strong></div></a>${active.length>1?`<div class="grid projects bench-more-projects">${active.slice(1).map(projectCard).join('')}</div>`:''}</section>`:`<section class="section">${empty('NOTHING ON THIS BENCH YET',isMine?'Every project starts somewhere.':'No active project is visible right now.',isMine?'start':'',isMine?'START SOMETHING':'')}</section>`}
+    ${lead?`<section class="bench-feature-v4"><div class="editorial-head"><div><span class="section-number">01</span><h2>Currently Making</h2></div><span>${active.length} ON THE BENCH</span></div><a class="bench-feature-project" href="#/projects/${esc(lead.id)}"><div class="bench-feature-art">${lead.coverUrl?`<img src="${esc(imageSrc(lead.coverUrl))}" alt="" decoding="async">`:`<span>${esc(lead.coverEmoji||'✦')}</span>`}</div><div><span class="technical-index">${esc(lead.stage)} · UPDATED ${ago(lead.updatedAt||lead.updated_at)}</span><h3>${esc(lead.title)}</h3><p>${esc(lead.description)}</p><strong>OPEN PROJECT →</strong></div></a>${active.length>1?`<div class="grid projects bench-more-projects">${active.slice(1).map(projectCard).join('')}</div>`:''}</section>`:`<section class="section">${empty('NOTHING ON THIS BENCH YET',isMine?'Every project starts somewhere.':'No active project is visible right now.',isMine?'start':'',isMine?'START SOMETHING':'')}</section>`}
     ${experiments.length?`<section class="section"><div class="editorial-head"><div><span class="section-number">02</span><h2>Experiments</h2></div><span>SMALL INVESTIGATIONS COUNT</span></div><div class="grid projects">${experiments.slice(0,6).map(projectCard).join('')}</div></section>`:''}
     ${complete.length?`<section class="section"><div class="editorial-head"><div><span class="section-number">03</span><h2>Recent Builds</h2></div><span>THINGS THAT REACHED A RESULT</span></div><div class="grid projects">${complete.slice(0,6).map(projectCard).join('')}</div></section>`:''}
     <section class="section"><div class="editorial-head"><div><span class="section-number">04</span><h2>Around the Bench</h2></div><span>CONTEXT, NOT STATUS</span></div><div class="bench-context-grid-v4">${chipSection('Tools',u.tools)}${d.cabinetVisible?chipSection('Tool Cabinet',(d.toolCabinet||[]).map(t=>[t.manufacturer,t.model].filter(Boolean).join(' '))):''}</div>${isMine&&d.cabinetVisible?'<button class="button-secondary compact" data-action="new-tool">+ ADD TO TOOL CABINET</button>':''}</section>
@@ -1211,7 +1218,7 @@ async function renderWall(){
 }
 function wallPieceV4(p,i,canEdit,wallId){
   const classes=['wall-piece-v4'];if(i%6===0)classes.push('hero-piece');else if(i%6===2)classes.push('tall-piece');else if(i%6===4)classes.push('small-piece');
-  return `<article class="${classes.join(' ')}"><a href="#/projects/${esc(p.id)}"><figure>${p.coverUrl?`<img src="${esc(p.coverUrl)}" alt="${esc(p.title)}" loading="lazy" decoding="async">`:`<span class="wall-placeholder">${esc(p.coverEmoji||'✦')}</span>`}<figcaption><span>${String(i+1).padStart(2,'0')} / ${esc(p.stage)}</span></figcaption></figure><div class="wall-label-v4"><span class="technical-index">${esc(p.owner)} · ${esc((p.disciplines||[])[0]||'PROJECT')}</span><h2>${esc(p.title)}</h2><p>${esc(p.wallCaption||p.description)}</p><strong>OPEN PROJECT →</strong></div></a>${canEdit?`<button class="text-button danger-text deep-only" data-action="remove-wall-project" data-id="${esc(p.id)}" data-wall-id="${esc(wallId)}">REMOVE FROM WALL</button>`:''}</article>`;
+  return `<article class="${classes.join(' ')}"><a href="#/projects/${esc(p.id)}"><figure>${p.coverUrl?`<img src="${esc(imageSrc(p.coverUrl))}" alt="${esc(p.title)}" loading="lazy" decoding="async">`:`<span class="wall-placeholder">${esc(p.coverEmoji||'✦')}</span>`}<figcaption><span>${String(i+1).padStart(2,'0')} / ${esc(p.stage)}</span></figcaption></figure><div class="wall-label-v4"><span class="technical-index">${esc(p.owner)} · ${esc((p.disciplines||[])[0]||'PROJECT')}</span><h2>${esc(p.title)}</h2><p>${esc(p.wallCaption||p.description)}</p><strong>OPEN PROJECT →</strong></div></a>${canEdit?`<button class="text-button danger-text deep-only" data-action="remove-wall-project" data-id="${esc(p.id)}" data-wall-id="${esc(wallId)}">REMOVE FROM WALL</button>`:''}</article>`;
 }
 async function renderWallExhibition(id){
   const d=await api(`/api/wall/${id}`),e=d.item;setTitle(e.title);

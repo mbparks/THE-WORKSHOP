@@ -88,3 +88,14 @@ for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!o
 if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}
 
 console.log(`\n${checks.length} QA checks passed for v${pkg.version}.`);
+
+// v5.8.8 regression checks
+{
+  const fs=require('node:fs'),path=require('node:path');
+  const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
+  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
+  if(/class="overlay" data-action="close-overlay"/.test(app))throw new Error('Modal backdrop must not dismiss dialogs.');
+  if(/Escape'&&overlayRoot/.test(app))throw new Error('Escape must not silently dismiss a dialog.');
+  if(!app.includes('function imageSrc(raw)')||!app.includes('/api/image-proxy?url='))throw new Error('Remote image proxy client helper missing.');
+  if(!server.includes("pathname === '/api/image-proxy'")||!server.includes('validateRemoteImageUrl'))throw new Error('Guarded remote image proxy missing.');
+}
