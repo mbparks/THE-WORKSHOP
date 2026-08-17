@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.0.0' },
+  meta: { version:'8.0.1' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -21,7 +21,6 @@ const state = {
 
 document.documentElement.dataset.theme = state.theme;
 document.body.classList.toggle('deep', state.deep);
-applyTheme(state.theme, false);
 
 function esc(v='') { return String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function fmtDate(v, long=false) {
@@ -161,8 +160,9 @@ function setActiveNav(route){
 function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; return raw.split('/').filter(Boolean); }
 
 async function bootstrap(){
+  applyTheme(state.theme, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.0.0'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.0.1'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});

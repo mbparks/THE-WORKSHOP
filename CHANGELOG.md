@@ -1,3 +1,9 @@
+## v8.0.1 — Startup Hotfix
+
+- Fixed a frontend boot-order regression that caused `applyTheme()` to run before `THEME_ORDER` and `THEME_META` were initialized.
+- Theme initialization now occurs inside `bootstrap()` after the theme constants and functions exist.
+- Updated all app/cache version markers to 8.0.1.
+
 # Changelog
 
 ## v8.0.0 — Making Becomes Community Knowledge
