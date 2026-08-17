@@ -1,3 +1,11 @@
+# v7.0.4 — Homepage Community Entryways
+
+- Promote Maker Crew discovery and GearHead Crew membership to a dedicated, prominent homepage gateway visible to signed-in and signed-out visitors.
+- Add ZIP/postal-code Maker Crew search directly on Home, plus quick access to an existing local Crew.
+- Show GearHead Crew pricing ($5/month or $50/year) and direct join/manage actions on Home.
+- Keep account requirements contextual: browsing and Crew search remain public; identity is requested only when joining or managing membership.
+- Advance app, shell, backup, and service-worker version/cache markers to v7.0.4.
+
 # v7.0.3 — Version & Cache Alignment Hotfix
 
 - Align all executable/runtime version markers to v7.0.3.

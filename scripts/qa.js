@@ -123,6 +123,9 @@ const checks=[
   ,['GearHead templates',server.includes('gearhead_templates')&&app.includes('gearheadTemplates')]
   ,['GearHead duplication',server.includes('/duplicate')]
   ,['GearHead Bench supporter badge follows entitlement',app.includes('gearhead-supporter-badge')&&app.includes('u.gearhead?.active')&&app.includes('GearHead Crew supporter')&&css.includes('.gearhead-supporter-badge')]
+  ,['Home prominently exposes Maker Crew discovery',app.includes('FIND A MAKER CREW')&&app.includes('home-crew-search')&&app.includes('FIND LOCAL CREWS')&&css.includes('.community-entryways')]
+  ,['Home Maker Crew search works without account gate',app.includes("$('#home-crew-search')?.addEventListener")&&app.includes('#/crews/${encodeURIComponent(q)}')]
+  ,['Home prominently exposes GearHead pricing and join',app.includes('JOIN THE GEARHEAD CREW')&&app.includes('$5 <small>/ month</small>')&&app.includes('$50 <small>/ year</small>')&&app.includes('2 months free annually')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

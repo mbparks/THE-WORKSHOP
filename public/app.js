@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'7.0.3' },
+  meta: { version:'7.0.4' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -160,7 +160,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.0.3'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.0.4'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -293,6 +293,31 @@ async function renderHome(){
       <aside class="shop-manifesto"><span class="technical-index">SHOP PRINCIPLE / 01</span><p>Don't just show the finished thing. Show the decisions, the evidence, the wrong turns, and what changed next.</p><span class="technical-index">DISCOVER → LEARN → MAKE → SHARE → IMPROVE → TEACH</span></aside>
     </section>
 
+    <section class="community-entryways" aria-label="Ways into the Workshop community">
+      <article class="community-entry-card maker-crew-entry">
+        <div>
+          <span class="technical-index">LOCAL MAKER COMMUNITY</span>
+          <h2>FIND A MAKER CREW</h2>
+          <p>Find makers, meetups, shared skills, spare materials, and another pair of hands near you. Search by ZIP or postal code—no account required.</p>
+        </div>
+        <form id="home-crew-search" class="home-crew-search">
+          <label for="home-crew-postal">ZIP / POSTAL CODE</label>
+          <div><input id="home-crew-postal" name="postal" inputmode="text" autocomplete="postal-code" placeholder="21502" aria-label="ZIP or postal code"><button class="button" type="submit">FIND LOCAL CREWS →</button></div>
+        </form>
+        ${local.crew?`<a class="entry-secondary-link" href="#/crew/${encodeURIComponent(local.crew.id)}">OPEN MY CREW · ${esc(local.crew.code)} →</a>`:`<a class="entry-secondary-link" href="#/crews">BROWSE ALL MAKER CREWS →</a>`}
+      </article>
+      <article class="community-entry-card gearhead-entry-card">
+        <div>
+          <span class="technical-index">SUPPORT GREEN SHOE GARAGE</span>
+          <h2>JOIN THE GEARHEAD CREW</h2>
+          <p>Help keep the shop moving and get deeper tutorials, films, files, early releases, and After Hours sessions. The WORKSHOP community itself stays open to everyone.</p>
+        </div>
+        <div class="home-gearhead-price"><strong>$5 <small>/ month</small></strong><span>or</span><strong>$50 <small>/ year</small></strong><em>2 months free annually</em></div>
+        <div class="home-gearhead-actions">${state.me?.supporter?`<a class="button" href="#/gearhead">GEARHEAD CREW · ACTIVE →</a><button class="button-secondary" data-action="membership">MANAGE MEMBERSHIP</button>`:`<button class="button" data-action="membership">JOIN THE GEARHEAD CREW →</button><a class="button-secondary" href="#/gearhead">SEE WHAT'S INCLUDED</a>`}</div>
+        ${!state.me?'<small class="entry-note">You can explore first. An account is only required when you join.</small>':''}
+      </article>
+    </section>
+
     <section class="shop-pulse" aria-label="Workshop activity">
       <a href="#/builds"><strong>${activeProjects}</strong><span>projects active</span></a>
       <a href="#/workshop"><strong>${questionCount}</strong><span>questions on the bench</span></a>
@@ -345,6 +370,7 @@ async function renderHome(){
 
     <section class="editorial-section library-strip"><div class="editorial-head"><div><span class="section-number">06</span><h2>NEW IN THE SHOP MANUAL</h2></div><a href="#/library">BROWSE THE LIBRARY →</a></div><div class="grid two">${d.library.map(l=>libraryCard(l)).join('')}</div></section>
   </div>`;
+  $('#home-crew-search')?.addEventListener('submit',e=>{e.preventDefault();const q=String(new FormData(e.currentTarget).get('postal')||'').trim();location.hash=q?`#/crews/${encodeURIComponent(q)}`:'#/crews'});
 }
 async function renderBench(){
   setTitle('Bench');

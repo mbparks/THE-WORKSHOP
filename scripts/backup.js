@@ -13,5 +13,5 @@ const dir=path.join(OUTROOT,stamp);fs.mkdirSync(dir,{recursive:true});
 const db=new DatabaseSync(DB);db.exec('PRAGMA wal_checkpoint(FULL)');
 const out=path.join(dir,'workshop.sqlite'),escaped=out.replaceAll("'","''");db.exec(`VACUUM INTO '${escaped}'`);db.close();
 if(fs.existsSync(UPLOADS))fs.cpSync(UPLOADS,path.join(dir,'uploads'),{recursive:true});
-fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify({createdAt:new Date().toISOString(),version:'7.0.3',database:'workshop.sqlite',uploads:'uploads'},null,2));
+fs.writeFileSync(path.join(dir,'manifest.json'),JSON.stringify({createdAt:new Date().toISOString(),version:'7.0.4',database:'workshop.sqlite',uploads:'uploads'},null,2));
 console.log(dir);
