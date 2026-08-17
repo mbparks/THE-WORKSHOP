@@ -140,6 +140,8 @@ const checks=[
   ,['Disabled Bench embed previews remain owner-only',server.includes("viewer?.id!==row.user_id")&&server.includes('Bench widget has been disabled or replaced.')]
   ,['Bench widget live preview allowed by shell CSP',server.includes("frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com")]
   ,['Bench widget preview stays on current origin',app.includes("const preview=new URL(src.pathname+src.search,location.origin)")&&app.includes('frame.src=preview.toString()')]
+  ,['Bench widget copy publishes before copying',app.includes('PUBLISH & COPY EMBED CODE')&&app.includes("const saved=await api('/api/bench-embed',{method:'PUT'")&&app.includes('Widget published and fresh embed code copied.')]
+  ,['Bench widget save keeps builder visible',app.includes('Bench widget saved and enabled.')&&!app.includes("Bench widget saved but disabled.');closeOverlay();")]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

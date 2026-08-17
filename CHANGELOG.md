@@ -1,13 +1,13 @@
 # Changelog
 
-## v7.2.1 — Bench Widget Preview Hotfix
+## v7.2.2 — Bench Widget Preview Hotfix
 
 - fixed the Embed My Bench live preview being blocked by the main app Content Security Policy
 - allows same-origin frames in the WORKSHOP shell while preserving the existing YouTube/Vimeo allowlist
 - live preview now always uses the current WORKSHOP origin, avoiding preview failures when `WORKSHOP_PUBLIC_URL` differs from the hostname currently being used
 - copied embed code continues to use the canonical public URL
 
-## v7.2.1 — Embeddable Bench Widgets
+## v7.2.2 — Embeddable Bench Widgets
 
 - added MY BENCH → EMBED MY BENCH with a live privacy-aware widget builder
 - added revocable opaque embed tokens; members can disable or rotate a widget at any time
