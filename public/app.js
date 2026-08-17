@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'7.2.3' },
+  meta: { version:'7.2.4' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -21,6 +21,7 @@ const state = {
 
 document.documentElement.dataset.theme = state.theme;
 document.body.classList.toggle('deep', state.deep);
+applyTheme(state.theme, false);
 
 function esc(v='') { return String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function fmtDate(v, long=false) {
@@ -160,7 +161,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.2.3'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.2.4'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -207,7 +208,32 @@ function updateUserUI(){
   if(state.me) refreshNotificationDot(); else $('#notification-dot').hidden=true;
 }
 async function refreshNotificationDot(){ try{const d=await api('/api/notifications');$('#notification-dot').hidden=!d.items.some(n=>!Number(n.read));}catch{$('#notification-dot').hidden=true;} }
-function toggleTheme(){ state.theme=state.theme==='dark'?'light':'dark'; document.documentElement.dataset.theme=state.theme; localStorage.setItem('workshop-theme',state.theme); }
+const THEME_ORDER=['light','dark','contrast'];
+const THEME_META={
+  light:{label:'Light',next:'Dark',themeColor:'#f2efe5',icon:`<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.25M12 19.25v2.25M4.5 12H2.25M21.75 12H19.5M5.64 5.64l1.6 1.6M16.76 16.76l1.6 1.6M18.36 5.64l-1.6 1.6M7.24 16.76l-1.6 1.6"></path></svg>`},
+  dark:{label:'Dark',next:'High contrast',themeColor:'#151613',icon:`<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M20 14.2A8.5 8.5 0 1 1 9.8 4 6.8 6.8 0 0 0 20 14.2Z"></path><path d="M16.5 4.5h.01M19 7h.01M17.25 8.75h.01"></path></svg>`},
+  contrast:{label:'High contrast',next:'Light',themeColor:'#000000',icon:`<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.5"></circle><path d="M12 3.5v17"></path><circle cx="12" cy="12" r="2.5"></circle></svg>`}
+};
+function updateThemeButton(){
+  const btn=$('#theme-toggle');
+  if(!btn) return;
+  const meta=THEME_META[state.theme]||THEME_META.dark;
+  btn.innerHTML=meta.icon;
+  btn.title=`Theme: ${meta.label} · Click for ${meta.next}`;
+  btn.setAttribute('aria-label',`Theme: ${meta.label}. Click for ${meta.next}`);
+  btn.dataset.themeMode=state.theme;
+}
+function applyTheme(theme, announce=true){
+  state.theme=THEME_ORDER.includes(theme)?theme:'dark';
+  document.documentElement.dataset.theme=state.theme;
+  localStorage.setItem('workshop-theme',state.theme);
+  const meta=THEME_META[state.theme]||THEME_META.dark;
+  const themeColor=document.querySelector('meta[name="theme-color"]');
+  if(themeColor) themeColor.setAttribute('content',meta.themeColor);
+  updateThemeButton();
+  if(announce) toast(`${meta.label} mode`);
+}
+function toggleTheme(){ const idx=THEME_ORDER.indexOf(state.theme); applyTheme(THEME_ORDER[(idx+1)%THEME_ORDER.length]); }
 function toggleMode(){ state.deep=!state.deep; document.body.classList.toggle('deep',state.deep); localStorage.setItem('workshop-mode',state.deep?'deep':'simple'); updateUserUI(); toast(`${state.deep?'Deep':'Simple'} mode`); }
 function handleKeys(e){ if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){e.preventDefault();$('#search-input').focus();} }
 

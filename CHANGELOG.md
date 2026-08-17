@@ -1,3 +1,11 @@
+## v7.2.4 — Better theme control + High Contrast mode
+
+- Reworked the theme toggle icon so it reflects the current display mode more clearly.
+- Theme control now cycles through **Light → Dark → High Contrast**.
+- Added a full **High Contrast** theme for stronger accessibility and readability.
+- Theme button title and aria-label now announce the current mode and the next mode in the cycle.
+- Updated the browser theme color dynamically per mode.
+
 ## v7.2.3 — Header Craft Path badge
 
 - Replaced the letter avatar in the header account chip with the user’s current Craft Path badge.
