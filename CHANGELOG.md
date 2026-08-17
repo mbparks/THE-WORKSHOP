@@ -1,6 +1,6 @@
 # Changelog
 
-## v7.1.0 — Craft Path
+## v7.1.1 — Craft Path
 
 - Replaced the large MY BENCH initials circle with the supplied maker emblem as a craft identity mark.
 - Added three self-tracked practice levels: Apprentice (bronze), Journeyman (silver), and Master (gold).
