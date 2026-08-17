@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '7.2.2';
+const APP_VERSION = '7.2.3';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -128,7 +128,8 @@ function craftProgressFor(userId,includeEvidence=false){
 }
 function safeUser(u) {
   if (!u) return null;
-  return { id: u.id, email: u.email, displayName: u.display_name, bio: u.bio, cityRegion: u.city_region, role: u.role, avatarSeed: u.avatar_seed, skills:json(u.skills), tools:json(u.tools), canHelp:json(u.can_help), wantLearn:json(u.want_learn), profileVisibility:u.profile_visibility||'Members', locationVisibility:u.location_visibility||'Members', toolCabinetVisibility:u.tool_cabinet_visibility||'Members', emailVerified:Boolean(u.email_verified), forcePasswordReset:Boolean(u.force_password_reset), age18ConfirmedAt:u.age_18_confirmed_at||'', termsVersionAccepted:u.terms_version_accepted||'', termsAcceptedAt:u.terms_accepted_at||'', termsCurrentAccepted:(u.terms_version_accepted||'')===TERMS_VERSION, anonymizedAt:u.anonymized_at||'', membership:membershipFor(u.id), supporter:isSupporterUser(u), gearhead:gearheadState(u) };
+  const craft=craftProgressFor(u.id,false);
+  return { id: u.id, email: u.email, displayName: u.display_name, bio: u.bio, cityRegion: u.city_region, role: u.role, avatarSeed: u.avatar_seed, skills:json(u.skills), tools:json(u.tools), canHelp:json(u.can_help), wantLearn:json(u.want_learn), profileVisibility:u.profile_visibility||'Members', locationVisibility:u.location_visibility||'Members', toolCabinetVisibility:u.tool_cabinet_visibility||'Members', emailVerified:Boolean(u.email_verified), forcePasswordReset:Boolean(u.force_password_reset), age18ConfirmedAt:u.age_18_confirmed_at||'', termsVersionAccepted:u.terms_version_accepted||'', termsAcceptedAt:u.terms_accepted_at||'', termsCurrentAccepted:(u.terms_version_accepted||'')===TERMS_VERSION, anonymizedAt:u.anonymized_at||'', membership:membershipFor(u.id), supporter:isSupporterUser(u), gearhead:gearheadState(u), craftPath:{currentLevel:craft.currentLevel,currentLabel:craft.currentLabel,metal:craft.metal} };
 }
 function encodeResponse(res, body, type, cacheControl='no-store', headers={}) {
   const raw=Buffer.isBuffer(body)?body:Buffer.from(String(body));
@@ -1083,7 +1084,7 @@ function renderBenchEmbed(req,res,url,token){
   const row=db.prepare('SELECT * FROM bench_embeds WHERE token=?').get(token);if(!row)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');const viewer=currentUser(req);if(!Number(row.enabled)&&viewer?.id!==row.user_id)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');
   const data=benchEmbedPayload(row.user_id,json(row.settings));if(!data)return sendBenchEmbedHtml(res,404,'Bench unavailable','This Workshop member is no longer available.');
   const q=url.searchParams,override={};for(const k of ['theme','layout'])if(q.has(k))override[k]=q.get(k);const settings=benchEmbedSettings({...data.settings,...override});data.settings=settings;
-  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.png?v=7.2.2':rank==='journeyman'?'/craft-journeyman.png?v=7.2.2':rank==='apprentice'?'/craft-apprentice.png?v=7.2.2':'/craft-default-wood.png?v=7.2.2';
+  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.png?v=7.2.3':rank==='journeyman'?'/craft-journeyman.png?v=7.2.3':rank==='apprentice'?'/craft-apprentice.png?v=7.2.3':'/craft-default-wood.png?v=7.2.3';
   const profileHref=data.user.profilePublic?`${base}/#/bench/${encodeURIComponent(data.user.id)}`:'';
   const themeCss=settings.theme==='dark'?':root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}':settings.theme==='light'?':root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}':'@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}}@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}}';
   const projectHtml=data.projects.length?`<div class="projects">${data.projects.map(p=>`<a href="${base}/#/projects/${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><span>${htmlEscape(p.stage)}</span><strong>${htmlEscape(p.title)}</strong></a>`).join('')}</div>`:'';

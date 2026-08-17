@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'7.2.2' },
+  meta: { version:'7.2.3' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -160,7 +160,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.2.2'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'7.2.3'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -181,8 +181,27 @@ async function bootstrap(){
   await renderRoute();
   enforceAccountRequirements();
 }
+function craftLevelBadgeMeta(craft={}){
+  const level=craft?.currentLevel||'';
+  const src=level==='master'?'/craft-master.png?v=7.2.3':level==='journeyman'?'/craft-journeyman.png?v=7.2.3':level==='apprentice'?'/craft-apprentice.png?v=7.2.3':'/craft-default-wood.png?v=7.2.3';
+  const label=level?`${craft.currentLabel} · ${craft.metal}`:'Craft path in progress';
+  return {level,src,label};
+}
 function updateUserUI(){
-  $('#user-avatar').textContent=state.me?initials(state.me.displayName):'?';
+  const avatar=$('#user-avatar');
+  const userButton=$('#user-button');
+  if(state.me){
+    const badge=craftLevelBadgeMeta(state.me.craftPath||{});
+    avatar.innerHTML=`<img src="${badge.src}" alt="" loading="lazy" decoding="async">`;
+    avatar.classList.add('has-craft-icon');
+    avatar.title=badge.label;
+    userButton.setAttribute('aria-label',`Account for ${state.me.displayName} · ${badge.label}`);
+  }else{
+    avatar.textContent='?';
+    avatar.classList.remove('has-craft-icon');
+    avatar.removeAttribute('title');
+    userButton.setAttribute('aria-label','Account');
+  }
   $('#user-name').textContent=state.me?state.me.displayName:'ENTER';
   $('#mode-toggle span').textContent=state.deep?'DEEP':'SIMPLE';
   if(state.me) refreshNotificationDot(); else $('#notification-dot').hidden=true;
@@ -1143,13 +1162,13 @@ function chipSection(title,items=[],emptyCopy='Nothing listed yet.'){
 }
 function craftMark(craft={},memberName='Maker'){
   const level=craft.currentLevel||'';
-  const src=level==='master'?'/craft-master.png?v=7.2.2':level==='journeyman'?'/craft-journeyman.png?v=7.2.2':level==='apprentice'?'/craft-apprentice.png?v=7.2.2':'/craft-default-wood.png?v=7.2.2';
+  const src=level==='master'?'/craft-master.png?v=7.2.3':level==='journeyman'?'/craft-journeyman.png?v=7.2.3':level==='apprentice'?'/craft-apprentice.png?v=7.2.3':'/craft-default-wood.png?v=7.2.3';
   const label=level?`${craft.currentLabel} · ${craft.metal}`:'Craft path in progress';
   return `<div class="craft-mark craft-${esc(level||'neutral')}" role="img" aria-label="${esc(memberName)} · ${esc(label)}" title="${esc(label)}"><img src="${src}" alt=""><span>${esc(level?craft.currentLabel.toUpperCase():'CRAFT PATH')}</span></div>`;
 }
 function craftPathView(craft={}){
   const levels=craft.levels||[];
-  return `<section class="craft-path-section" aria-labelledby="craft-path-title"><div class="editorial-head"><div><span class="section-number">00</span><h2 id="craft-path-title">Craft Path</h2></div><span>SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD</span></div><p class="craft-path-intro">Track your own development through documented making, reflection, participation, and teaching. Check an expectation when you believe you have met it; add an optional note or link so your future self can remember the evidence. A level is earned only when every expectation in that level—and every earlier level—is complete.</p><div class="craft-level-grid">${levels.map(level=>`<article class="craft-level-card craft-level-${esc(level.id)} ${level.earned?'earned':''}"><header><img src="${level.id==='master'?'/craft-master.png?v=7.2.2':level.id==='journeyman'?'/craft-journeyman.png?v=7.2.2':'/craft-apprentice.png?v=7.2.2'}" alt=""><div><span class="technical-index">${esc(level.metal.toUpperCase())} LEVEL</span><h3>${esc(level.label)}</h3><p>${esc(level.description)}</p></div><strong>${level.done}/${level.total}</strong></header><div class="craft-requirements">${level.requirements.map(req=>`<div class="craft-requirement ${req.checked?'done':''}" data-craft-row="${esc(req.id)}"><label class="craft-check"><input type="checkbox" data-craft-check="${esc(req.id)}" ${req.checked?'checked':''}><span><strong>${esc(req.title)}</strong><small>${esc(req.expectation)}</small></span></label><div class="craft-evidence-row"><input data-craft-evidence="${esc(req.id)}" value="${esc(req.evidenceNote||'')}" placeholder="Optional evidence note or link"><button class="text-button" data-action="craft-save" data-id="${esc(req.id)}">SAVE</button></div></div>`).join('')}</div>${level.earned?`<footer>✓ ${esc(level.label.toUpperCase())} EARNED</footer>`:`<footer>${level.done} OF ${level.total} EXPECTATIONS COMPLETE</footer>`}</article>`).join('')}</div></section>`;
+  return `<section class="craft-path-section" aria-labelledby="craft-path-title"><div class="editorial-head"><div><span class="section-number">00</span><h2 id="craft-path-title">Craft Path</h2></div><span>SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD</span></div><p class="craft-path-intro">Track your own development through documented making, reflection, participation, and teaching. Check an expectation when you believe you have met it; add an optional note or link so your future self can remember the evidence. A level is earned only when every expectation in that level—and every earlier level—is complete.</p><div class="craft-level-grid">${levels.map(level=>`<article class="craft-level-card craft-level-${esc(level.id)} ${level.earned?'earned':''}"><header><img src="${level.id==='master'?'/craft-master.png?v=7.2.3':level.id==='journeyman'?'/craft-journeyman.png?v=7.2.3':'/craft-apprentice.png?v=7.2.3'}" alt=""><div><span class="technical-index">${esc(level.metal.toUpperCase())} LEVEL</span><h3>${esc(level.label)}</h3><p>${esc(level.description)}</p></div><strong>${level.done}/${level.total}</strong></header><div class="craft-requirements">${level.requirements.map(req=>`<div class="craft-requirement ${req.checked?'done':''}" data-craft-row="${esc(req.id)}"><label class="craft-check"><input type="checkbox" data-craft-check="${esc(req.id)}" ${req.checked?'checked':''}><span><strong>${esc(req.title)}</strong><small>${esc(req.expectation)}</small></span></label><div class="craft-evidence-row"><input data-craft-evidence="${esc(req.id)}" value="${esc(req.evidenceNote||'')}" placeholder="Optional evidence note or link"><button class="text-button" data-action="craft-save" data-id="${esc(req.id)}">SAVE</button></div></div>`).join('')}</div>${level.earned?`<footer>✓ ${esc(level.label.toUpperCase())} EARNED</footer>`:`<footer>${level.done} OF ${level.total} EXPECTATIONS COMPLETE</footer>`}</article>`).join('')}</div></section>`;
 }
 async function renderBench(uid=''){
   setTitle('Bench');

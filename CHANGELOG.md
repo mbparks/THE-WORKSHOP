@@ -1,3 +1,10 @@
+## v7.2.3 — Header Craft Path badge
+
+- Replaced the letter avatar in the header account chip with the user’s current Craft Path badge.
+- Logged-in members now see the wood / bronze / silver / gold maker mark in the top-right account button.
+- Added Craft Path summary data to the authenticated user payload so the header can stay in sync with profile progression.
+- Updated cache-busting asset versions to 7.2.3.
+
 # Changelog
 
 ## v7.2.2 — Bench Widget Preview Hotfix
