@@ -1,3 +1,17 @@
+# Changelog
+
+## v7.1.0 — Craft Path
+
+- Replaced the large MY BENCH initials circle with the supplied maker emblem as a craft identity mark.
+- Added three self-tracked practice levels: Apprentice (bronze), Journeyman (silver), and Master (gold).
+- Added clearly documented expectations for every level directly on MY BENCH.
+- Added member-controlled completion checkboxes plus optional evidence notes/links for every expectation.
+- Levels are earned sequentially only when every expectation in that level and all earlier levels are complete.
+- Added the `craft_progress` persistence table, `/api/craft-progress` read/update API, audit events, and personal-data export coverage.
+- Kept progression non-gamified: no XP, score, leaderboard, popularity count, streak, or hidden promotion algorithm.
+- Added neutral, bronze, silver, and gold craft-mark assets to the PWA shell cache.
+- Expanded release QA to 117 checks and live-tested Apprentice promotion and private evidence persistence.
+
 # v7.0.5 — MY BENCH Navigation Label
 
 - Rename the primary desktop left-navigation label from `Bench` to `MY BENCH`.

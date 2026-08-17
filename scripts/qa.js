@@ -126,6 +126,11 @@ const checks=[
   ,['Home prominently exposes Maker Crew discovery',app.includes('FIND A MAKER CREW')&&app.includes('home-crew-search')&&app.includes('FIND LOCAL CREWS')&&css.includes('.community-entryways')]
   ,['Home Maker Crew search works without account gate',app.includes("$('#home-crew-search')?.addEventListener")&&app.includes('#/crews/${encodeURIComponent(q)}')]
   ,['Home prominently exposes GearHead pricing and join',app.includes('JOIN THE GEARHEAD CREW')&&app.includes('$5 <small>/ month</small>')&&app.includes('$50 <small>/ year</small>')&&app.includes('2 months free annually')]
+  ,['Craft Path persistence schema',server.includes('CREATE TABLE IF NOT EXISTS craft_progress')&&server.includes('/api/craft-progress')]
+  ,['Craft Path documents all three levels',server.includes("label:'Apprentice'")&&server.includes("label:'Journeyman'")&&server.includes("label:'Master'")]
+  ,['Craft Path is self tracked without XP',app.includes('SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD')&&!server.includes('craft_xp')]
+  ,['Craft rank uses bronze silver gold assets',app.includes('/craft-apprentice.png')&&app.includes('/craft-journeyman.png')&&app.includes('/craft-master.png')]
+  ,['Craft Path appears on My Bench',app.includes('craftPathView(d.craft)')&&app.includes('Optional evidence note or link')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

@@ -533,3 +533,14 @@ STRIPE_GEARHEAD_ANNUAL_PRICE_ID=price_...
 ```
 
 `STRIPE_GEARHEAD_PRICE_ID` remains supported as a legacy single-price fallback during deployment transitions. Either monthly or annual subscription grants the same GearHead Crew entitlement.
+
+
+## Craft Path
+
+Each member can track their own making practice from **MY BENCH** through three documented levels:
+
+- **Apprentice — Bronze**: establish a Bench, start a real project, keep a build record, and name what you want to learn.
+- **Journeyman — Silver**: bring work to a result, test, preserve failure/revision evidence, help another maker, and participate beyond your own Bench.
+- **Master — Gold**: demonstrate sustained documented practice, teach from experience, contribute back, support shared work, show revision at depth, and reflect on the responsibilities and limits of your practice.
+
+Progress is self-attested. Every requirement has a checkbox and an optional evidence note/link. The current craft mark is shown on the member Bench; personal evidence is returned only to the member viewing their own Bench. A level is earned only after all expectations in that level and all prior levels are complete. There are no points, XP, streaks, leaderboards, or popularity-based promotions.
