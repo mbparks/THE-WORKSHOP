@@ -1,3 +1,9 @@
+# v7.0.5 — MY BENCH Navigation Label
+
+- Rename the primary desktop left-navigation label from `Bench` to `MY BENCH`.
+- Preserve the existing `#/bench` route, page terminology, and fixed five-item mobile navigation.
+- Advance visible/runtime/cache version markers to v7.0.5.
+
 # v7.0.4 — Homepage Community Entryways
 
 - Promote Maker Crew discovery and GearHead Crew membership to a dedicated, prominent homepage gateway visible to signed-in and signed-out visitors.
