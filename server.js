@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '7.2.5';
+const APP_VERSION = '8.0.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -585,6 +585,38 @@ function initSchema() {
       post_type TEXT NOT NULL DEFAULT 'Question', title TEXT NOT NULL, body TEXT NOT NULL, expires_at TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'Active',
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS maker_crew_handbook_entries (
+      id TEXT PRIMARY KEY, crew_id TEXT NOT NULL REFERENCES maker_crews(id) ON DELETE CASCADE,
+      created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, category TEXT NOT NULL DEFAULT 'Local Knowledge',
+      title TEXT NOT NULL, body TEXT NOT NULL, url TEXT DEFAULT '', visibility TEXT NOT NULL DEFAULT 'Members',
+      status TEXT NOT NULL DEFAULT 'Published', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS personal_notebook_entries (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      entry_type TEXT NOT NULL DEFAULT 'Idea', title TEXT NOT NULL, body TEXT DEFAULT '', tags TEXT DEFAULT '[]',
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, status TEXT NOT NULL DEFAULT 'Active', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS failure_records (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, crew_id TEXT DEFAULT '', title TEXT NOT NULL,
+      failure_type TEXT NOT NULL DEFAULT 'Other', observed TEXT NOT NULL, expected TEXT DEFAULT '', cause TEXT DEFAULT '', evidence TEXT DEFAULT '',
+      fix TEXT DEFAULT '', lesson TEXT DEFAULT '', visibility TEXT NOT NULL DEFAULT 'Members', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS workshop_prompts (
+      id TEXT PRIMARY KEY, created_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL, brief TEXT NOT NULL, constraints TEXT DEFAULT '[]', optional_constraints TEXT DEFAULT '[]',
+      inspiration TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'Open', starts_at TEXT DEFAULT '', ends_at TEXT DEFAULT '',
+      visibility TEXT NOT NULL DEFAULT 'Public', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS workshop_prompt_projects (
+      prompt_id TEXT NOT NULL REFERENCES workshop_prompts(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at TEXT NOT NULL, PRIMARY KEY(prompt_id,project_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_crew_handbook ON maker_crew_handbook_entries(crew_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_notebook_user ON personal_notebook_entries(user_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_failure_visibility ON failure_records(visibility,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_prompt_status ON workshop_prompts(status,starts_at,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_crew_postal ON maker_crew_postal_codes(postal_code);
     CREATE INDEX IF NOT EXISTS idx_crew_members_user ON maker_crew_members(user_id,status,is_primary);
     CREATE INDEX IF NOT EXISTS idx_crew_events_start ON maker_crew_events(crew_id,status,starts_at);
@@ -1251,7 +1283,9 @@ function crewPayload(c,viewer){
   const announcements=db.prepare(`SELECT a.*,u.display_name author FROM maker_crew_announcements a JOIN users u ON u.id=a.created_by WHERE a.crew_id=? AND (a.visibility='Public' OR ?<>'') ORDER BY a.created_at DESC LIMIT 8`).all(c.id,uid);
   const bulletin=db.prepare(`SELECT b.*,u.display_name author FROM maker_crew_bulletin_posts b JOIN users u ON u.id=b.user_id WHERE b.crew_id=? AND b.status='Active' AND (b.expires_at='' OR b.expires_at>?) ORDER BY b.created_at DESC LIMIT 20`).all(c.id,now());
   const sessions=db.prepare(`SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.crew_id=? AND s.status<>'Draft' AND (s.visibility='Public' OR ?<>'') ORDER BY s.starts_at DESC`).all(c.id,uid).map(r=>workshopSessionRow(r,uid));
-  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
+  const handbook=db.prepare(`SELECT h.*,u.display_name author FROM maker_crew_handbook_entries h JOIN users u ON u.id=h.created_by WHERE h.crew_id=? AND h.status='Published' AND (h.visibility='Public' OR ?<>'') ORDER BY h.category,h.updated_at DESC`).all(c.id,uid);
+  const localNeeds=bulletin.filter(b=>['Need a Hand','Need a Tool','Have Material','Looking for Knowledge','Project Needs a Home'].includes(b.post_type));
+  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
 }
 
 
@@ -1291,8 +1325,52 @@ function routeApi(req, res, url) {
   const me = currentUser(req);
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:true,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:true,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
+
+  // v8.0 — private notebook
+  if(pathname==='/api/notebook' && method==='GET'){
+    const u=requireUser(req,res);if(!u)return;
+    const items=db.prepare(`SELECT n.*,p.title project_title FROM personal_notebook_entries n LEFT JOIN projects p ON p.id=n.project_id WHERE n.user_id=? AND n.status<>'Deleted' ORDER BY n.updated_at DESC`).all(u.id).map(x=>({...x,tags:json(x.tags)}));
+    return sendJson(res,200,{items});
+  }
+  if(pathname==='/api/notebook' && method==='POST')return readBody(req).then(body=>{
+    const u=requireUser(req,res);if(!u)return;const title=String(body.title||'').trim();if(!title)return sendJson(res,400,{error:'Give the notebook entry a title.'});
+    const nid=id('note'),ts=now();db.prepare(`INSERT INTO personal_notebook_entries (id,user_id,entry_type,title,body,tags,project_id,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)`).run(nid,u.id,String(body.entryType||'Idea'),title,String(body.body||''),JSON.stringify(parseList(body.tags)),body.projectId||null,'Active',ts,ts);return sendJson(res,201,{id:nid});
+  });
+  const notebookMatch=pathname.match(/^\/api\/notebook\/([^/]+)$/);
+  if(notebookMatch&&method==='PUT')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const row=db.prepare('SELECT * FROM personal_notebook_entries WHERE id=? AND user_id=?').get(notebookMatch[1],u.id);if(!row)return sendJson(res,404,{error:'Notebook entry not found.'});db.prepare(`UPDATE personal_notebook_entries SET entry_type=?,title=?,body=?,tags=?,project_id=?,updated_at=? WHERE id=?`).run(String(body.entryType||row.entry_type),String(body.title||row.title),String(body.body??row.body),JSON.stringify(body.tags!==undefined?parseList(body.tags):json(row.tags)),body.projectId!==undefined?(body.projectId||null):row.project_id,now(),row.id);return sendJson(res,200,{ok:true});});
+  if(notebookMatch&&method==='DELETE'){const u=requireUser(req,res);if(!u)return;db.prepare("UPDATE personal_notebook_entries SET status='Deleted',updated_at=? WHERE id=? AND user_id=?").run(now(),notebookMatch[1],u.id);return sendJson(res,200,{ok:true});}
+  const notebookStart=pathname.match(/^\/api\/notebook\/([^/]+)\/start-project$/);
+  if(notebookStart&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const n=db.prepare('SELECT * FROM personal_notebook_entries WHERE id=? AND user_id=?').get(notebookStart[1],u.id);if(!n)return sendJson(res,404,{error:'Notebook entry not found.'});if(n.project_id)return sendJson(res,200,{projectId:n.project_id,existing:true});const pid=id('p'),ts=now(),title=String(body.title||n.title).trim();db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(pid,u.id,title,slugify(title),String(n.body||''),'Idea','Active','[]',JSON.stringify([...new Set(['notebook',...json(n.tags)])]),'✎','Members','Unspecified','','Approachable','[]','Notebook',n.id,ts,ts);db.prepare('UPDATE personal_notebook_entries SET project_id=?,updated_at=? WHERE id=?').run(pid,ts,n.id);db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,'Idea','From my Workshop Notebook',String(n.body||n.title),ts,ts);return sendJson(res,201,{projectId:pid});});
+
+  // v8.0 — Failure Library
+  if(pathname==='/api/failures' && method==='GET'){
+    const uid=me?.id||'';const rows=db.prepare(`SELECT f.*,u.display_name author,p.title project_title FROM failure_records f JOIN users u ON u.id=f.user_id LEFT JOIN projects p ON p.id=f.project_id WHERE f.visibility='Public' OR (?<>'' AND (f.visibility='Members' OR f.user_id=?)) ORDER BY f.updated_at DESC`).all(uid,uid);return sendJson(res,200,{items:rows});
+  }
+  if(pathname==='/api/failures' && method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const title=String(body.title||'').trim(),observed=String(body.observed||'').trim();if(!title||!observed)return sendJson(res,400,{error:'Failure title and what you observed are required.'});const fid=id('fail'),ts=now();db.prepare(`INSERT INTO failure_records (id,user_id,project_id,crew_id,title,failure_type,observed,expected,cause,evidence,fix,lesson,visibility,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(fid,u.id,body.projectId||null,String(body.crewId||''),title,String(body.failureType||'Other'),observed,String(body.expected||''),String(body.cause||''),String(body.evidence||''),String(body.fix||''),String(body.lesson||''),String(body.visibility||'Members'),ts,ts);if(body.projectId){try{db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),body.projectId,u.id,'Failure',title,`${observed}${body.lesson?`\n\nLesson: ${body.lesson}`:''}`,ts,ts)}catch{}}return sendJson(res,201,{id:fid});});
+  const failureMatch=pathname.match(/^\/api\/failures\/([^/]+)$/);if(failureMatch&&method==='GET'){const f=db.prepare(`SELECT f.*,u.display_name author,p.title project_title FROM failure_records f JOIN users u ON u.id=f.user_id LEFT JOIN projects p ON p.id=f.project_id WHERE f.id=?`).get(failureMatch[1]);if(!f)return sendJson(res,404,{error:'Failure record not found.'});if(f.visibility!=='Public'&&!me)return sendJson(res,403,{error:'Members only.'});return sendJson(res,200,{item:f});}
+
+  // v8.0 — Workshop Prompts: shared making without winners
+  if(pathname==='/api/prompts'&&method==='GET'){const uid=me?.id||'';const rows=db.prepare(`SELECT w.*,u.display_name author,(SELECT COUNT(*) FROM workshop_prompt_projects x WHERE x.prompt_id=w.id) project_count FROM workshop_prompts w JOIN users u ON u.id=w.created_by WHERE w.visibility='Public' OR ?<>'' ORDER BY CASE w.status WHEN 'Open' THEN 0 WHEN 'Upcoming' THEN 1 ELSE 2 END,w.updated_at DESC`).all(uid).map(x=>({...x,constraints:json(x.constraints),optionalConstraints:json(x.optional_constraints)}));return sendJson(res,200,{items:rows,canEdit:canEditEditorial(me)});}
+  if(pathname==='/api/prompts'&&method==='POST')return readBody(req).then(body=>{const u=requireRole(req,res,['Owner','Administrator','Editor']);if(!u)return;const title=String(body.title||'').trim(),brief=String(body.brief||'').trim();if(!title||!brief)return sendJson(res,400,{error:'Prompt title and brief are required.'});const pid=id('prompt'),ts=now();db.prepare(`INSERT INTO workshop_prompts (id,created_by,title,brief,constraints,optional_constraints,inspiration,status,starts_at,ends_at,visibility,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(pid,u.id,title,brief,JSON.stringify(parseList(body.constraints)),JSON.stringify(parseList(body.optionalConstraints)),String(body.inspiration||''),String(body.status||'Open'),String(body.startsAt||''),String(body.endsAt||''),String(body.visibility||'Public'),ts,ts);return sendJson(res,201,{id:pid});});
+  const promptMatch=pathname.match(/^\/api\/prompts\/([^/]+)$/);if(promptMatch&&method==='GET'){const p=db.prepare(`SELECT w.*,u.display_name author FROM workshop_prompts w JOIN users u ON u.id=w.created_by WHERE w.id=?`).get(promptMatch[1]);if(!p)return sendJson(res,404,{error:'Prompt not found.'});const projects=db.prepare(projectSelect(me?.id||'')+` JOIN workshop_prompt_projects x ON x.project_id=p.id WHERE x.prompt_id=? ORDER BY p.updated_at DESC`).all(me?.id||'',p.id).map(projectRow);const mine=me?db.prepare('SELECT project_id FROM workshop_prompt_projects WHERE prompt_id=? AND user_id=? ORDER BY created_at DESC LIMIT 1').get(p.id,me.id):null;return sendJson(res,200,{item:{...p,constraints:json(p.constraints),optionalConstraints:json(p.optional_constraints)},projects,myProjectId:mine?.project_id||''});}
+  const promptStart=pathname.match(/^\/api\/prompts\/([^/]+)\/start$/);if(promptStart&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const p=db.prepare('SELECT * FROM workshop_prompts WHERE id=?').get(promptStart[1]);if(!p||p.status!=='Open')return sendJson(res,404,{error:'That prompt is not open.'});const existing=db.prepare('SELECT project_id FROM workshop_prompt_projects WHERE prompt_id=? AND user_id=?').get(p.id,u.id);if(existing)return sendJson(res,200,{projectId:existing.project_id,existing:true});const pid=id('p'),ts=now(),title=String(body.title||p.title).trim();db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(pid,u.id,title,slugify(title),String(p.brief),'Idea','Active','[]',JSON.stringify(['Workshop Prompt']),'◇','Members','Unspecified','','Approachable','[]','Prompt',p.id,ts,ts);db.prepare('INSERT INTO workshop_prompt_projects (prompt_id,project_id,user_id,created_at) VALUES (?,?,?,?)').run(p.id,pid,u.id,ts);return sendJson(res,201,{projectId:pid});});
+
+  // v8.0 — public Workshop Map; exact member locations are never returned
+  if(pathname==='/api/workshop-map'&&method==='GET'){
+    const crews=db.prepare(`SELECT c.id,c.code,c.name,c.city_region,c.anchor_postal_code,z.latitude,z.longitude FROM maker_crews c LEFT JOIN maker_crew_postal_codes z ON z.crew_id=c.id AND z.is_anchor=1 WHERE c.status='Active' AND c.visibility='Public' AND z.latitude IS NOT NULL AND z.longitude IS NOT NULL ORDER BY c.name`).all();
+    const events=db.prepare(`SELECT e.id,e.crew_id,e.title,e.event_type,e.starts_at,e.venue_name,e.city_region,c.code,c.name crew_name,z.latitude,z.longitude FROM maker_crew_events e JOIN maker_crews c ON c.id=e.crew_id LEFT JOIN maker_crew_postal_codes z ON z.crew_id=c.id AND z.is_anchor=1 WHERE e.status<>'Cancelled' AND e.visibility='Public' AND z.latitude IS NOT NULL AND z.longitude IS NOT NULL ORDER BY e.starts_at ASC LIMIT 100`).all();
+    return sendJson(res,200,{crews,events,privacy:'Pins use Crew anchor ZIP centroids, never member home locations or private meetup addresses.'});
+  }
+
+  // v8.0 — Maker Crew handbook
+  const crewHandbook=pathname.match(/^\/api\/crews\/([^/]+)\/handbook$/);if(crewHandbook&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(!crewRole(crewHandbook[1],u.id))return sendJson(res,403,{error:'Join the Crew to add local knowledge.'});const title=String(body.title||'').trim(),text=String(body.body||'').trim();if(!title||!text)return sendJson(res,400,{error:'Title and local knowledge are required.'});const hid=id('hand'),ts=now();db.prepare(`INSERT INTO maker_crew_handbook_entries (id,crew_id,created_by,category,title,body,url,visibility,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)`).run(hid,crewHandbook[1],u.id,String(body.category||'Local Knowledge'),title,text,String(body.url||''),String(body.visibility||'Members'),'Published',ts,ts);return sendJson(res,201,{id:hid});});
+
+  // v8.0 — printable project labels. QR is offered only for Public projects because it uses a public QR image endpoint.
+  const projectLabel=pathname.match(/^\/api\/projects\/([^/]+)\/label$/);if(projectLabel&&method==='GET'){
+    const uid=me?.id||'',row=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,projectLabel[1]);if(!row)return sendJson(res,404,{error:'Project not found.'});const p=projectRow(row),owner=me&&me.id===p.ownerId;if(p.visibility!=='Public'&&!owner)return sendJson(res,403,{error:'That project label is not available.'});const base=PUBLIC_URL||`http://${req.headers.host}`,projectUrl=`${base}/#/projects/${encodeURIComponent(p.id)}`;return sendJson(res,200,{project:{id:p.id,title:p.title,owner:p.owner,stage:p.stage,updatedAt:p.updatedAt,visibility:p.visibility},projectUrl,qrUrl:p.visibility==='Public'?`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(projectUrl)}`:'',qrPrivacy:p.visibility==='Public'?'The QR contains only the already-public project URL.':'QR is disabled for non-public projects.'});
+  }
 
   if (pathname === '/api/auth/register' && method === 'POST') return readBody(req).then(body=>{
     const email=String(body.email||'').trim().toLowerCase(),display=String(body.displayName||'').trim(),password=String(body.password||''),age18=body.age18==='yes'||body.age18===true,terms=body.terms==='yes'||body.terms===true;

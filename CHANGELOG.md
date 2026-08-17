@@ -1,9 +1,21 @@
+# Changelog
+
+## v8.0.0 — Making Becomes Community Knowledge
+
+- **Maker Crew 2.0** adds a Crew Handbook, a clearer Local Needs surface, continued shared Crew Projects, and Field Trip support through Crew events.
+- **Failure Library** preserves what broke as structured evidence: observation, expectation, cause, evidence, fix, and lesson.
+- **Workshop Notebook** gives each member a private idea/sketch/question/reference/material/experiment/someday notebook with one-action conversion into a real Project.
+- **Workshop Map** plots only public Maker Crew anchor ZIP centroids and public Crew events; member home locations and private meetup addresses are never returned by the map API.
+- **Physical Project Labels** generate printable artifact labels; QR links are available only for already-Public Projects.
+- **Workshop Prompts** create non-competitive shared making challenges whose Project interpretations are presented as an exhibition, with no winners, points, rankings, or leaderboards.
+- Added v8 feature regression coverage and verified non-destructive migration from v7.2.5.
+
 ## v7.2.5 — Almanac links
 
 - Added persistent external navigation links to **ALMANAC** (`https://mbparks.com/almanac`) and **ALMANAC II** (`https://mbparks.com/almanac2`).
 - Links open in a new tab and remain outside the internal router state.
 
-## v7.2.5 — Better theme control + High Contrast mode
+## v7.2.4 — Better theme control + High Contrast mode
 
 - Reworked the theme toggle icon so it reflects the current display mode more clearly.
 - Theme control now cycles through **Light → Dark → High Contrast**.
@@ -18,7 +30,6 @@
 - Added Craft Path summary data to the authenticated user payload so the header can stay in sync with profile progression.
 - Updated cache-busting asset versions to 7.2.3.
 
-# Changelog
 
 ## v7.2.2 — Bench Widget Preview Hotfix
 

@@ -549,3 +549,15 @@ Progress is self-attested. Every requirement has a checkbox and an optional evid
 ## Embeddable Bench widgets
 
 Members can open **MY BENCH → EMBED MY BENCH** to generate a revocable iframe widget for a personal website. The widget uses an opaque token and publishes only the member-selected fields. Recent-project tiles are limited to projects whose WORKSHOP visibility is **Public**. Members can disable the widget or rotate the token at any time to invalidate existing embed codes.
+
+
+## v8.0.0 — Making Becomes Community Knowledge
+
+THE WORKSHOP v8 deepens the path from private thought to shared craft knowledge.
+
+- **Workshop Notebook** — private Idea, Sketch, Question, Reference, Material, Experiment, and Someday notes; any note can become a normal Project.
+- **Failure Library** — structured, cross-project records of what failed, what was expected, evidence, causes, fixes, and lessons.
+- **Maker Crew 2.0** — Crew Handbook, Local Needs, shared Crew Projects, and Field Trips while retaining the existing ZIP-anchor privacy model.
+- **Workshop Map** — public Crew anchor regions and public events only; no member home locations and no private meetup addresses.
+- **Physical Project Labels** — printable labels that connect physical artifacts to their Workshop record. Public Projects can include a QR link; private/member-only Projects deliberately do not send a URL to an external QR service.
+- **Workshop Prompts** — shared making challenges with no winner, score, ranking, streak, or leaderboard. Different interpretations are shown beside one another as an exhibition.

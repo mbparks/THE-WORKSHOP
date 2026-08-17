@@ -142,6 +142,12 @@ const checks=[
   ,['Bench widget preview stays on current origin',app.includes("const preview=new URL(src.pathname+src.search,location.origin)")&&app.includes('frame.src=preview.toString()')]
   ,['Bench widget copy publishes before copying',app.includes('PUBLISH & COPY EMBED CODE')&&app.includes("const saved=await api('/api/bench-embed',{method:'PUT'")&&app.includes('Widget published and fresh embed code copied.')]
   ,['Bench widget save keeps builder visible',app.includes('Bench widget saved and enabled.')&&!app.includes("Bench widget saved but disabled.');closeOverlay();")]
+  ,['Maker Crew 2.0 handbook and local needs',server.includes('maker_crew_handbook_entries')&&server.includes('localNeeds=bulletin.filter')&&app.includes('CREW HANDBOOK')&&app.includes('LOCAL NEEDS')]
+  ,['Failure Library structured evidence',server.includes('CREATE TABLE IF NOT EXISTS failure_records')&&app.includes('Failure Library')&&app.includes('WHAT BROKE · WHAT WE LEARNED')&&app.includes('PRESERVE THE FAILURE')]
+  ,['Private Workshop Notebook can become projects',server.includes('CREATE TABLE IF NOT EXISTS personal_notebook_entries')&&server.includes('/start-project')&&app.includes('Workshop Notebook')&&app.includes('START PROJECT')]
+  ,['Workshop Map uses Crew anchor centroids only',server.includes("pathname==='/api/workshop-map'")&&server.includes('z.is_anchor=1')&&server.includes('never member home locations')&&app.includes('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS')]
+  ,['Physical project labels support public QR only',server.includes('/label$/')&&server.includes("p.visibility==='Public'?")&&app.includes('DIGITAL HISTORY → PHYSICAL ARTIFACT')&&app.includes('PRINT LABEL')]
+  ,['Workshop Prompts are explicitly noncompetitive',server.includes('CREATE TABLE IF NOT EXISTS workshop_prompts')&&app.includes('NO WINNER · NO RANKING')&&app.includes('AN EXHIBITION, NOT A LEADERBOARD')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
