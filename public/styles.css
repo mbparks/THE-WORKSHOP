@@ -384,3 +384,7 @@ html[data-theme="dark"] .top-actions .icon-btn .ui-icon{stroke:currentColor;opac
 .gearhead-native-video{display:block;width:100%;max-height:72vh;background:#050505;border:1px solid var(--rule);margin:20px 0}.membership-self-service{gap:12px}.request-card [data-template-use]{align-self:center}
 
 .membership-history{margin-top:14px;border-top:1px solid var(--rule);padding-top:12px}.membership-history summary{cursor:pointer;font:700 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em}.membership-history .studio-row{margin-top:8px}
+
+/* v7.0.1 — GearHead Crew supporter credential on Bench */
+.bench-name-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.bench-name-line h1{margin-right:2px}.gearhead-supporter-badge{display:inline-flex;align-items:center;gap:6px;min-height:28px;padding:4px 8px 4px 5px;border:1px solid var(--rule-strong);border-radius:999px;background:var(--panel);color:var(--ink);font:700 8px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.1em;white-space:nowrap;vertical-align:middle}.gearhead-supporter-badge svg{width:18px;height:18px;display:block;fill:none;stroke:currentColor;stroke-width:1.55;stroke-linecap:round;stroke-linejoin:round}.gearhead-supporter-label{display:inline-block}.gearhead-supporter-badge:hover{border-color:var(--accent)}
+@media(max-width:560px){.gearhead-supporter-badge{width:30px;height:30px;min-height:30px;padding:5px;justify-content:center}.gearhead-supporter-label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}}

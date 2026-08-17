@@ -75,7 +75,7 @@ npm start
 Then open:
 
 ```text
-http://127.0.0.1:8787
+http://127.0.1.1:8787
 ```
 
 For development watch mode:
@@ -87,7 +87,7 @@ npm run dev
 Health check:
 
 ```bash
-curl http://127.0.0.1:8787/api/health
+curl http://127.0.1.1:8787/api/health
 ```
 
 ## Recommended deployment: Railway
@@ -243,7 +243,7 @@ See **`.env.example`** for a production template.
 | Variable | Default | Purpose |
 |---|---|---|
 | `NODE_ENV` | unset | Set `production` for public deployment; enables Secure session cookies |
-| `HOST` | `127.0.0.1` | HTTP bind address |
+| `HOST` | `127.0.1.1` | HTTP bind address |
 | `PORT` | `8787` | HTTP port |
 | `WORKSHOP_DEV_AUTH` | `1` | Set `0` in production to disable seeded development authentication |
 | `WORKSHOP_PUBLIC_URL` | empty | Canonical public origin used for mutation-origin validation |
@@ -257,7 +257,7 @@ Example production environment:
 
 ```text
 NODE_ENV=production
-HOST=127.0.0.1
+HOST=127.0.1.1
 PORT=8787
 WORKSHOP_DEV_AUTH=0
 WORKSHOP_PUBLIC_URL=https://workshop.example.com
@@ -420,7 +420,7 @@ node --check scripts/backup.js
 Run the server and verify:
 
 ```bash
-curl --fail http://127.0.0.1:8787/api/health
+curl --fail http://127.0.1.1:8787/api/health
 ```
 
 ## Updating versions

@@ -122,6 +122,7 @@ const checks=[
   ,['native GearHead video upload',server.includes('video-upload')&&server.includes('ffprobe')&&server.includes('ffmpeg')]
   ,['GearHead templates',server.includes('gearhead_templates')&&app.includes('gearheadTemplates')]
   ,['GearHead duplication',server.includes('/duplicate')]
+  ,['GearHead Bench supporter badge follows entitlement',app.includes('gearhead-supporter-badge')&&app.includes('u.gearhead?.active')&&app.includes('GearHead Crew supporter')&&css.includes('.gearhead-supporter-badge')]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

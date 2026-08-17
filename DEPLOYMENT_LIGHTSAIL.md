@@ -61,7 +61,7 @@ On the instance **Networking** tab, allow:
 | TCP | 80 | Anywhere |
 | TCP | 443 | Anywhere |
 
-Do **not** expose port `8787` publicly. Nginx will listen on 80/443 and proxy internally to `127.0.0.1:8787`.
+Do **not** expose port `8787` publicly. Nginx will listen on 80/443 and proxy internally to `127.0.1.1:8787`.
 
 Lightsail maintains independent IPv4 and IPv6 firewalls. If you enable IPv6, review both sets of rules rather than assuming the IPv4 rules automatically apply to IPv6.
 
@@ -161,7 +161,7 @@ Use:
 
 ```ini
 NODE_ENV=production
-HOST=127.0.0.1
+HOST=127.0.1.1
 PORT=8787
 WORKSHOP_DEV_AUTH=0
 WORKSHOP_PUBLIC_URL=https://workshop.example.com
@@ -214,7 +214,7 @@ sudo journalctl -u the-workshop -f
 Test the application directly from the server:
 
 ```bash
-curl --fail http://127.0.0.1:8787/api/health
+curl --fail http://127.0.1.1:8787/api/health
 ```
 
 You should receive JSON reporting a healthy application and version `5.8.3`.
@@ -518,7 +518,7 @@ Internet
              ▼
           Nginx
              │
-             │ 127.0.0.1:8787
+             │ 127.0.1.1:8787
              ▼
       THE WORKSHOP / Node.js
              │
