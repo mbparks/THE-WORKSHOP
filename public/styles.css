@@ -469,3 +469,10 @@ html[data-theme="contrast"] .workshop-real-map{border:2px solid #fff}html[data-t
 .mobile-module-group.active{box-shadow:inset 3px 0 var(--accent);}
 .mobile-module-links>a.active,.mobile-module-links>a[aria-current="page"]{background:var(--panel-2);color:var(--ink);font-weight:800;}
 html[data-theme="contrast"] .context-nav a.active:after{background:#ffe600;}
+
+
+/* v8.1.0 — IA consolidation */
+.build-destination-strip{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.community-build-tile[hidden],[data-crew-work-section][hidden],[data-vault-section][hidden],[data-help-type][hidden]{display:none!important}
+.start-intent-group{border-top:1px solid var(--line);padding-top:18px;margin-top:18px}.start-intent-group>div:first-child p{margin:4px 0 12px;color:var(--muted);font-size:12px}.start-choice-v4.wide{display:flex;width:100%;text-decoration:none}.home-community-compact{margin-top:18px}.home-your-workshop .brief-card{min-height:190px}.help-critique-view .discussion-row{text-decoration:none}.community-builds-view .filter-bar+.filter-bar{margin-top:8px}
+@media(max-width:760px){.build-destination-strip{grid-template-columns:1fr}.home-your-workshop .grid.three{grid-template-columns:1fr}.start-intent-group .start-grid-v4{grid-template-columns:1fr}}

@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.0.12' },
+  meta: { version:'8.1.0' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -143,45 +143,36 @@ function pageHead(eyebrow,title,copy='',actions=''){
 const NAV_MODULES={
   bench:{label:'MY BENCH',contextLabel:'BENCH TOOLS',href:'#/bench',items:[
     {href:'#/bench',label:'OVERVIEW',routes:['bench']},
-    {href:'#/notebook',label:'WORKSHOP NOTEBOOK',routes:['notebook']}
+    {href:'#/notebook',label:'NOTEBOOK',routes:['notebook']},
+    {href:'#/maker-id',label:'MAKER ID',routes:['maker-id']}
   ]},
   builds:{label:'BUILDS',contextLabel:'BUILD TOOLS',href:'#/builds',items:[
     {href:'#/builds',label:'PROJECTS',routes:['builds','projects'],paths:['builds']},
-    {href:'#/participate',label:'PROMPTS + SESSIONS',routes:['participate','prompts','prompt','sessions','session','assignment']},
-    {href:'#/builds/programs',label:'BUILD ALONGS + BRIEFS',routes:['build-along','open-brief'],paths:['builds/programs']},
+    {href:'#/community-builds',label:'COMMUNITY BUILDS',routes:['community-builds','participate','prompts','prompt','sessions','session','assignment','build-along','open-brief','weekly','teardown'],paths:['builds/programs']},
     {href:'#/wall',label:'THE WALL',routes:['wall']}
   ]},
   workshop:{label:'WORKSHOP',contextLabel:'WORKSHOP TOOLS',href:'#/workshop',items:[
-    {href:'#/workshop',label:'DISCUSSIONS',routes:['workshop','discussion','question']},
-    {href:'#/failures',label:'FAILURE LIBRARY',routes:['failures','failure']},
-    {href:'#/critiques',label:'CRITIQUE',routes:['critiques','critique']},
-    {href:'#/weekly',label:'QUESTION OF THE WEEK',routes:['weekly']},
-    {href:'#/mysteries',label:'WHAT IS THIS?',routes:['mysteries','mystery']},
-    {href:'#/teardown',label:'TEARDOWN CLUB',routes:['teardown']},
+    {href:'#/workshop',label:'DISCUSSIONS',routes:['workshop','discussion']},
+    {href:'#/help',label:'HELP + CRITIQUE',routes:['help','question','critiques','critique','mysteries','mystery']},
     {href:'#/scrap',label:'SCRAP BIN',routes:['scrap']}
   ]},
   library:{label:'LIBRARY',contextLabel:'LIBRARY TOOLS',href:'#/library',items:[
-    {href:'#/library',label:'SHOP MANUAL',routes:['library']},
+    {href:'#/library',label:'SHOP MANUAL',routes:['library','failures','failure','lessons']},
     {href:'#/saved',label:'SAVED',routes:['saved']}
   ]},
   live:{label:'LIVE',contextLabel:'LIVE TOOLS',href:'#/live',items:[
-    {href:'#/live',label:'LIVE FROM THE GARAGE',routes:['live']},
-    {href:'#/clinic',label:'PROJECT CLINIC',routes:['clinic']}
+    {href:'#/live',label:'LIVE + CALENDAR',routes:['live']},
+    {href:'#/clinic',label:'PROJECT CLINICS',routes:['clinic']}
   ]},
   people:{label:'PEOPLE',contextLabel:'PEOPLE TOOLS',href:'#/people',items:[
     {href:'#/people',label:'DIRECTORY',routes:['people']},
-    {href:'#/crews',label:'MAKER CREWS',routes:['crews','crew']},
-    {href:'#/map',label:'WORKSHOP MAP',routes:['map']},
-    {href:'#/skill-exchange',label:'SKILL EXCHANGE',routes:['skill-exchange']},
-    {href:'#/maker-id',label:'MAKER ID',routes:['maker-id']}
+    {href:'#/crews',label:'MAKER CREWS',routes:['crews','crew','map']},
+    {href:'#/skill-exchange',label:'SKILL EXCHANGE',routes:['skill-exchange']}
   ]},
   gearhead:{label:'GEARHEAD CREW',contextLabel:'GEARHEAD CREW',href:'#/gearhead',items:[
     {href:'#/gearhead',label:'CREW HOME',routes:['gearhead']},
-    {href:'#/gearhead-vault',label:'FILE VAULT',routes:['gearhead-vault']},
-    {href:'#/gearhead-contributions',label:'CONTRIBUTIONS',routes:['gearhead-contributions']},
-    {href:'#/gearhead-projects',label:'CREW PROJECTS',routes:['gearhead-projects']},
-    {href:'#/gearhead-requests',label:'CREW REQUESTS',routes:['gearhead-requests']},
-    {href:'#/gearhead-archive',label:'ARCHIVE',routes:['gearhead-archive']}
+    {href:'#/gearhead-work',label:'CREW WORK',routes:['gearhead-work','gearhead-contributions','gearhead-projects','gearhead-requests']},
+    {href:'#/gearhead-vault',label:'VAULT',routes:['gearhead-vault','gearhead-archive']}
   ]}
 };
 const NAV_PARENT=Object.entries(NAV_MODULES).reduce((map,[key,module])=>{
@@ -215,7 +206,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 async function bootstrap(){
   applyTheme(state.theme, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.0.12'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.1.0'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -317,7 +308,9 @@ async function renderRoute(){
     else if(route==='home') await renderHome();
     else if(route==='bench') await renderBench(parts[1]||'');
     else if(route==='notebook') await renderNotebook();
-    else if(route==='builds') await renderBuilds(parts[1]||'');
+    else if(route==='builds' && ['community','programs'].includes(parts[1]||'')) await renderCommunityBuilds();
+    else if(route==='builds') await renderBuilds();
+    else if(route==='community-builds') await renderCommunityBuilds(parts[1]||'all');
     else if(route==='participate') await renderParticipate();
     else if(route==='prompts') await renderPrompts();
     else if(route==='prompt' && parts[1]) await renderPrompt(parts[1]);
@@ -326,22 +319,25 @@ async function renderRoute(){
     else if(route==='assignment' && parts[1]) await renderAssignment(parts[1]);
     else if(route==='projects' && parts[1]) await renderProject(parts[1]);
     else if(route==='workshop') await renderWorkshop();
-    else if(route==='failures') await renderFailures();
+    else if(route==='help') await renderHelpCritique();
+    else if(route==='failures') await renderLessonsLearned();
+    else if(route==='lessons') await renderLessonsLearned();
     else if(route==='failure' && parts[1]) await renderFailure(parts[1]);
     else if(route==='discussion' && parts[1]) await renderDiscussion(parts[1]);
     else if(route==='question' && parts[1]) await renderQuestion(parts[1]);
     else if(route==='library' && parts[1]) await renderLibraryItem(parts[1]);
     else if(route==='library') await renderLibrary();
-    else if(route==='gearhead-vault') await renderGearheadVault();
-    else if(route==='gearhead-contributions') await renderGearheadContributions();
-    else if(route==='gearhead-projects') await renderGearheadCrewProjects();
-    else if(route==='gearhead-requests') await renderGearheadRequests();
-    else if(route==='gearhead-archive') await renderGearheadArchive();
+    else if(route==='gearhead-work') await renderGearheadWork();
+    else if(route==='gearhead-vault') await renderGearheadVaultHub(parts[1]||'files');
+    else if(route==='gearhead-contributions') await renderGearheadWork('contributions');
+    else if(route==='gearhead-projects') await renderGearheadWork('projects');
+    else if(route==='gearhead-requests') await renderGearheadWork('requests');
+    else if(route==='gearhead-archive') await renderGearheadVaultHub('archive');
     else if(route==='gearhead' && parts[1]) await renderGearheadEntry(parts[1]);
     else if(route==='gearhead') await renderGearhead();
     else if(route==='people') await renderPeople();
-    else if(route==='map') await renderWorkshopMap();
-    else if(route==='crews') await renderCrews(parts[1]?decodeURIComponent(parts[1]):'');
+    else if(route==='map') await renderMakerCrewsHub('map');
+    else if(route==='crews') await renderMakerCrewsHub(parts[1]==='map'?'map':'list',parts[1]&&parts[1]!=='map'?decodeURIComponent(parts[1]):'');
     else if(route==='crew' && parts[1]) await renderCrew(parts[1],parts[2]||'');
     else if(route==='maker-id') await renderMakerId(parts[1]||'');
     else if(route==='saved') await renderSaved(parts[1]||'');
@@ -1675,3 +1671,142 @@ async function projectLabel(id){try{const d=await api(`/api/projects/${id}/label
 
 // v8.0.0 — Maker Crew Handbook
 function crewHandbookForm(crewId){modal({title:'Add to the Crew Handbook',eyebrow:'HYPERLOCAL MAKER KNOWLEDGE',size:'md',body:`<form id="crew-handbook-form" class="form-grid"><div class="field"><label>Category</label><select name="category">${['Material Source','Tool / Shop','Repair Resource','Supplier','Public Facility','Museum / Place','Process Knowledge','Local Knowledge'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>Visibility</label><select name="visibility"><option>Members</option><option>Public</option></select></div><div class="field full"><label>Title</label><input name="title" required></div><div class="field full"><label>What should the Crew know?</label><textarea name="body" required></textarea></div><div class="field full"><label>Reference URL · optional</label><input name="url" type="url"></div><div class="field full"><button class="button">ADD TO CREW HANDBOOK</button></div></form>`,onOpen:m=>$('#crew-handbook-form',m).addEventListener('submit',async e=>{e.preventDefault();try{await api(`/api/crews/${crewId}/handbook`,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();toast('Local knowledge added to the Crew Handbook.');renderCrew(crewId)}catch(err){toast(err.message,'error')}})})}
+
+
+// v8.1.0 — Information architecture consolidation
+function communityBuildTile(x){
+  return `<a class="program-card community-build-tile" href="${esc(x.href)}" data-community-type="${esc(x.type)}" data-community-status="${esc((x.status||'Active').toLowerCase())}"><div class="label">${esc(x.type)} · ${esc(x.status||'Active')}</div><h3>${esc(x.title)}</h3><p>${esc(x.copy||'')}</p><div class="program-meta"><span>${esc(x.meta||'')}</span><span>OPEN →</span></div></a>`;
+}
+function normalizeCommunityBuilds(prompts,sessions,buildAlongs,briefs,teardowns,weekly){
+  return [
+    ...(prompts.items||[]).map(p=>({type:'PROMPT',status:p.status,title:p.title,copy:p.brief,meta:`${p.project_count||0} interpretations`,href:`#/prompt/${p.id}`})),
+    ...(buildAlongs.items||[]).map(x=>({type:'BUILD ALONG',status:x.status||'Active',title:x.title,copy:x.overview,meta:[x.difficulty,x.expected_time].filter(Boolean).join(' · '),href:`#/build-along/${x.id}`})),
+    ...(briefs.items||[]).map(x=>({type:'OPEN BRIEF',status:x.status||'Open',title:x.title,copy:x.objective,meta:[x.time_window,`${(x.constraints||[]).length} constraints`].filter(Boolean).join(' · '),href:`#/open-brief/${x.id}`})),
+    ...(sessions.items||[]).map(x=>({type:'SESSION',status:x.status||'Upcoming',title:x.title,copy:x.theme||x.description,meta:`${(x.assignments||[]).length} assignments · ${x.projectCount||0} projects`,href:`#/session/${x.id}`})),
+    ...(teardowns.items||[]).map(x=>({type:'TEARDOWN',status:x.status||'Active',title:x.title,copy:x.overview,meta:`${x.contribution_count||0} contributions`,href:`#/teardown/${x.id}`})),
+    ...(weekly.items||[]).map(x=>({type:'WEEKLY PROMPT',status:'Open',title:x.prompt,copy:'A lightweight shared question for showing how we make.',meta:`${x.response_count||0} responses`,href:`#/weekly/${x.id}`}))
+  ];
+}
+async function renderCommunityBuilds(initial='all'){
+  setTitle('Community Builds');
+  const [prompts,sessions,buildAlongs,briefs,teardowns,weekly]=await Promise.all([api('/api/prompts'),api('/api/sessions'),api('/api/build-alongs'),api('/api/open-briefs'),api('/api/teardown-club'),api('/api/question-of-the-week')]);
+  const items=normalizeCommunityBuilds(prompts,sessions,buildAlongs,briefs,teardowns,weekly);
+  const canEdit=prompts.canEdit||sessions.canEdit||buildAlongs.canEdit||briefs.canEdit||teardowns.canEdit||weekly.canEdit;
+  const actions=canEdit?`<div class="head-actions deep-only"><button class="button-secondary" data-action="new-prompt">+ PROMPT</button><button class="button-secondary" data-action="new-build-along">+ BUILD ALONG</button><button class="button-secondary" data-action="new-open-brief">+ BRIEF</button><button class="button-secondary" data-action="new-session">+ SESSION</button><button class="button-secondary" data-action="new-teardown-club">+ TEARDOWN</button></div>`:'';
+  view.innerHTML=`<div class="view community-builds-view">${pageHead('THINGS WE CAN MAKE TOGETHER','Community Builds','Prompts, Build Alongs, Open Briefs, Sessions, teardowns, and weekly questions are different formats for the same idea: an invitation to participate.',actions)}
+    <section class="section"><div class="filter-bar" id="community-type-filter"><button data-community-filter="all" class="active">ALL</button>${['PROMPT','BUILD ALONG','OPEN BRIEF','SESSION','TEARDOWN','WEEKLY PROMPT'].map(x=>`<button data-community-filter="${x}">${x}</button>`).join('')}</div><div class="filter-bar subtle" id="community-status-filter"><button data-community-status-filter="all" class="active">ALL STATUS</button><button data-community-status-filter="active">ACTIVE / OPEN</button><button data-community-status-filter="upcoming">UPCOMING</button><button data-community-status-filter="complete">COMPLETE</button></div></section>
+    <section class="section"><div class="grid two" id="community-build-grid">${items.map(communityBuildTile).join('')||empty('NO COMMUNITY BUILDS','The shop is between shared activities right now.')}</div></section></div>`;
+  const apply=()=>{const type=$('#community-type-filter .active')?.dataset.communityFilter||'all',status=$('#community-status-filter .active')?.dataset.communityStatusFilter||'all';$$('#community-build-grid .community-build-tile').forEach(x=>{const st=x.dataset.communityStatus;const statusOk=status==='all'||(status==='active'&&['active','open','published'].includes(st))||(status==='upcoming'&&['upcoming','draft'].includes(st))||(status==='complete'&&['complete','completed','archived','closed'].includes(st));x.hidden=!(type==='all'||x.dataset.communityType===type)||!statusOk;});};
+  $$('[data-community-filter]').forEach(b=>b.addEventListener('click',()=>{$$('#community-type-filter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');apply()}));
+  $$('[data-community-status-filter]').forEach(b=>b.addEventListener('click',()=>{$$('#community-status-filter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');apply()}));
+  if(initial&&initial!=='all'){const b=$(`[data-community-filter="${CSS.escape(initial.toUpperCase())}"]`);b?.click();}
+}
+
+async function renderBuilds(){
+  setTitle('Builds');const d=await api('/api/projects');
+  view.innerHTML=`<div class="view">${pageHead('THINGS PEOPLE ARE MAKING','Builds','Projects are the durable record of work on the bench. Community invitations and exhibitions live beside them, not mixed into the project list.','<button class="button" data-action="new-project">+ START PROJECT</button>')}
+    <section class="section build-destination-strip"><a class="brief-card" href="#/community-builds"><div class="label">COMMUNITY BUILDS</div><h3>Looking for something to make?</h3><p>Prompts, Build Alongs, briefs, Sessions, weekly questions, and teardowns.</p><strong>JOIN IN →</strong></a><a class="brief-card" href="#/wall"><div class="label">THE WALL</div><h3>See selected work together.</h3><p>Curated exhibitions drawn from projects and shared programs.</p><strong>WALK THE WALL →</strong></a></section>
+    <section class="section"><div class="section-head"><h2>Projects</h2><p>${d.projects.length} things on benches</p></div><div class="filter-bar" id="build-filters"><button class="active" data-filter="all">All</button>${['Idea','Designing','Prototyping','Testing','Revising','Building','Complete','Paused'].map(x=>`<button data-filter="${esc(x)}">${esc(x)}</button>`).join('')}</div><div class="grid projects" id="build-grid">${d.projects.map(p=>`<div data-stage="${esc(p.stage)}">${projectCard(p)}</div>`).join('')}</div></section></div>`;
+}
+
+async function renderWorkshop(){
+  setTitle('Workshop');const d=await api('/api/discussions');
+  view.innerHTML=`<div class="view">${pageHead('CONVERSATION WITH A WORKBENCH ATTACHED','Workshop','Discussion is for thinking together. Concrete requests for troubleshooting, critique, or identification live in Help + Critique.',state.me?'<button class="button" data-action="new-discussion" data-area="DESIGN">+ START DISCUSSION</button>':'<button class="button" data-action="login">ENTER THE WORKSHOP</button>')}
+    <section class="section workshop-areas"><div class="grid workshop-area-grid">${Object.entries(WORKSHOP_AREAS).map(([area,cats])=>`<article class="workshop-area-card"><div class="label">${area}</div><h3>${area==='DESIGN'?'Figure out what it should be.':area==='MAKE'?'Turn materials into things.':area==='FIX'?'Understand why it stopped working.':area==='THINK'?'Question the choices around the work.':'Bring the strange thing over here.'}</h3><p>${cats.slice(0,5).join(' · ')}</p></article>`).join('')}</div></section>
+    <section class="section"><div class="section-head"><h2>Recent Workshop Talk</h2><a href="#/help">NEED HELP OR CRITIQUE? →</a></div><div class="filter-bar" id="discussion-filters"><button class="active" data-discussion-filter="all">All</button>${Object.keys(WORKSHOP_AREAS).map(a=>`<button data-discussion-filter="${a}">${a}</button>`).join('')}</div><div id="discussion-list">${d.topics.length?d.topics.map(t=>`<div data-discussion-area="${esc(t.area)}">${discussionCard(t)}</div>`).join(''):empty('NOTHING ON THIS BENCH YET','Start a useful discussion, not a performance.')}</div></section></div>`;
+}
+
+async function renderHelpCritique(){
+  setTitle('Help + Critique');const [questions,critiques,mysteries]=await Promise.all([api('/api/questions'),api('/api/critiques'),api('/api/mysteries')]);
+  const q=(questions.questions||[]).map(x=>({type:'QUESTION',href:`#/question/${x.id}`,title:x.title,copy:x.help_needed||x.trying,meta:`${x.answer_count||0} answers · ${x.author}`}));
+  const c=(critiques.items||[]).map(x=>({type:'CRITIQUE',href:`#/critique/${x.id}`,title:x.project_title,copy:x.prompt,meta:`${x.response_count||0} responses · ${x.author}`}));
+  const m=(mysteries.items||[]).map(x=>({type:'IDENTIFICATION',href:`#/mystery/${x.id}`,title:x.title,copy:x.markings||x.source_context||'Unidentified object or component',meta:`${x.proposal_count||0} proposals · ${x.author}`}));
+  const items=[...q,...c,...m];
+  view.innerHTML=`<div class="view help-critique-view">${pageHead('ANOTHER PAIR OF EYES','Help + Critique','One place for concrete help: troubleshooting questions, structured design critique, and identification requests.',state.me?'<div class="head-actions"><button class="button" data-action="new-question">ASK FOR HELP</button><button class="button-secondary" data-action="new-critique">REQUEST CRITIQUE</button><button class="button-secondary" data-action="new-mystery">IDENTIFY SOMETHING</button></div>':'<button class="button" data-action="login">ENTER THE WORKSHOP</button>')}
+    <section class="section"><div class="filter-bar" id="help-filter"><button class="active" data-help-filter="all">ALL</button><button data-help-filter="QUESTION">QUESTIONS</button><button data-help-filter="CRITIQUE">CRITIQUE</button><button data-help-filter="IDENTIFICATION">IDENTIFICATION</button></div><div class="admin-table" id="help-list">${items.map(x=>`<a class="discussion-row" data-help-type="${x.type}" href="${x.href}"><div class="discussion-area"><strong>${x.type}</strong><span>OPEN</span></div><div class="discussion-copy"><h3>${esc(x.title)}</h3><p>${esc(x.copy)}</p><small>${esc(x.meta)}</small></div><span class="row-arrow">→</span></a>`).join('')||empty('NO OPEN REQUESTS','Apparently everyone knows exactly what they are doing. Suspicious.')}</div></section></div>`;
+  $$('[data-help-filter]').forEach(b=>b.addEventListener('click',()=>{$$('#help-filter button').forEach(x=>x.classList.remove('active'));b.classList.add('active');const t=b.dataset.helpFilter;$$('#help-list [data-help-type]').forEach(x=>x.hidden=t!=='all'&&x.dataset.helpType!==t)}));
+}
+
+async function renderLessonsLearned(){
+  setTitle('Lessons Learned');const d=await api('/api/failures');
+  view.innerHTML=`<div class="view failure-library-view">${pageHead('PROJECT NOTEBOOKS → DURABLE KNOWLEDGE','Lessons Learned','Failure records are captured with the project and collected here as reusable shop knowledge. Record it once; learn from it everywhere.',state.me?'<button class="button" data-action="new-failure">+ RECORD A FAILURE</button>':'')}<div class="failure-library-grid">${d.items.map(f=>`<a class="failure-library-card" href="#/failure/${esc(f.id)}"><span class="technical-index">${esc(f.failure_type)} · ${esc(f.visibility)}</span><h2>${esc(f.title)}</h2><p>${esc(f.observed)}</p><div><span>${esc(f.author)}</span>${f.project_title?`<span>${esc(f.project_title)}</span>`:''}</div></a>`).join('')||empty('NO LESSONS RECORDED','A clean failure record is useful evidence, not a score.')}</div></div>`;
+}
+
+async function renderLibrary(){
+  setTitle('Library');const [d,failures]=await Promise.all([api('/api/library'),api('/api/failures')]);
+  const sections=[...new Set(d.items.map(x=>x.section))],types=[...new Set(d.items.map(x=>x.type))];
+  view.innerHTML=`<div class="view">${pageHead('DURABLE KNOWLEDGE','Shop Manual','Guides, references, templates, files, videos, Field Instruments, and lessons learned from actual projects.',d.canEdit?'<button class="button deep-only" data-action="new-library-item">+ ADD RESOURCE</button>':'')}
+    ${failures.items.length?`<section class="section"><div class="section-head"><div><span class="technical-index">LESSONS LEARNED</span><h2>What broke, and what changed next?</h2></div><a href="#/lessons">VIEW ALL →</a></div><div class="grid three">${failures.items.slice(0,3).map(f=>`<a class="brief-card" href="#/failure/${esc(f.id)}"><div class="label">${esc(f.failure_type)}</div><h3>${esc(f.title)}</h3><p>${esc(f.lesson||f.observed)}</p><strong>${esc(f.project_title||'Workshop record')} →</strong></a>`).join('')}</div></section>`:''}
+    <section class="section"><div class="library-toolbar"><input id="library-local-search" class="toolbar-search" placeholder="Search this shelf…" aria-label="Search library"><div class="filter-bar" id="library-filters"><button class="active" data-library-filter="all">All sections</button>${sections.map(x=>`<button data-library-filter="${esc(x)}">${esc(x)}</button>`).join('')}</div><div class="filter-bar subtle" id="library-type-filters"><button class="active" data-library-type="all">All types</button>${types.map(x=>`<button data-library-type="${esc(x)}">${esc(x)}</button>`).join('')}</div></div><div class="library-count"><strong id="library-visible-count">${d.items.length}</strong> curated resources <span>· editorial, not an endless dump</span></div><div class="grid three" id="library-grid">${d.items.map(l=>`<div data-library-section="${esc(l.section)}" data-library-type="${esc(l.type)}" data-library-text="${esc((l.title+' '+l.summary+' '+l.tags.join(' ')).toLowerCase())}">${libraryCard(l,d.canEdit)}</div>`).join('')}</div></section></div>`;
+  $('#library-local-search')?.addEventListener('input',applyLibraryFilters);
+}
+
+async function renderMakerCrewsHub(mode='list',postal=''){
+  setTitle('Maker Crews');
+  if(mode==='map'){
+    const d=await api('/api/workshop-map');
+    view.innerHTML=`<div class="view workshop-map-view">${pageHead('LOCAL MAKER COMMUNITY','Maker Crews','Find public Crew regions and gatherings without turning member locations into a tracking surface.','<div class="head-actions"><a class="button-secondary" href="#/crews">LIST VIEW</a><a class="button" href="#/crews/map">MAP VIEW</a></div>')}<section class="workshop-map-panel"><div class="workshop-map-legend"><span><i class="crew-dot"></i> MAKER CREW</span><span><i class="event-dot"></i> PUBLIC EVENT · CREW REGION</span></div><div id="workshop-real-map" class="workshop-real-map" aria-label="Interactive map of public Maker Crew regions and public Crew events"></div><p>${esc(d.privacy)} Public events are plotted at the Crew region rather than an exact venue address.</p></section><div class="map-directory"><section><h2>MAKER CREWS</h2>${d.crews.map(c=>`<a href="#/crew/${esc(c.id)}"><strong>${esc(c.code)} · ${esc(c.name)}</strong><span>${esc(c.city_region||c.anchor_postal_code)}</span></a>`).join('')||'<p>No public Crew anchor locations are available yet.</p>'}</section><section><h2>PUBLIC EVENTS</h2>${d.events.slice(0,20).map(e=>`<a href="#/crew/${esc(e.crew_id)}/meetups"><strong>${esc(e.title)}</strong><span>${esc(e.code)} · ${fmtDate(e.starts_at,true)}</span></a>`).join('')||'<p>No public events are currently mapped.</p>'}</section></div></div>`;
+    requestAnimationFrame(()=>initWorkshopMap(d));return;
+  }
+  const d=await api(`/api/crews${postal?`?postal=${encodeURIComponent(postal)}`:''}`);
+  const cards=d.items.map(c=>`<a class="crew-card" href="#/crew/${encodeURIComponent(c.id)}"><div class="crew-code">${esc(c.code)}</div><div><span class="technical-index">${c.exactPostalMatch?'SERVES THIS ZIP':'MAKER CREW'}${c.distanceMiles!=null?` · ~${c.distanceMiles} mi`:''}</span><h2>${esc(c.name)}</h2><p>${esc(c.city_region||c.anchor_postal_code)}</p><div class="crew-card-meta"><span>${c.memberCount} members</span><span>${c.projectCount} active projects</span>${c.nextEvent?`<span>${esc(c.nextEvent.title)}</span>`:''}</div></div><strong>OPEN CREW →</strong></a>`).join('');
+  view.innerHTML=`<div class="view crews-view">${pageHead('FIND MAKERS NEAR YOU','Maker Crews','Search nearby Crews or switch to the map. Both are views of the same local-maker directory.',`<div class="head-actions"><a class="button" href="#/crews">LIST VIEW</a><a class="button-secondary" href="#/crews/map">MAP VIEW</a>${state.me?'<button class="button-secondary" data-action="request-crew">REQUEST A CREW</button>':''}</div>`)}${d.myCrew?`<a class="my-crew-banner" href="#/crew/${encodeURIComponent(d.myCrew.id)}"><span>MY PRIMARY CREW</span><strong>${esc(d.myCrew.code)} · ${esc(d.myCrew.name)}</strong><b>WHAT’S HAPPENING NEARBY? →</b></a>`:''}<section class="crew-finder"><div><span class="technical-index">ZIP / POSTAL SEARCH</span><h2>Find a local bench.</h2><p>ZIP codes are search anchors and Crew identities—not proof of residence and never a member’s exact location.</p></div><form id="crew-search-form"><input name="postal" value="${esc(postal)}" placeholder="21502" autocomplete="postal-code" aria-label="ZIP or postal code"><button class="button">FIND CREWS</button></form></section><div class="crew-list">${cards||empty('NO CREW FOUND','Request one, or search another nearby ZIP.')}</div></div>`;
+  $('#crew-search-form')?.addEventListener('submit',e=>{e.preventDefault();const q=new FormData(e.currentTarget).get('postal').trim();location.hash=q?`#/crews/${encodeURIComponent(q)}`:'#/crews'});
+}
+
+async function renderLive(){
+  setTitle('Live + Calendar');const [live,sessions]=await Promise.all([api('/api/live'),api('/api/sessions')]);const upcoming=live.items.filter(x=>x.status!=='Archived');const archive=live.items.filter(x=>x.status==='Archived');const canEdit=state.me&&['Owner','Administrator','Editor'].includes(state.me.role);
+  view.innerHTML=`<div class="view">${pageHead('WHEN THE SHOP HAS A TIME ATTACHED','Live + Calendar','One calendar for streams, Community Build Sessions, Project Clinics, and other scheduled Workshop activity.',`<a class="button-secondary" href="#/clinic">PROJECT CLINICS →</a>${canEdit?'<button class="button" data-action="new-live-event">+ SCHEDULE EVENT</button>':''}`)}<section class="section"><div class="section-head"><h2>Upcoming</h2><p>Live events + Community Build Sessions</p></div><div class="grid two">${upcoming.map(liveCard).join('')}${sessions.items.filter(s=>!['Archived','Complete'].includes(s.status)).map(s=>`<a class="program-card" href="#/session/${esc(s.id)}"><div class="label">COMMUNITY BUILD SESSION · ${esc(s.status)}</div><h3>${esc(s.title)}</h3><p>${esc(s.theme||s.description)}</p><div class="program-meta"><span>${(s.assignments||[]).length} assignments</span><span>OPEN SESSION →</span></div></a>`).join('')||empty('NOTHING SCHEDULED','The calendar is clear right now.')}</div></section><section class="section"><div class="section-head"><h2>Recordings + Past Sessions</h2><p>Scheduled activity stays attached to the work.</p></div><div class="grid projects">${archive.map(liveCard).join('')||empty('NO ARCHIVE YET','Past live events will collect here.')}</div></section></div>`;
+}
+
+async function renderGearhead(){
+  setTitle('The GearHead Crew');const d=await api('/api/gearhead');if(!d.active){view.innerHTML=gearheadJoinLanding(d);return;}const sec=d.sections||{};
+  view.innerHTML=`<div class="view gearhead-view"><header class="gearhead-hero"><div><div class="gearhead-stamp large">THE GEARHEAD CREW</div><h1>The people who help keep Green Shoe Garage building.</h1><p>Deeper process, tutorials, shop films, files, early releases, experiments, and After Hours sessions.</p><strong>${esc(d.principle)}</strong></div><div class="gearhead-access-card"><div class="gearhead-stamp">GEARHEAD CREW ACCESS</div><h2>YOU'RE ON THE CREW.</h2><p>${d.gearhead.since?`Supporting since ${fmtDate(d.gearhead.since)}`:'Thanks for helping keep the shop moving.'}</p><a class="button" href="#/gearhead-work">CREW WORK →</a><a class="button-secondary" href="#/gearhead-vault">VAULT →</a>${state.me?'<button class="button-secondary" data-action="membership">MANAGE MEMBERSHIP</button>':''}${d.canEdit?'<button class="button-secondary deep-only" data-action="gearhead-studio">CREW STUDIO</button>':''}</div></header>${d.continueItem?`<section class="gearhead-continue"><div><span class="technical-index">CONTINUE WHERE YOU LEFT OFF</span><h2>${esc(d.continueItem.title)}</h2><p>${esc(d.continueItem.deck)}</p></div><a class="button-secondary" href="#/gearhead/${encodeURIComponent(d.continueItem.id)}">CONTINUE →</a></section>`:''}${gearheadSection('NEW THIS WEEK','LATEST FROM THE SHOP',d.entries||[])}${gearheadSection('DEEP DIVES','TUTORIALS + FULL PROCESS',sec.deepDives)}${gearheadSection('SHOP FILMS','LONGER VIDEO',sec.shopFilms)}${gearheadSection('FIELD NOTES','OBSERVATIONS + BEHIND THE SCENES',sec.fieldNotes)}${gearheadSection('EARLY ACCESS','PREVIEWS + FIELD INSTRUMENTS',sec.earlyAccess)}</div>`;
+}
+
+async function renderGearheadWork(initial='all'){
+  setTitle('GearHead Crew Work');const gate=await api('/api/gearhead');if(!gate.active){view.innerHTML=gearheadJoinLanding(gate);return;}
+  const [contrib,projects,requests]=await Promise.all([api('/api/gearhead/contributions'),api('/api/gearhead/crew-projects'),api('/api/gearhead/requests')]);
+  view.innerHTML=`<div class="view gearhead-view">${pageHead('HELP MOVE THE SHOP FORWARD','Crew Work','Crew Projects, contributions, and requests are three ways of doing the same thing: helping move Green Shoe Garage work forward.','<a class="button-secondary" href="#/gearhead">CREW HOME →</a>')}<div class="filter-bar" id="crew-work-tabs"><button class="active" data-crew-work="all">ALL</button><button data-crew-work="projects">PROJECTS</button><button data-crew-work="contributions">CONTRIBUTIONS</button><button data-crew-work="requests">REQUESTS</button></div>
+    <section class="section" data-crew-work-section="projects"><div class="section-head"><h2>Crew Projects</h2>${projects.canManage?'<button class="text-button" data-action="gearhead-crew-project-new">+ NEW CREW PROJECT</button>':''}</div><div class="gearhead-grid">${projects.items.map(c=>`<article class="gearhead-card"><div class="gearhead-card-copy"><div class="gearhead-stamp">CREW PROJECT · ${esc(c.status)}</div><h3>${esc(c.title)}</h3><p>${esc(c.brief)}</p><div class="gearhead-card-meta"><span>${c.response_count} linked project${c.response_count===1?'':'s'}</span></div>${c.myProjectId?`<a class="button-secondary" href="#/projects/${encodeURIComponent(c.myProjectId)}">OPEN MY VERSION →</a>`:projects.active&&c.status==='Active'?`<button class="button" data-action="gearhead-crew-project-start" data-id="${esc(c.id)}">START MY VERSION</button>`:''}</div></article>`).join('')||empty('NO CREW PROJECT','The next shared Crew build will show up here.')}</div></section>
+    <section class="section" data-crew-work-section="contributions"><div class="section-head"><h2>Contributions</h2><button class="text-button" data-action="gearhead-contribution-new">+ CONTRIBUTE</button></div><div class="request-board">${contrib.items.map(c=>`<article class="request-card"><div><span class="gearhead-stamp">${esc(c.contribution_type)}</span><h3>${esc(c.title)}</h3><p>${esc(c.body)}</p><small>${esc(c.author)} · ${fmtDate(c.created_at,true)}</small></div><div class="request-status"><strong>${esc(c.status)}</strong>${contrib.canManage?`<button class="text-button" data-action="gearhead-contribution-review" data-id="${esc(c.id)}">REVIEW</button>`:''}</div></article>`).join('')||empty('NO CONTRIBUTIONS YET','Test something, correct something, or document an alternate way through it.')}</div></section>
+    <section class="section" data-crew-work-section="requests"><div class="section-head"><h2>Requests</h2><button class="text-button" data-action="gearhead-request-new">+ MAKE A REQUEST</button></div><div class="request-board">${requests.items.map(r=>`<article class="request-card"><div><span class="gearhead-stamp">${esc(r.request_type)}</span><h3>${esc(r.title)}</h3><p>${esc(r.details)}</p><small>${esc(r.author)} · ${fmtDate(r.created_at,true)}</small></div><div class="request-status"><strong>${esc(r.status)}</strong>${r.response_note?`<p>${esc(r.response_note)}</p>`:''}${requests.canManage?`<button class="text-button" data-action="gearhead-request-edit" data-id="${esc(r.id)}">UPDATE</button>`:''}</div></article>`).join('')||empty('NOTHING REQUESTED','Ask for the tutorial, file, deep dive, or After Hours topic that would help.')}</div></section></div>`;
+  const apply=t=>{$$('[data-crew-work-section]').forEach(x=>x.hidden=t!=='all'&&x.dataset.crewWorkSection!==t)};$$('[data-crew-work]').forEach(b=>b.addEventListener('click',()=>{$$('#crew-work-tabs button').forEach(x=>x.classList.remove('active'));b.classList.add('active');apply(b.dataset.crewWork)}));if(initial!=='all')$(`[data-crew-work="${initial}"]`)?.click();
+}
+
+async function renderGearheadVaultHub(initial='files'){
+  setTitle('GearHead Vault');const gate=await api('/api/gearhead');if(!gate.active){view.innerHTML=gearheadJoinLanding(gate);return;}const [vault,archive]=await Promise.all([api('/api/gearhead/vault'),api('/api/gearhead/archive')]);
+  view.innerHTML=`<div class="view gearhead-vault">${pageHead('FILES + PAST CREW MATERIAL','Vault','Current protected downloads and the searchable Crew archive now live in one place.','<a class="button-secondary" href="#/gearhead">CREW HOME →</a>')}<div class="filter-bar" id="vault-tabs"><button data-vault-tab="files" class="active">FILES</button><button data-vault-tab="archive">ARCHIVE</button></div><section class="section" data-vault-section="files"><div class="vault-filter"><input id="vault-q" placeholder="Search files, projects, notes, licenses"><span>${vault.items.length} files</span></div><div id="vault-list" class="gearhead-files vault-list">${vault.items.map(vaultRow).join('')||empty('THE DRAWER IS EMPTY','GearHead downloads will collect here.')}</div></section><section class="section" data-vault-section="archive" hidden><div class="vault-filter"><input id="archive-q-simple" placeholder="Search archived Crew material"><span>${archive.items.length} entries</span></div><div id="archive-simple-list" class="gearhead-grid">${archive.items.map(gearheadCard).join('')||empty('NOTHING IN THE DRAWER','Try again later.')}</div></section></div>`;
+  const tab=t=>{$$('[data-vault-tab]').forEach(b=>b.classList.toggle('active',b.dataset.vaultTab===t));$$('[data-vault-section]').forEach(x=>x.hidden=x.dataset.vaultSection!==t)};$$('[data-vault-tab]').forEach(b=>b.addEventListener('click',()=>tab(b.dataset.vaultTab)));if(initial==='archive')tab('archive');$('#vault-q')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();$$('[data-vault-row]').forEach(x=>x.hidden=!x.dataset.vaultRow.includes(q))});$('#archive-q-simple')?.addEventListener('input',e=>{const q=e.target.value.toLowerCase();$$('#archive-simple-list .gearhead-card').forEach(x=>x.hidden=!x.textContent.toLowerCase().includes(q))});
+}
+
+async function renderNotebook(){
+  setTitle('Workshop Notebook');if(!state.me){view.innerHTML=`<div class="view narrow">${pageHead('PRIVATE FIRST','Workshop Notebook','Capture an idea before it is ready to become a Project.')}<button class="button" data-action="login">ENTER TO OPEN YOUR NOTEBOOK</button></div>`;return;}const d=await api('/api/notebook');
+  view.innerHTML=`<div class="view notebook-view">${pageHead('PRIVATE FIRST · PROJECT LATER','Workshop Notebook','Ideas, sketches, references, experiments, decisions, discoveries, and failures begin here or inside a Project notebook.',`<div class="head-actions"><button class="button" data-action="new-notebook">+ NEW NOTE</button><button class="button-secondary" data-action="new-failure">RECORD FAILURE</button></div>`)}<div class="notebook-grid">${d.items.map(n=>`<article class="notebook-card"><span class="technical-index">${esc(n.entry_type)} · ${ago(n.updated_at)}</span><h2>${esc(n.title)}</h2><p>${esc(n.body||'')}</p>${n.tags?.length?`<div class="project-tags">${tags(n.tags,8)}</div>`:''}<div class="notebook-actions">${n.project_id?`<a class="button-secondary compact" href="#/projects/${esc(n.project_id)}">OPEN PROJECT →</a>`:`<button class="button-secondary compact" data-action="notebook-start" data-id="${esc(n.id)}">START PROJECT</button>`}<button class="text-button danger-text" data-action="notebook-delete" data-id="${esc(n.id)}">REMOVE</button></div></article>`).join('')||empty('BLANK NOTEBOOK','Capture the thought before you lose it.','new-notebook','NEW NOTE')}</div></div>`;
+}
+function notebookForm(){modal({title:'New Workshop Note',eyebrow:'PRIVATE NOTEBOOK',size:'md',body:`<form id="notebook-form" class="form-grid"><div class="field"><label>Type</label><select name="entryType">${['Idea','Sketch','Reference','Material','Experiment','Decision','Discovery','Question','Someday'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field full"><label>Title</label><input name="title" required></div><div class="field full"><label>Note</label><textarea name="body" rows="8"></textarea></div><div class="field full"><label>Tags</label><input name="tags" placeholder="repair, wood, someday"></div><div class="field full"><button class="button">SAVE TO MY NOTEBOOK</button></div></form><p class="muted-copy">Failures use the structured <b>Record Failure</b> flow so observation, cause, evidence, next attempt, and lesson stay attached to the project.</p>`,onOpen:m=>$('#notebook-form',m).addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/notebook',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();toast('Saved privately to your Workshop Notebook.');renderNotebook()}catch(err){toast(err.message,'error')}})})}
+
+function showStart(){
+  modal({title:'Start Something',eyebrow:'START WITH THE INTENT, NOT THE CONTENT TYPE',size:'lg',body:`<div class="start-something-v4 intent-start-v81"><div class="start-intro"><span class="technical-index">WHAT ARE YOU TRYING TO DO?</span><h3>The Workshop will handle the filing.</h3><p>Choose the intent first. The underlying content types remain available without making you learn the database.</p></div>
+    <section class="start-intent-group"><div><span class="technical-index">MAKE SOMETHING</span><p>Put work on a bench.</p></div><div class="start-grid-v4">${startChoice('new-project','◇','Project','Build something over time.','IDEA → BUILD')}${startChoice('new-experiment','⌁','Experiment','Try something and record what happens.','TRY → OBSERVE')}${startChoice('new-repair','⌇','Repair','Diagnose a problem and bring something back.','FIND → FIX')}${startChoice('new-teardown','⌖','Teardown','Take something apart to understand it.','OPEN → UNDERSTAND')}</div></section>
+    <section class="start-intent-group"><div><span class="technical-index">DOCUMENT SOMETHING</span><p>Preserve what happened.</p></div><div class="start-grid-v4">${startChoice('new-build-log','▤','Build Log','Continue something already on your bench.','CONTINUE')}${startChoice('new-failure','×','Failure','Record what happened, why, and what changes next.','OBSERVE → LEARN')}${startChoice('new-showtell','✦','Show & Tell','Share a result, finished or otherwise.','MAKE → SHARE')}</div></section>
+    <section class="start-intent-group"><div><span class="technical-index">ASK FOR HELP</span><p>Bring in another pair of eyes.</p></div><div class="start-grid-v4">${startChoice('new-question','?','Troubleshooting','Ask when you are stuck.','ASK → LEARN')}${startChoice('new-critique','△','Design Critique','Ask for structured review.','SHOW → IMPROVE')}${startChoice('new-mystery','⌕','Identification','Find out what an object or component is.','LOOK → IDENTIFY')}</div></section>
+    <section class="start-intent-group"><div><span class="technical-index">JOIN SOMETHING</span><p>Start from a shared invitation.</p></div><a class="start-choice-v4 wide" href="#/community-builds" data-action="close-overlay"><span class="start-choice-icon">→</span><span class="start-choice-copy"><strong>Community Builds</strong><small>Prompts, Build Alongs, briefs, Sessions, weekly questions, and teardowns.</small></span><b>→</b></a></section>
+    ${state.me&&['Owner','Administrator','Editor'].includes(state.me.role)?`<section class="start-intent-group deep-only"><div><span class="technical-index">PUBLISH / CURATE</span></div><div class="start-grid-v4">${startChoice('new-shop-note','✎','Shop Note','Publish a quick note from the Green Shoe Garage bench.')}${startChoice('new-library-item','▦','Library Resource','Add durable reference material.')}${startChoice('new-prompt','→','Community Prompt','Publish a shared making invitation.')}</div></section>`:''}</div>`});
+}
+
+async function renderHome(){
+  setTitle('Home');
+  const [d,local,prompts,teardowns,weekly,discussions,critiques]=await Promise.all([api('/api/home'),state.me?api('/api/crew-home'):Promise.resolve({crew:null}),api('/api/prompts'),api('/api/teardown-club'),api('/api/question-of-the-week'),api('/api/discussions'),api('/api/critiques')]);state.home=d;
+  const featured=d.projects[0],community=d.projects.slice(1,4),featureVisual=featured?(featured.coverUrl?`<img src="${esc(imageSrc(featured.coverUrl))}" alt="" loading="eager" decoding="async" fetchpriority="high">`:`<span>${esc(featured.coverEmoji||'✦')}</span>`):'';
+  const joinItems=[...(d.buildAlong?[{type:'BUILD ALONG',status:d.buildAlong.status||'Active',title:d.buildAlong.title,copy:d.buildAlong.overview,meta:'Make from a reference',href:`#/build-along/${d.buildAlong.id}`}]:[]),...(d.openBrief?[{type:'OPEN BRIEF',status:d.openBrief.status||'Open',title:d.openBrief.title,copy:d.openBrief.objective,meta:'Answer a constraint',href:`#/open-brief/${d.openBrief.id}`}]:[]),...(d.activeSession?[{type:'SESSION',status:d.activeSession.status,title:d.activeSession.title,copy:d.activeSession.theme||d.activeSession.description,meta:`${d.activeSession.assignments.length} assignments`,href:`#/session/${d.activeSession.id}`}]:[]),...(prompts.items||[]).slice(0,1).map(p=>({type:'PROMPT',status:p.status,title:p.title,copy:p.brief,meta:'Shared making prompt',href:`#/prompt/${p.id}`})),...(teardowns.items||[]).slice(0,1).map(t=>({type:'TEARDOWN',status:t.status,title:t.title,copy:t.overview,meta:'Take it apart together',href:`#/teardown/${t.id}`})),...(weekly.items||[]).slice(0,1).map(q=>({type:'WEEKLY PROMPT',status:'Open',title:q.prompt,copy:'One good question from the shop.',meta:`${q.response_count||0} responses`,href:`#/weekly/${q.id}`}))].slice(0,4);
+  const shopTalk=[...(d.questions||[]).slice(0,2).map(q=>({type:'HELP',href:`#/question/${q.id}`,title:q.title,copy:q.help_needed||q.trying,meta:`${q.answer_count||0} answers`})),...(discussions.topics||[]).slice(0,2).map(t=>({type:'DISCUSSION',href:`#/discussion/${t.id}`,title:t.title,copy:t.body,meta:`${t.reply_count||0} replies`})),...(critiques.items||[]).slice(0,1).map(c=>({type:'CRITIQUE',href:`#/critique/${c.id}`,title:c.project_title,copy:c.prompt,meta:`${c.response_count||0} responses`}))].slice(0,4);
+  view.innerHTML=`<div class="view home-view"><section class="workshop-hero"><div class="hero-main"><div class="hero-kicker">GREEN SHOE GARAGE · THE WORKSHOP</div><h1>WHAT ARE YOU<br><em>MAKING?</em></h1><p>Ideas, repairs, experiments, failures, half-built mechanisms, strange materials, and useful discoveries all belong on the bench.</p><div class="hero-actions"><button class="button hero-start" data-action="start">START SOMETHING</button><a class="button-secondary" href="#/builds">WALK THE BENCHES →</a></div></div><aside class="shop-manifesto"><span class="technical-index">SHOP PRINCIPLE / 01</span><p>Don't just show the finished thing. Show the decisions, the evidence, the wrong turns, and what changed next.</p><span class="technical-index">DISCOVER → LEARN → MAKE → SHARE → IMPROVE → TEACH</span></aside></section>
+    ${state.me?`<section class="editorial-section home-your-workshop"><div class="editorial-head"><div><span class="section-number">01</span><h2>YOUR WORKSHOP</h2></div><span>THE NEXT USEFUL THING</span></div><div class="grid three">${featured?`<a class="brief-card" href="#/projects/${featured.id}"><div class="label">RESUME PROJECT</div><h3>${esc(featured.title)}</h3><p>${esc(featured.description)}</p><strong>${esc(featured.stage)} →</strong></a>`:''}${d.activeSession?`<a class="brief-card" href="#/session/${d.activeSession.id}"><div class="label">ACTIVE SESSION</div><h3>${esc(d.activeSession.title)}</h3><p>${esc(d.activeSession.theme||d.activeSession.description)}</p><strong>ENTER SESSION →</strong></a>`:''}${local.crew?`<a class="brief-card" href="#/crew/${local.crew.id}"><div class="label">LOCAL CREW · ${esc(local.crew.code)}</div><h3>${esc(local.crew.name)}</h3><p>${local.crew.nextEvent?`Next: ${esc(local.crew.nextEvent.title)}`:'See what is happening nearby.'}</p><strong>OPEN CREW →</strong></a>`:''}</div></section>`:''}
+    <section class="editorial-section on-bench-feature"><div class="editorial-head"><div><span class="section-number">${state.me?'02':'01'}</span><h2>ON THE BENCH</h2></div><a href="#/builds">ALL PROJECTS →</a></div>${featured?`<a href="#/projects/${featured.id}" class="editorial-feature"><div class="editorial-art">${featureVisual}<span class="art-index">PROJECT / ${esc(featured.stage.toUpperCase())}</span></div><div class="editorial-copy"><div class="eyebrow">${esc(featured.stage)} · ${esc(featured.owner)}</div><h3>${esc(featured.title)}</h3><p>${esc(featured.description)}</p><span class="editorial-link">OPEN PROJECT →</span></div></a>`:empty('THE BENCH IS CLEAR','A suspiciously temporary condition.','start')}<div class="editorial-project-grid home-community-compact">${community.map(projectCard).join('')}</div></section>
+    <section class="editorial-section"><div class="editorial-head"><div><span class="section-number">${state.me?'03':'02'}</span><h2>JOIN IN</h2></div><a href="#/community-builds">ALL COMMUNITY BUILDS →</a></div><div class="grid two">${joinItems.map(communityBuildTile).join('')||empty('NO SHARED BUILD RIGHT NOW','Keep working your own bench; the next invitation will appear here.')}</div></section>
+    <section class="editorial-section"><div class="editorial-head"><div><span class="section-number">${state.me?'04':'03'}</span><h2>SHOP TALK</h2></div><div><a href="#/workshop">DISCUSSIONS →</a> · <a href="#/help">HELP + CRITIQUE →</a></div></div><div class="question-list">${shopTalk.map(x=>`<a class="question-row" href="${x.href}"><div class="row-content"><span class="technical-index">${x.type}</span><strong>${esc(x.title)}</strong><p>${esc(x.copy)}</p></div><span class="question-status">${esc(x.meta)}</span></a>`).join('')||empty('QUIET SHOP','No active conversations need surfacing right now.')}</div></section>
+    <section class="editorial-section"><div class="editorial-head"><div><span class="section-number">${state.me?'05':'04'}</span><h2>NEW FROM THE SHOP</h2></div><span>REFERENCE + SCHEDULE</span></div><div class="grid two"><div><span class="technical-index">SHOP MANUAL</span>${d.library.slice(0,2).map(l=>libraryCard(l)).join('')}</div><div>${d.liveEvent?`<a class="brief-card" href="#/live/${esc(d.liveEvent.id)}"><div class="label">${esc(d.liveEvent.status)} · ${esc(d.liveEvent.event_type)}</div><h3>${esc(d.liveEvent.title)}</h3><p>${esc(d.liveEvent.description)}</p><strong>VIEW EVENT →</strong></a>`:`<a class="brief-card" href="#/live"><div class="label">LIVE + CALENDAR</div><h3>The camera is off.</h3><p>See upcoming Sessions, Clinics, and scheduled events.</p><strong>OPEN CALENDAR →</strong></a>`}</div></div></section>
+    <section class="community-entryways" aria-label="Ways into the Workshop community"><article class="community-entry-card maker-crew-entry"><div><span class="technical-index">LOCAL MAKER COMMUNITY</span><h2>FIND A MAKER CREW</h2><p>Find makers, meetups, shared skills, spare materials, and another pair of hands near you. Search by ZIP or postal code—no account required.</p></div><form id="home-crew-search" class="home-crew-search"><label for="home-crew-postal">ZIP / POSTAL CODE</label><div><input id="home-crew-postal" name="postal" inputmode="text" autocomplete="postal-code" placeholder="21502" aria-label="ZIP or postal code"><button class="button" type="submit">FIND LOCAL CREWS →</button></div></form>${local.crew?`<a class="entry-secondary-link" href="#/crew/${encodeURIComponent(local.crew.id)}">OPEN MY CREW · ${esc(local.crew.code)} →</a>`:`<a class="entry-secondary-link" href="#/crews">BROWSE ALL MAKER CREWS →</a>`}</article><article class="community-entry-card gearhead-entry-card"><div><span class="technical-index">SUPPORT GREEN SHOE GARAGE</span><h2>JOIN THE GEARHEAD CREW</h2><p>Help keep the shop moving and get deeper tutorials, films, files, early releases, and After Hours sessions. The WORKSHOP community itself stays open to everyone.</p></div><div class="home-gearhead-price"><strong>$5 <small>/ month</small></strong><span>or</span><strong>$50 <small>/ year</small></strong><em>2 months free annually</em></div><div class="home-gearhead-actions">${state.me?.supporter?'<a class="button" href="#/gearhead">GEARHEAD CREW · ACTIVE →</a><button class="button-secondary" data-action="membership">MANAGE MEMBERSHIP</button>':'<a class="button" href="#/gearhead">JOIN / LEARN MORE →</a>'}</div></article></section></div>`;
+  $('#home-crew-search')?.addEventListener('submit',e=>{e.preventDefault();const q=new FormData(e.currentTarget).get('postal').trim();location.hash=q?`#/crews/${encodeURIComponent(q)}`:'#/crews'});
+}

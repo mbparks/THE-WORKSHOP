@@ -1,3 +1,20 @@
+# THE WORKSHOP v8.1.0 — Information Architecture Consolidation
+
+This release reduces overlapping modules without deleting the underlying data models.
+
+- Builds now exposes Projects, Community Builds, and The Wall.
+- Community Builds unifies Prompts, Build Alongs, Open Briefs, Sessions, Teardown Club, and the weekly prompt into one filterable destination.
+- Workshop now exposes Discussions, Help + Critique, and Scrap Bin.
+- Help + Critique unifies troubleshooting questions, Design Critique, and What Is This? identification requests.
+- Failure Library is reframed as Lessons Learned inside the Library/Shop Manual; structured failure capture still writes into the related Project build log.
+- Maker ID moved under My Bench.
+- Maker Crews now contains both List and Map views; Workshop Map is no longer a separate navigation concept.
+- Live is now Live + Calendar and surfaces Community Build Sessions alongside scheduled live events.
+- GearHead Crew is reduced to Crew Home, Crew Work, and Vault; Crew Work combines Projects, Contributions, and Requests, while Vault combines current files and Archive.
+- Home is shortened to Your Workshop, On the Bench, Join In, Shop Talk, New From the Shop, then the existing Maker Crew and GearHead entryways at the bottom.
+- Start Something is now intent-based: Make Something, Document Something, Ask for Help, Join Something, plus publisher tools in Deep mode.
+- Existing detail URLs and legacy routes remain supported for backward compatibility.
+
 # THE WORKSHOP v8.0.12 — Home Community Entryways Placement
 
 - Moved **Find a Maker Crew** and **Join the GearHead Crew** from the top of Home to the bottom of the `#/home` content flow.

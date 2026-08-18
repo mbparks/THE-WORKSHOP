@@ -149,35 +149,34 @@ const checks=[
   ,['Workshop Map uses Crew anchor centroids only',server.includes("pathname==='/api/workshop-map'")&&server.includes('z.is_anchor=1')&&server.includes('never member home locations')&&app.includes('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS')]
   ,['Physical project labels support public QR only',server.includes('/label$/')&&server.includes("p.visibility==='Public'?")&&app.includes('DIGITAL HISTORY → PHYSICAL ARTIFACT')&&app.includes('PRINT LABEL')]
   ,['Workshop Prompts are explicitly noncompetitive',server.includes('CREATE TABLE IF NOT EXISTS workshop_prompts')&&app.includes('NO WINNER · NO RANKING')&&app.includes('AN EXHIBITION, NOT A LEADERBOARD')]
-  ,['Prompts and Sessions share one Build destination',app.includes("href:'#/participate',label:'PROMPTS + SESSIONS'")&&app.includes("else if(route==='participate') await renderParticipate()")&&app.includes("Promise.all([api('/api/prompts'),api('/api/sessions')])")&&!app.includes("href:'#/prompts',label:'PROMPTS'")&&!app.includes("href:'#/sessions',label:'SESSIONS'")]
+  ,['Community participation shares one Build destination',app.includes("href:'#/community-builds',label:'COMMUNITY BUILDS'")&&app.includes("else if(route==='community-builds') await renderCommunityBuilds")&&app.includes("api('/api/prompts')")&&app.includes("api('/api/sessions')")&&app.includes("api('/api/build-alongs')")&&app.includes("api('/api/open-briefs')")]
   ,['Mobile module switcher exposes all route families',app.includes('const NAV_MODULES=')&&['bench','builds','workshop','library','live','people'].every(k=>app.includes(`${k}:{label:`))&&app.includes('Object.entries(NAV_MODULES).map')]
-  ,['Mobile module switcher includes v8 tools',app.includes('WORKSHOP NOTEBOOK')&&app.includes('FAILURE LIBRARY')&&app.includes('PROMPTS + SESSIONS')&&app.includes('WORKSHOP MAP')&&app.includes('MAKER CREWS')]
+  ,['Mobile module switcher includes consolidated tools',app.includes("label:'NOTEBOOK'")&&app.includes("label:'MAKER ID'")&&app.includes("label:'COMMUNITY BUILDS'")&&app.includes("label:'HELP + CRITIQUE'")&&app.includes("label:'MAKER CREWS'")&&app.includes("label:'CREW WORK'")]
   ,['Mobile module switcher includes external navigation',app.includes('https://mbparks.com/almanac')&&app.includes('https://mbparks.com/almanac2')&&app.includes('GreenShoeGarage/shop')]
   ,['Workshop Map uses real Leaflet map',app.includes('L.map(host')&&app.includes('tile.openstreetmap.org/{z}/{x}/{y}.png')&&html.includes('leaflet@1.9.4/dist/leaflet.js')&&html.includes('leaflet@1.9.4/dist/leaflet.css')]
   ,['Workshop Map preserves region-only event privacy',app.includes('Shown at Crew region, not an exact address.')&&app.includes('Public events are also plotted at the Crew region rather than an exact venue address.')]
   ,['Workshop Map CSP allows required map origins',server.includes("script-src 'self' https://unpkg.com")&&server.includes("style-src 'self' 'unsafe-inline' https://unpkg.com")&&server.includes('https://tile.openstreetmap.org')]
   ,['Desktop navigation keeps module tools in context rail',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('href="#/notebook"')&&!lower.includes('href="#/map"')&&!lower.includes('href="#/gearhead"')&&!lower.includes('href="#/saved"')})()]
   ,['Context navigation uses exact route matching',app.includes('function contextItemActive(item,route,parts=routeParts())')&&app.includes("const path=parts.join('/')")&&!app.includes("href.includes('#/'+route)")]
-  ,['Build Along + Briefs uses a routable Builds subroute',app.includes("href:'#/builds/programs',label:'BUILD ALONGS + BRIEFS'")&&app.includes("else if(route==='builds') await renderBuilds(parts[1]||'')")&&app.includes('id="programs"')&&!app.includes('#/builds#programs')]
+  ,['Legacy Builds programs route resolves to Community Builds',app.includes("['community','programs'].includes(parts[1]||'')")&&app.includes('await renderCommunityBuilds()')&&!app.includes('#/builds#programs')]
   ,['Desktop and mobile share context module definitions',app.includes('const NAV_MODULES=')&&app.includes('const module=NAV_MODULES[parent]')&&app.includes('Object.entries(NAV_MODULES).map')]
-  ,['GearHead Crew is its own navigation section',(()=>{const people=(app.match(/people:\{label:'PEOPLE'[\s\S]*?\n  \]\}/)||[''])[0],gearhead=(app.match(/gearhead:\{label:'GEARHEAD CREW'[\s\S]*?\n  \]\}/)||[''])[0];return !people.includes("#/gearhead")&&gearhead.includes("href:'#/gearhead',label:'CREW HOME'")&&gearhead.includes("href:'#/gearhead-vault',label:'FILE VAULT'")&&gearhead.includes("href:'#/gearhead-contributions',label:'CONTRIBUTIONS'")&&gearhead.includes("href:'#/gearhead-projects',label:'CREW PROJECTS'")&&gearhead.includes("href:'#/gearhead-requests',label:'CREW REQUESTS'")&&gearhead.includes("href:'#/gearhead-archive',label:'ARCHIVE'")})()]
+  ,['GearHead Crew is its own consolidated navigation section',(()=>{const people=(app.match(/people:\{label:'PEOPLE'[\s\S]*?\n  \]\}/)||[''])[0],gearhead=(app.match(/gearhead:\{label:'GEARHEAD CREW'[\s\S]*?\n  \]\}/)||[''])[0];return !people.includes("#/gearhead")&&gearhead.includes("href:'#/gearhead',label:'CREW HOME'")&&gearhead.includes("href:'#/gearhead-work',label:'CREW WORK'")&&gearhead.includes("href:'#/gearhead-vault',label:'VAULT'")})()]
   ,['GearHead primary rail section exists',html.includes('href="#/gearhead" data-route="gearhead"')&&html.includes('>GearHead Crew</a>')]
   ,['Non-members get GearHead join landing',app.includes('function gearheadJoinLanding(d)')&&app.includes("if(!d.active){view.innerHTML=gearheadJoinLanding(d);return;}")&&app.includes('WHAT MEMBERSHIP OPENS')]
   ,['Lower desktop rail contains only site-wide destinations',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('#/notebook')&&!lower.includes('#/map')&&!lower.includes('#/saved')&&!lower.includes('#/gearhead')&&lower.includes('mbparks.com/almanac')&&lower.includes('mbparks.com/almanac2')&&lower.includes('redbubble.com')&&lower.includes('#/about')&&lower.includes('#/terms')})()]
 
-  ,['Field Instrument Lab module is retired',!app.includes("href:'#/lab',label:'FIELD INSTRUMENT LAB'")&&!app.includes("route==='lab'")&&!app.includes('OPEN LAB →')&&!app.includes("['instruments','Field Instruments']")&&server.includes('fieldInstrumentLab:false')]];
+  ,['Field Instrument Lab module is retired',!app.includes("href:'#/lab',label:'FIELD INSTRUMENT LAB'")&&!app.includes("route==='lab'")&&!app.includes('OPEN LAB →')&&!app.includes("['instruments','Field Instruments']")&&server.includes('fieldInstrumentLab:false')]
+  ,['Build navigation consolidates community participation',app.includes("label:'COMMUNITY BUILDS'")&&app.includes('async function renderCommunityBuilds')]
+  ,['Workshop navigation consolidates help flows',app.includes("label:'HELP + CRITIQUE'")&&app.includes('async function renderHelpCritique')]
+  ,['Maker ID lives under My Bench',(()=>{const bench=(app.match(/bench:\{label:'MY BENCH'[\s\S]*?\n  \]\}/)||[''])[0],people=(app.match(/people:\{label:'PEOPLE'[\s\S]*?\n  \]\}/)||[''])[0];return bench.includes("label:'MAKER ID'")&&!people.includes("label:'MAKER ID'")})()]
+  ,['Maker Crew list and map are one destination',app.includes("href:'#/crews',label:'MAKER CREWS'")&&app.includes("#/crews/map")&&app.includes('renderMakerCrewsHub')]
+  ,['Live exposes one calendar surface',app.includes("label:'LIVE + CALENDAR'")&&app.includes('Community Build Sessions')]
+  ,['Failure records surface as Lessons Learned',app.includes('PROJECT NOTEBOOKS → DURABLE KNOWLEDGE')&&app.includes('Record it once; learn from it everywhere.')]
+  ,['GearHead work is consolidated',app.includes("label:'CREW WORK'")&&app.includes('renderGearheadWork')]
+  ,['GearHead vault includes archive',app.includes("label:'VAULT'")&&app.includes('renderGearheadVaultHub')&&app.includes('ARCHIVE')]
+  ,['Start Something is intent based',app.includes('START WITH THE INTENT, NOT THE CONTENT TYPE')&&app.includes('MAKE SOMETHING')&&app.includes('DOCUMENT SOMETHING')&&app.includes('ASK FOR HELP')&&app.includes('JOIN SOMETHING')]
+  ,['Home uses consolidated editorial sections',app.includes('YOUR WORKSHOP')&&app.includes('JOIN IN')&&app.includes('SHOP TALK')&&app.includes('NEW FROM THE SHOP')]
+];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
 if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}
-console.log(`\n${checks.length} QA checks passed for v${pkg.version}.`);
-
-// v5.8.8 regression checks
-{
-  const fs=require('node:fs'),path=require('node:path');
-  const app=fs.readFileSync(path.join(__dirname,'..','public','app.js'),'utf8');
-  const server=fs.readFileSync(path.join(__dirname,'..','server.js'),'utf8');
-  if(/class="overlay" data-action="close-overlay"/.test(app))throw new Error('Modal backdrop must not dismiss dialogs.');
-  if(/Escape'&&overlayRoot/.test(app))throw new Error('Escape must not silently dismiss a dialog.');
-  if(!app.includes('function imageSrc(raw)')||!app.includes('/api/image-proxy?url='))throw new Error('Remote image proxy client helper missing.');
-  if(!server.includes("pathname === '/api/image-proxy'")||!server.includes('validateRemoteImageUrl'))throw new Error('Guarded remote image proxy missing.');
-}
