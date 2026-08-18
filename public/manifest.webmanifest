@@ -1,15 +1,36 @@
 {
-  "name": "THE WORKSHOP — Green Shoe Garage",
+  "name": "THE WORKSHOP \u2014 Green Shoe Garage",
   "short_name": "WORKSHOP",
+  "version": "9.0.0",
   "start_url": "/#/home",
   "display": "standalone",
   "background_color": "#171714",
   "theme_color": "#171714",
   "description": "A virtual communal workshop for making, design, experimentation, repair, craft, engineering, and art.",
   "icons": [
-    {"src":"/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
-    {"src":"/icon-maskable-192.png","sizes":"192x192","type":"image/png","purpose":"maskable"},
-    {"src":"/icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

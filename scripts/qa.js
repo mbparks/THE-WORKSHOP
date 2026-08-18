@@ -11,8 +11,11 @@ const pkg=JSON.parse(read('package.json'));
 const manifest=JSON.parse(read('public/manifest.webmanifest'));
 const server=read('server.js');
 const sw=read('public/sw.js');
+const browserQa=read('scripts/browser-qa.js');
+const integrationQa=read('scripts/integration-qa.js');
+const ci=read('.github/workflows/ci.yml');
 const checks=[
-  ['version aligned in app',app.includes(`state.meta.version||'${pkg.version}'`)&&html.includes(`THE WORKSHOP v${pkg.version}`)],
+  ['version aligned in app',html.includes(`THE WORKSHOP v${pkg.version}`)&&app.includes("state.meta.version||'9.0.0'")],
   ['version aligned in manifest',String(manifest.version||pkg.version).includes(pkg.version)||read('public/sw.js').includes(pkg.version)],
   ['modal uses aria-labelledby',app.includes('aria-labelledby=')],
   ['modal traps focus',app.includes("e.key!=='Tab'")],
@@ -47,7 +50,7 @@ const checks=[
   ['Crew Sessions reuse Session system',server.includes('canManageWorkshopSession')&&app.includes('crewSessionForm')],
   ['Crew request approval implemented',server.includes('crew.request.review')&&app.includes('crew-request-review')],
   ['Crew participation included in export',server.includes('crewMemberships')&&server.includes('crewAttendance')],
-  ['Maker Crews included in global search',server.includes("want('crews')")&&app.includes("['crews','Maker Crews']")],
+  ['People and Crews share global search family',server.includes("want('people')")&&server.includes('crews')&&app.includes("['people','People + Crews']")],
   ['Crew UI is responsive',css.includes('crew-pulse-grid')&&css.includes('@media(max-width:760px)')],
   ['Crew identity respects affiliation visibility',server.includes('visiblePrimaryCrew')&&app.includes('maker-id-crew')&&app.includes('bench-crew-link')]
   ,['Admin account details implemented',server.includes('reset-link|force-reset|sessions|anonymize')&&app.includes('ACCOUNT MANAGEMENT')]
@@ -92,7 +95,7 @@ const checks=[
   ,['Project files support GearHead-only access',server.includes("ensureColumn('project_files','access_level'")&&app.includes('GEARHEAD CREW ONLY')&&server.includes("req.headers['x-file-access']")]
   ,['GearHead notification preference exists',server.includes("ensureColumn('email_preferences','gearhead'")&&server.includes('gearheadNotify')]
   ,['GET SWAG external navigation exists',html.includes('https://www.redbubble.com/people/GreenShoeGarage/shop')&&html.includes('GET SWAG')&&html.includes('target="_blank"')]
-  ,['GearHead home has editorial shelves',app.includes('DEEP DIVES')&&app.includes('BENCH ROLLS')&&app.includes('CONTINUE WHERE YOU LEFT OFF')]
+  ,['GearHead home has consolidated crew workspace',app.includes('CONTINUE WHERE YOU LEFT OFF')&&app.includes('CREW WORK →')&&app.includes('VAULT →')&&app.includes('renderGearheadWork')&&app.includes('renderGearheadVaultHub')]
   ,['GearHead fast publishing exists',app.includes('Post to GearHead Crew')&&app.includes('gearhead-quick-type')]
   ,['Bench Roll ordered media implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_media')&&server.includes('/media-upload')&&app.includes('bench-roll-grid')]
   ,['GearHead video metadata implemented',server.includes("ensureColumn('gearhead_entries','poster_url'")&&server.includes("ensureColumn('gearhead_entries','transcript'")&&app.includes('Video chapters')]
@@ -130,7 +133,7 @@ const checks=[
   ,['Craft Path persistence schema',server.includes('CREATE TABLE IF NOT EXISTS craft_progress')&&server.includes('/api/craft-progress')]
   ,['Craft Path documents all three levels',server.includes("label:'Apprentice'")&&server.includes("label:'Journeyman'")&&server.includes("label:'Master'")]
   ,['Craft Path is self tracked without XP',app.includes('SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD')&&!server.includes('craft_xp')]
-  ,['Craft rank uses bronze silver gold assets',app.includes('/craft-apprentice.png')&&app.includes('/craft-journeyman.png')&&app.includes('/craft-master.png')]
+  ,['Craft rank uses optimized bronze silver gold assets',app.includes('/craft-apprentice.webp')&&app.includes('/craft-journeyman.webp')&&app.includes('/craft-master.webp')]
   ,['Craft Path appears on My Bench',app.includes('craftPathView(d.craft)')&&app.includes('Optional evidence note or link')]
   ,['Bench embed persistence schema',server.includes('CREATE TABLE IF NOT EXISTS bench_embeds')&&server.includes('benchEmbedRecord')]
   ,['Bench embed is tokenized and revocable',server.includes('/api/bench-embed/rotate')&&server.includes('crypto.randomBytes(24)')&&app.includes('ROTATE TOKEN')]
@@ -149,11 +152,11 @@ const checks=[
   ,['Workshop Map uses Crew anchor centroids only',server.includes("pathname==='/api/workshop-map'")&&server.includes('z.is_anchor=1')&&server.includes('never member home locations')&&app.includes('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS')]
   ,['Physical project labels support public QR only',server.includes('/label$/')&&server.includes("p.visibility==='Public'?")&&app.includes('DIGITAL HISTORY → PHYSICAL ARTIFACT')&&app.includes('PRINT LABEL')]
   ,['Workshop Prompts are explicitly noncompetitive',server.includes('CREATE TABLE IF NOT EXISTS workshop_prompts')&&app.includes('NO WINNER · NO RANKING')&&app.includes('AN EXHIBITION, NOT A LEADERBOARD')]
-  ,['Community participation shares one Build destination',app.includes("href:'#/community-builds',label:'COMMUNITY BUILDS'")&&app.includes("else if(route==='community-builds') await renderCommunityBuilds")&&app.includes("api('/api/prompts')")&&app.includes("api('/api/sessions')")&&app.includes("api('/api/build-alongs')")&&app.includes("api('/api/open-briefs')")]
+  ,['Community participation shares one Build destination',app.includes("href:'#/community-builds',label:'COMMUNITY BUILDS'")&&app.includes("else if(route==='community-builds') await renderCommunityBuilds")&&app.includes("api('/api/community-builds')")&&server.includes("pathname==='/api/community-builds'")]
   ,['Mobile module switcher exposes all route families',app.includes('const NAV_MODULES=')&&['bench','builds','workshop','library','live','people'].every(k=>app.includes(`${k}:{label:`))&&app.includes('Object.entries(NAV_MODULES).map')]
   ,['Mobile module switcher includes consolidated tools',app.includes("label:'NOTEBOOK'")&&app.includes("label:'MAKER ID'")&&app.includes("label:'COMMUNITY BUILDS'")&&app.includes("label:'HELP + CRITIQUE'")&&app.includes("label:'MAKER CREWS'")&&app.includes("label:'CREW WORK'")]
   ,['Mobile module switcher includes external navigation',app.includes('https://mbparks.com/almanac')&&app.includes('https://mbparks.com/almanac2')&&app.includes('GreenShoeGarage/shop')]
-  ,['Workshop Map uses real Leaflet map',app.includes('L.map(host')&&app.includes('tile.openstreetmap.org/{z}/{x}/{y}.png')&&html.includes('leaflet@1.9.4/dist/leaflet.js')&&html.includes('leaflet@1.9.4/dist/leaflet.css')]
+  ,['Workshop Map lazy-loads real Leaflet map',app.includes('function loadLeaflet()')&&app.includes('L.map(host')&&app.includes('tile.openstreetmap.org/{z}/{x}/{y}.png')&&!html.includes('leaflet@1.9.4/dist/leaflet.js')&&!html.includes('leaflet@1.9.4/dist/leaflet.css')]
   ,['Workshop Map preserves region-only event privacy',app.includes('Shown at Crew region, not an exact address.')&&app.includes('Public events are also plotted at the Crew region rather than an exact venue address.')]
   ,['Workshop Map CSP allows required map origins',server.includes("script-src 'self' https://unpkg.com")&&server.includes("style-src 'self' 'unsafe-inline' https://unpkg.com")&&server.includes('https://tile.openstreetmap.org')]
   ,['Desktop navigation keeps module tools in context rail',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('href="#/notebook"')&&!lower.includes('href="#/map"')&&!lower.includes('href="#/gearhead"')&&!lower.includes('href="#/saved"')})()]
@@ -198,7 +201,37 @@ const checks=[
   ,['Workshop Atmosphere has active motion',css.includes('atmo-active-plane')&&css.includes('atmo-active-spin')&&css.includes('atmo-active-code')]
   ,['Workshop Atmosphere supports subtle parallax',app.includes('function setupAtmosphereParallax()')&&css.includes('--atmo-shift-x')]
 
+  ,['Project privacy uses one canonical server gate',server.includes('function canViewProject')&&server.includes('function filterVisibleProjects')&&server.includes('canViewProject(')]
+  ,['Canonical access vocabulary normalized',server.includes('function normalizedAccess')&&server.includes("GearHead Crew Only")&&server.includes("Supporter")]
+  ,['Community Builds aggregate API exists',server.includes("pathname==='/api/community-builds'")&&app.includes("api('/api/community-builds')")]
+  ,['Help aggregate API exists',server.includes("pathname==='/api/help'")&&app.includes("api('/api/help')")]
+  ,['Live calendar aggregate and ICS exist',server.includes("pathname==='/api/calendar'")&&server.includes("pathname==='/api/calendar.ics'")&&app.includes('/api/calendar.ics')]
+  ,['Shared media library exists',server.includes('CREATE TABLE IF NOT EXISTS media_assets')&&app.includes('mediaPickerField')&&app.includes('openMediaPicker')]
+  ,['Member mute and block controls exist',server.includes('CREATE TABLE IF NOT EXISTS user_blocks')&&app.includes('MUTE')&&app.includes('BLOCK')]
+  ,['Offline work is reviewable',app.includes('showOfflineWork')&&app.includes('offline-retry')&&app.includes('offline-discard')&&app.includes('X-Idempotency-Key')]
+  ,['Service-worker update prompt exists',app.includes('NEW WORKSHOP BUILD READY')&&app.includes('controllerchange')&&sw.includes('SKIP_WAITING')]
+  ,['Appearance unifies theme density atmosphere',app.includes('DISPLAY DENSITY')&&app.includes('WORKSHOP ATMOSPHERE')&&app.includes('theme-mode')&&app.includes('density-mode')]
+  ,['Display density does not hide publisher capability',!app.includes('start-intent-group deep-only')&&!app.includes('button-secondary deep-only" data-action="edit-build-along')&&!app.includes('button-secondary deep-only" data-action="edit-open-brief')&&!app.includes('button deep-only" data-action="new-weekly-question')&&!app.includes('button deep-only" data-action="new-teardown-club')]
+  ,['Complex objects use local navigation',app.includes('object-local-nav')&&app.includes('crew-local-nav')]
+  ,['Skill Exchange folded into People',app.includes("renderPeople('help')")&&!app.includes("href:'#/skill-exchange',label:'SKILL EXCHANGE'")]
+  ,['Scrap Exchange has scopes',app.includes('WORKSHOP-WIDE')&&app.includes('MY CREW')&&app.includes('LOCAL PICKUP')&&app.includes('WILL SHIP')]
+  ,['Optimized Craft badge assets cached',sw.includes('/craft-apprentice.webp')&&sw.includes('/craft-master.webp')&&!sw.includes('/craft-apprentice.png')]
+  ,['Version diagnostics endpoint and UI exist',server.includes("pathname==='/api/version-diagnostics'")&&app.includes('showVersionDiagnostics')]
+  ,['Retired Field Instrument Lab implementation is not routable',!app.includes('function renderInstrumentLab')&&!app.includes('function instrumentForm')&&!server.includes("pathname==='/api/instruments'")]
+  ,['Full QA command runs static integration and browser layers',pkg.scripts.qa.includes('qa:static')&&pkg.scripts.qa.includes('qa:integration')&&pkg.scripts.qa.includes('qa:browser')]
+  ,['CI runs the complete QA gate',ci.includes('npm run qa')&&ci.includes('Chromium route QA')]
+  ,['Browser QA exercises route persistence and real editors',browserQa.includes('Atmosphere recomposes between major modules')&&browserQa.includes('Shared media picker is available in the project editor')]
+  ,['Integration QA verifies account-scoped idempotency',integrationQa.includes('Idempotency keys are scoped per account')&&integrationQa.includes('x-idempotent-replay')]
+  ,['Project editor uses the shared media picker',app.includes("mediaPickerField({name:'coverUrl',label:'Project cover'")]
+  ,['Scrap Exchange naming reflects the unified destination',app.includes("label:'SCRAP EXCHANGE'")&&!app.includes("label:'SCRAP BIN',routes:['scrap']")]
+  ,['v9 navigation document replaces the obsolete route map',fs.existsSync(path.join(root,'NAVIGATION.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v8.0.5.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v9.0.0.md'))]
+  ,['Release omits development dedupe snapshots',!fs.existsSync(path.join(root,'public/app.pre-dedupe.js'))&&!fs.existsSync(path.join(root,'public/app.pre-dedupe2.js'))]
+  ,['Release omits superseded full-size Craft badge PNGs',['craft-apprentice.png','craft-default-wood.png','craft-journeyman.png','craft-master.png'].every(name=>!fs.existsSync(path.join(root,'public',name)))]
+  ,['Release documentation is current',read('README.md').includes('Current release: **v9.0.0**')&&!read('README.md').includes('Current version: **v5.8.3**')&&read('CHANGELOG.md').startsWith('# THE WORKSHOP v9.0.0')]
+  ,['Local bind address is aligned',server.includes("'127.0.0.1'")&&read('.env.example').includes('HOST=127.0.0.1')&&read('start.sh').includes('127.0.0.1:8787')&&!read('README.md').includes('127.0.2.1')]
+  ,['Zero-dependency CI does not require an npm cache lockfile',!ci.includes('cache: npm')]
+
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
-if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}
+if(failed){console.error(`\n${failed} static QA check(s) failed.`);process.exit(1)}else console.log(`\n${checks.length}/${checks.length} static QA checks passed.`);

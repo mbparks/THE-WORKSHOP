@@ -1,6 +1,6 @@
 # Install THE WORKSHOP on Amazon Lightsail
 
-This guide deploys **THE WORKSHOP v5.8.3** on a single Amazon Lightsail Ubuntu instance using:
+This guide deploys **THE WORKSHOP v9.0.0** on a single Amazon Lightsail Ubuntu instance using:
 
 - Ubuntu LTS;
 - Node.js 22;
@@ -61,7 +61,7 @@ On the instance **Networking** tab, allow:
 | TCP | 80 | Anywhere |
 | TCP | 443 | Anywhere |
 
-Do **not** expose port `8787` publicly. Nginx will listen on 80/443 and proxy internally to `127.0.2.1:8787`.
+Do **not** expose port `8787` publicly. Nginx will listen on 80/443 and proxy internally to `127.0.0.1:8787`.
 
 Lightsail maintains independent IPv4 and IPv6 firewalls. If you enable IPv6, review both sets of rules rather than assuming the IPv4 rules automatically apply to IPv6.
 
@@ -161,7 +161,7 @@ Use:
 
 ```ini
 NODE_ENV=production
-HOST=127.0.2.1
+HOST=127.0.0.1
 PORT=8787
 WORKSHOP_DEV_AUTH=0
 WORKSHOP_PUBLIC_URL=https://workshop.example.com
@@ -214,10 +214,10 @@ sudo journalctl -u the-workshop -f
 Test the application directly from the server:
 
 ```bash
-curl --fail http://127.0.2.1:8787/api/health
+curl --fail http://127.0.0.1:8787/api/health
 ```
 
-You should receive JSON reporting a healthy application and version `5.8.3`.
+You should receive JSON reporting a healthy application and version `9.0.0`.
 
 If this fails, fix the application before moving on to Nginx or TLS.
 
@@ -425,7 +425,7 @@ Example:
 
 ```bash
 sudo systemctl stop the-workshop
-sudo -u workshop git -C /opt/the-workshop checkout v5.8.3
+sudo -u workshop git -C /opt/the-workshop checkout v9.0.0
 sudo systemctl start the-workshop
 ```
 
@@ -518,7 +518,7 @@ Internet
              ▼
           Nginx
              │
-             │ 127.0.2.1:8787
+             │ 127.0.0.1:8787
              ▼
       THE WORKSHOP / Node.js
              │

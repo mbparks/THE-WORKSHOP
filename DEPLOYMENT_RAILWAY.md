@@ -1,6 +1,6 @@
 # Deploy THE WORKSHOP on Railway
 
-This is the recommended low-maintenance deployment path for **THE WORKSHOP v5.8.3**.
+This is the recommended low-maintenance deployment path for **THE WORKSHOP v9.0.0**.
 
 THE WORKSHOP runs as one Node.js service with a SQLite database and uploaded files. Railway supplies the application container, HTTPS/public networking, GitHub-triggered deployments, logs, and a persistent Volume.
 
@@ -62,7 +62,7 @@ THE WORKSHOP must have persistent storage because SQLite and uploaded project fi
 /data
 ```
 
-Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v5.8.3 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
+Railway automatically exposes that mount path as `RAILWAY_VOLUME_MOUNT_PATH`. THE WORKSHOP v9.0.0 uses that value automatically, so you do not need to set `WORKSHOP_DATA_DIR` manually.
 
 The resulting layout is:
 
@@ -123,7 +123,7 @@ A healthy response includes:
 ```json
 {
   "ok": true,
-  "version": "5.8.3",
+  "version": "9.0.0",
   "database": "ok"
 }
 ```
@@ -300,7 +300,7 @@ WORKSHOP_ADMIN_EMAIL=mike@greenshoegarage.com
 `WORKSHOP_ADMIN_EMAIL` is optional; if omitted, WORKSHOP uses the first active Owner account email. After deployment, open **Operations Console → Email Delivery** and use **SEND TEST EMAIL** before relying on external notifications.
 
 
-## Stripe GearHead billing (v7)
+## Stripe GearHead billing
 
 Optional Railway variables:
 
@@ -313,10 +313,10 @@ WORKSHOP_MAX_VIDEO_MB=750
 
 Create a recurring Stripe Price for GearHead Crew and place its `price_...` ID in `STRIPE_GEARHEAD_PRICE_ID`. Configure Stripe to send subscription webhooks to `https://workshop.greenshoegarage.com/api/stripe/webhook`. The webhook secret is required before WORKSHOP reports Stripe as fully configured. Customer billing self-service uses Stripe's hosted Customer Portal.
 
-The v7 Dockerfile installs FFmpeg/FFprobe for native GearHead video metadata and automatic poster generation.
+The Dockerfile installs FFmpeg/FFprobe for native GearHead video metadata and automatic poster generation.
 
 
-### GearHead Crew Stripe plans (v7.0.2)
+### GearHead Crew Stripe plans
 
 THE WORKSHOP can present both GearHead billing choices at checkout:
 

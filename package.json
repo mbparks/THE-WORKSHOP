@@ -1,13 +1,19 @@
 {
   "name": "the-workshop",
-  "version": "8.2.3",
+  "version": "9.0.0",
   "private": true,
   "description": "THE WORKSHOP \u2014 The Green Shoe Garage Maker Community",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "backup": "node scripts/backup.js",
-    "qa": "node --check server.js && node --check public/app.js && node scripts/qa.js"
+    "qa:static": "node --check server.js && node --check public/app.js && node --check scripts/backup.js && node --check scripts/qa.js && node --check scripts/integration-qa.js && node --check scripts/browser-qa.js && node scripts/qa.js",
+    "qa:integration": "node scripts/integration-qa.js",
+    "qa:browser": "node scripts/browser-qa.js",
+    "qa": "npm run qa:static && npm run qa:integration && npm run qa:browser",
+    "browser-qa": "npm run qa:browser",
+    "qa:full": "npm run qa",
+    "test": "npm run qa"
   },
   "engines": {
     "node": ">=22.5.0"

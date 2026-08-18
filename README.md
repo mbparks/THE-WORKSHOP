@@ -1,84 +1,243 @@
 # THE WORKSHOP
 
-**THE WORKSHOP — The Green Shoe Garage Maker Community**
+**The Green Shoe Garage Maker Community**  
+Current release: **v9.0.0**
 
-Current version: **v5.8.3**
+THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
-THE WORKSHOP is a maker-community application built around one question:
+The central object is the **Project**, not the post. A project can begin as an idea, collect notebook evidence, invite critique, recruit collaborators, participate in a Community Build, fail visibly, produce releases, and eventually become durable Workshop knowledge.
 
-> **WHAT ARE YOU MAKING?**
+THE WORKSHOP intentionally avoids follower counts, popularity ranking, public like totals, engagement streaks, algorithmic feeds, and infinite-scroll mechanics.
 
-The fundamental object is the **Project**, not the post. Projects can remain incomplete, fail, fork into new approaches, collect evidence, ask for critique, recruit collaborators, publish revisions, and become part of the community's shared knowledge.
+> **Does this help someone make, understand, repair, design, discover, teach, or collaborate?**
 
-The product intentionally avoids follower counts, popularity ranking, engagement streaks, algorithmic feeds, public like totals, and other conventional social-media incentives.
+That is the product test for every feature.
 
-## GearHead participatory crew — v6.4
+---
 
-GearHead Crew members can now contribute testing notes, corrections, tutorial reviews, BOM checks, alternate-process notes, and documentation through `#/gearhead-contributions`. Editors review those contributions without public scores or voting. `#/gearhead-projects` hosts occasional GearHead Crew shared-build briefs; starting one creates a normal linked WORKSHOP Project on the member's Bench.
+## What changed in v9.0.0
 
-GearHead Studio 2.0 consolidates publishing/program/membership-health signals. Protected GearHead media and downloads are explicitly excluded from service-worker caching and are served with private `no-store` semantics plus lightweight download throttling.
+v9 is a reliability, privacy, consolidation, and usability release. It completes the information-architecture work begun in v8 while preserving the existing content models and data.
 
-## v5.8.3 — Transactional Notifications
+### Reliability and privacy
 
-This release adds **action-oriented transactional email** for requests and security events while preserving WORKSHOP’s restrained notification philosophy. Maker Crews remain fully integrated from v5.6. A Crew can use a compact identity such as **MC21502**, cover multiple nearby ZIPs, organize meetups, coordinate local projects and Sessions, exchange skills and scrap, and maintain a short-lived bulletin board.
+- One canonical server-side project-visibility gate now protects project lists, Home, search, Bench pages, direct project routes, linked content, project files, releases, and GitHub metadata.
+- The canonical access vocabulary is **Public · Members · GearHead · Private**, with **Inherit** only for child records that follow a parent.
+- Private and restricted project metadata are filtered before they reach the client.
+- Offline retries use account-scoped idempotency keys so replaying a queued write does not create duplicate records.
+- Maker Crew organizer forms and duplicate visibility controls were corrected.
+- Client/server/service-worker version diagnostics make stale deployments easier to identify.
 
-Core local loop:
+### Streamlined application model
 
-**FIND → JOIN → MEET → MAKE → SHARE LOCALLY**
+- **Community Builds** has a normalized aggregate API for Prompts, Build Alongs, Open Briefs, Sessions, Teardowns, and Weekly Prompts.
+- **Help + Critique** has a normalized aggregate API for troubleshooting, critique, and identification requests.
+- **Live + Calendar** aggregates scheduled Workshop activity and supports ICS export.
+- Home now exposes a real **Resume My Project** continuation point for the signed-in member.
+- Skill Exchange is integrated into People rather than presented as a disconnected module.
+- Scrap Exchange uses Workshop-wide, Crew, local-pickup, and will-ship scopes.
+- Project and Maker Crew pages use local object navigation rather than adding more global destinations.
 
-Highlights:
+### Member experience
 
-- ZIP/postal search with optional centroid-to-centroid approximate distance; no member GPS requirement.
-- Explicit join/leave and Public / Members / Private Crew-affiliation visibility.
-- Crew Member / Organizer / Moderator roles that do not grant global WORKSHOP permissions.
-- Local Projects, questions, Scrap Bin listings, Skill Exchange, and Tool Cabinet availability.
-- Meetups with public or protected exact addresses and optional organizer approval.
-- Crew Sessions and Assignments reusing the existing WORKSHOP Session system.
-- Crew request/approval workflow plus Crew Studio operations.
-- Maker Crews in global search, People navigation, Home's **Around Your Bench**, project badges, personal data export, and responsive/mobile layouts.
+- One shared media library and picker supports upload, preview, caption, alt text, reuse, and removal across supported editors.
+- Appearance settings unify theme, display density, and Workshop Atmosphere controls.
+- Members can review queued offline work, retry or discard individual changes, and sync all pending work.
+- Members can mute or block another member.
+- Public projects and maker artifacts have clearer sharing actions.
+- GearHead Crew retains monthly and annual plan-specific checkout controls and a dedicated non-member join experience.
 
-Run `npm run qa` before deployment. The v5.8.3 suite currently contains **54 static release checks**, with separate runtime smoke tests used during development for privacy, migration, and Crew lifecycle verification.
+### Performance and maintainability
 
-The migration is additive. Existing Projects, Sessions, accounts, and Railway `/data` content remain in place; new Crew tables and lightweight Crew relationship columns are created automatically at startup.
+- Craft Path badge artwork uses optimized WebP assets.
+- Leaflet is loaded only when the Maker Crew map is opened.
+- Retired Field Instrument Lab client code and standalone API routes were removed while historical tables remain for additive data safety and legacy relationships.
+- Duplicate generations of major client renderers and forms were removed.
+- The browser client remains build-free and uses no npm runtime dependencies.
 
+### Release verification
 
-## Transactional email configuration
+The release suite includes:
 
-THE WORKSHOP remains zero-dependency and uses native Node `fetch` for email delivery. v5.8.3 supports **Resend** as the first production provider plus a `log` provider for local testing. If email is disabled or misconfigured, in-app notifications continue to work and the Operations Console records the delivery as Skipped or Failed.
+- static source and release checks;
+- temporary-database API integration tests;
+- real Chromium route, DOM, interaction, atmosphere, pricing, media, navigation, and offline-work tests.
 
-Recommended Railway variables:
+Run the complete suite with:
 
-```text
-WORKSHOP_EMAIL_PROVIDER=resend
-RESEND_API_KEY=re_...
-WORKSHOP_FROM_EMAIL=THE WORKSHOP <workshop@your-verified-domain.example>
-WORKSHOP_ADMIN_EMAIL=mike@greenshoegarage.com
+```bash
+npm run qa
 ```
 
-`WORKSHOP_ADMIN_EMAIL` is optional. When omitted, WORKSHOP falls back to the first active Owner account email. Admin recipients and notification categories can be adjusted under **Operations Console → Email Delivery** without exposing provider credentials in the browser.
+---
 
-Emails are intentionally limited to action-oriented events: Maker Crew requests, moderation reports, private-meetup approval workflow, account recovery, administrator password resets, and Crew-request decisions. Routine project activity stays in-app.
+## Primary navigation
+
+```text
+HOME
+
+MY BENCH
+  Overview
+  Notebook
+  Maker ID
+
+BUILDS
+  Projects
+  Community Builds
+  The Wall
+
+WORKSHOP
+  Discussions
+  Help + Critique
+  Scrap Exchange
+
+LIBRARY
+  Shop Manual
+  Saved
+
+LIVE
+  Live + Calendar
+  Project Clinics
+
+PEOPLE
+  Directory
+  Maker Crews
+  Skill Exchange filters
+
+GEARHEAD CREW
+  Crew Home
+  Crew Work
+  Vault
+```
+
+Legacy routes from earlier releases redirect into the appropriate consolidated destination where practical.
+
+See [NAVIGATION.md](NAVIGATION.md) for the current route map.
+
+---
+
+## Core capabilities
+
+### Projects and personal practice
+
+- Project-centered maker profiles called **Benches**
+- active, complete, paused, and abandoned project states
+- project stages from idea through result
+- collaborators and project roles
+- lightweight To Do / Doing / Done tasks
+- project comments and discussion
+- structured Workshop Notebook entries
+- experiments, failures, tests, revisions, discoveries, decisions, and results
+- personal Notebook view across projects
+- Craft Path self-tracking without points, public scores, or leaderboards
+- embeddable Bench widgets
+- Maker ID with Craft Path and Crew context
+
+### Project evidence and files
+
+- native binary uploads
+- logical filename revision history
+- SHA-256 provenance hashes
+- file access inherited from or restricted beyond the project
+- named project releases
+- pinned file revisions and downloadable JSON manifests
+- optional GitHub repository integration
+- privacy enforcement across project metadata and binary files
+
+### Community Builds
+
+Community Builds are curated Workshop invitations rather than a general-purpose posting feed. Supported types include:
+
+- Prompts
+- Build Alongs
+- Open Briefs
+- Sessions and Assignments
+- Weekly Prompts
+- Teardowns
+
+Owners, Administrators, and Editors can publish Community Builds. Members can participate, start linked projects, submit work, and document results.
+
+### Workshop conversation and help
+
+- structured Discussions in DESIGN / MAKE / FIX / THINK / ODDITIES
+- troubleshooting questions with evidence fields
+- Design Critique
+- What Is This? identification requests
+- project-linked help
+- response marking such as Solved It, Helped, or Useful Direction
+- reporting, moderation records, mute, and block controls
+
+### People and Maker Crews
+
+- maker Directory
+- Skills, Tools, Can Help With, and Want to Learn
+- Tool Cabinet with privacy controls
+- skill-based discovery without expertise scoring
+- Maker Crews with list and map views
+- ZIP/postal-code discovery using approximate Crew regions rather than member GPS
+- Crew membership, local roles, meetups, bulletin posts, Sessions, assignments, projects, and exchanges
+- exact meetup-address protection and approval workflows
+
+### Library, Live, and exhibitions
+
+- curated Shop Manual resources
+- Saved shelf and collections
+- Lessons Learned surfaced from structured project failures
+- Live From the Garage
+- unified Live + Calendar view
+- Project Clinics
+- ICS calendar export
+- The Wall exhibitions
+
+### GearHead Crew
+
+GearHead Crew is a paid or manually granted membership entitlement with its own section:
+
+- Crew Home
+- Crew Work: contributions, Crew projects, and requests
+- Vault: current and archived protected material
+- tutorials, early-access releases, After Hours, protected media, and downloads
+- monthly and annual Stripe Checkout when configured
+- provider-neutral manual, invite, external, or Stripe membership records
+- server-enforced access and `no-store` delivery for protected files
+
+The rest of THE WORKSHOP remains usable without GearHead membership.
+
+### Local-first and PWA behavior
+
+- installable web application shell
+- service-worker shell caching
+- private APIs and protected uploads excluded from public caching
+- offline mutation queue
+- review, retry, discard, and Sync All controls
+- account-scoped idempotent replay
+- update-ready notification with explicit reload
+- theme-aware Workshop Atmosphere with Workshop / Quiet / Off modes
+- reduced-motion and high-contrast safeguards
+
+---
 
 ## Quick start
 
-Requirements:
+### Requirements
 
-- Node.js **22.5+**
+- Node.js **22.5 or newer**
 - a modern browser
+- Chromium or Chrome only when running the browser QA suite
 
-There are currently **no npm runtime dependencies** and **no frontend compile step**.
+There are no npm runtime dependencies and no frontend compilation step.
 
 ```bash
 npm start
 ```
 
-Then open:
+Open:
 
 ```text
-http://127.0.2.1:8787
+http://127.0.0.1:8787/#/home
 ```
 
-For development watch mode:
+Development watch mode:
 
 ```bash
 npm run dev
@@ -87,187 +246,75 @@ npm run dev
 Health check:
 
 ```bash
-curl http://127.0.2.1:8787/api/health
+curl http://127.0.0.1:8787/api/health
 ```
 
-## Recommended deployment: Railway
+By default, a non-production local launch enables development sign-in and demo data. Production mode disables both unless explicitly re-enabled.
 
-For the lowest-maintenance production deployment, use Railway with a persistent Volume mounted at `/data`. THE WORKSHOP automatically detects Railway's volume mount, binds to the Railway network interface, exposes `/api/health`, and disables development auth/demo seeding by default when `NODE_ENV=production`.
+---
 
-See **[DEPLOYMENT_RAILWAY.md](DEPLOYMENT_RAILWAY.md)** for the complete setup.
+## Configuration
 
-The repository includes `Dockerfile`, `.dockerignore`, and `railway.json`, so a GitHub-connected Railway service can deploy without Nginx, Certbot, systemd, or SSH-based application updates.
+THE WORKSHOP reads configuration from environment variables. It does not automatically parse `.env` files; use your process manager, hosting service, shell, or container environment.
 
-## Amazon Lightsail deployment
+Copy `.env.example` as an operator reference and keep real secrets outside the repository.
 
-A complete production-style installation guide is included:
+### Core variables
 
-**[DEPLOYMENT_LIGHTSAIL.md](DEPLOYMENT_LIGHTSAIL.md)**
+| Variable | Purpose |
+| --- | --- |
+| `NODE_ENV` | Use `production` for a public deployment. |
+| `HOST` | Bind address. Local/VPS default is `127.0.0.1`; Railway uses `0.0.0.0`. |
+| `PORT` | HTTP port, default `8787`. |
+| `WORKSHOP_PUBLIC_URL` | Canonical public origin used in links and email. |
+| `WORKSHOP_DATA_DIR` | Persistent data directory. |
+| `WORKSHOP_DB` | Optional explicit SQLite database path. |
+| `WORKSHOP_BACKUP_DIR` | Backup destination. |
+| `WORKSHOP_DEV_AUTH` | Development sign-in toggle. Keep `0` in production. |
+| `WORKSHOP_SEED_DEMO` | Demo-data toggle. Keep `0` in production. |
 
-It covers:
+### First production Owner
 
-- Lightsail instance creation
-- Static IP and firewall configuration
-- Ubuntu and Node.js 22
-- separate runtime-data directories
-- systemd supervision
-- Nginx reverse proxy
-- DNS
-- Let's Encrypt / Certbot HTTPS
-- daily application backups
-- Lightsail snapshots
-- Git-based updates and rollback
-- recovery procedures
-
-The supplied production layout keeps code, mutable community data, secrets, and backups separated:
+Use the bootstrap variables for initial setup only:
 
 ```text
-/opt/the-workshop                  Git checkout
-/var/lib/the-workshop              SQLite + uploads
-/etc/the-workshop/workshop.env     production configuration/secrets
-/var/backups/the-workshop          application backups
+WORKSHOP_BOOTSTRAP_OWNER_NAME=Mike
+WORKSHOP_BOOTSTRAP_OWNER_EMAIL=you@example.com
+WORKSHOP_BOOTSTRAP_OWNER_PASSWORD=replace-with-a-long-random-password
 ```
 
-## Core capabilities
+After the Owner signs in successfully, remove the bootstrap password variables from the hosting environment.
 
-### Making and projects
+### Transactional email
 
-- Project-centered community model
-- Idea / Design / Prototype / Test / Failure / Revision / Build / Result workflow
-- experiments, repairs, teardowns, Show & Tell
-- rich project metadata
-- collaborative project roles
-- lightweight To Do / Doing / Done project tasks
-- build logs with structured Deep-mode notebook fields
-- first-class **THIS DIDN'T WORK** entries
-- project comments and discussion
-- Design Critique
-- Project Clinic
-
-### Files and engineering evidence
-
-- native binary project-file uploads
-- project visibility enforcement on file access
-- logical filename revision history
-- SHA-256 provenance hashes
-- named project releases
-- exact revision pinning
-- downloadable JSON release manifests
-- immutable release references
-- optional GitHub repository integration
-
-### Community
-
-- member Bench
-- Skills / Tools / Can Help With / Want to Learn
-- optional Tool Cabinet
-- Skill Exchange
-- WORKSHOP discussion areas: DESIGN / MAKE / FIX / THINK / ODDITIES
-- structured Ask the Workshop troubleshooting
-- Question of the Week
-- What Is This? identification workflow
-- Teardown Club
-- Scrap Bin reuse board
-- restrained notifications
-- Saved shelf and Collections
-
-### Green Shoe Garage publishing
-
-- Shop Notes
-- Build Alongs with **START MY VERSION**
-- Open Briefs with equal-footing response exhibitions
-- Live From the Garage
-- curated Library / Shop Manual
-- curated project exhibitions through **The Wall**
-- optional provider-neutral Supporter entitlements
-
-### Operations
-
-- real account registration/login
-- `scrypt` password hashes
-- HttpOnly sessions
-- verification/recovery token flows
-- role-based moderation and administration
-- Operations Console
-- account suspension/ban
-- audit logs
-- same-origin mutation validation
-- rate limiting
-- security headers
-- `/api/health`
-- SQLite-consistent backup tooling
-- responsive PWA
-- offline cached reading, draft recovery, and safe queued JSON mutations
-
-## Architecture
+Supported modes are `off`, `log`, and `resend`.
 
 ```text
-Browser / PWA
-      │
-      │ HTTP / JSON
-      ▼
-Node.js server
-      │
-      ├── SQLite
-      ├── project uploads
-      ├── backup snapshots
-      └── optional GitHub REST API cache
+WORKSHOP_EMAIL_PROVIDER=resend
+RESEND_API_KEY=re_...
+WORKSHOP_FROM_EMAIL=THE WORKSHOP <workshop@example.com>
+WORKSHOP_ADMIN_EMAIL=owner@example.com
 ```
 
-### Frontend
+Email is intentionally limited to action-oriented events such as recovery, Crew requests, protected-meetup approvals, moderation, and administrative account actions.
 
-- semantic HTML
-- modern CSS
-- vanilla JavaScript
-- hash-based SPA navigation
-- Service Worker
-- Web App Manifest
-
-### Backend
-
-- Node.js 22+
-- native `node:http`
-- native `node:sqlite`
-- cookie sessions
-- local disk object/file storage
-
-The deliberately simple single-instance architecture is suitable for local development and a carefully operated small community deployment. A larger multi-instance deployment should replace SQLite with PostgreSQL and local uploads with S3-compatible storage while preserving the API/product model.
-
-## Environment variables
-
-THE WORKSHOP reads environment variables from the process environment. It does **not** automatically load `.env` files.
-
-See **`.env.example`** for a production template.
-
-| Variable | Default | Purpose |
-|---|---|---|
-| `NODE_ENV` | unset | Set `production` for public deployment; enables Secure session cookies |
-| `HOST` | `127.0.2.1` | HTTP bind address |
-| `PORT` | `8787` | HTTP port |
-| `WORKSHOP_DEV_AUTH` | `1` | Set `0` in production to disable seeded development authentication |
-| `WORKSHOP_PUBLIC_URL` | empty | Canonical public origin used for mutation-origin validation |
-| `WORKSHOP_DATA_DIR` | `./data` | Mutable runtime root containing uploads and default database/backups |
-| `WORKSHOP_DB` | `$WORKSHOP_DATA_DIR/workshop.db` | SQLite database path |
-| `WORKSHOP_BACKUP_DIR` | `$WORKSHOP_DATA_DIR/backups` | Backup output directory |
-| `WORKSHOP_RATE_LIMIT` | enabled | Set `0` only for controlled testing to disable the in-process limiter |
-| `GITHUB_TOKEN` | unset | Optional server-side GitHub token; never expose to browser code |
-
-Example production environment:
+### GearHead membership and Stripe
 
 ```text
-NODE_ENV=production
-HOST=127.0.2.1
-PORT=8787
-WORKSHOP_DEV_AUTH=0
-WORKSHOP_PUBLIC_URL=https://workshop.example.com
-WORKSHOP_DATA_DIR=/var/lib/the-workshop
-WORKSHOP_DB=/var/lib/the-workshop/workshop.db
-WORKSHOP_BACKUP_DIR=/var/backups/the-workshop
+WORKSHOP_MEMBERSHIP_PROVIDER=stripe
+STRIPE_SECRET_KEY=sk_...
+STRIPE_GEARHEAD_MONTHLY_PRICE_ID=price_...
+STRIPE_GEARHEAD_ANNUAL_PRICE_ID=price_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-## Runtime data
+Provider-neutral membership bridge variables are also available for external membership systems. See `.env.example` and the deployment guides.
 
-By default the application creates:
+---
+
+## Persistent data
+
+Default local paths:
 
 ```text
 data/workshop.db
@@ -275,293 +322,155 @@ data/uploads/
 data/backups/
 ```
 
-These are intentionally ignored by Git.
-
-For production, use `WORKSHOP_DATA_DIR` to keep mutable state outside the repository checkout.
-
-## Authentication notes
-
-Production deployments should always set:
+Production deployments should put mutable data outside the Git checkout. A typical Lightsail layout is:
 
 ```text
-NODE_ENV=production
-WORKSHOP_DEV_AUTH=0
-WORKSHOP_PUBLIC_URL=https://your-real-hostname.example
+/opt/the-workshop                  application code
+/var/lib/the-workshop              SQLite database and uploads
+/etc/the-workshop/workshop.env     secrets and configuration
+/var/backups/the-workshop          application backups
 ```
 
-Verification and recovery token generation is implemented. A public service still needs a real outbound email transport wired to those token-delivery flows.
+Railway should use a persistent Volume. When attached, THE WORKSHOP automatically recognizes `RAILWAY_VOLUME_MOUNT_PATH`.
 
-## GitHub integration
+Never commit databases, uploads, backups, environment files, browser profiles, or access tokens.
 
-Individual Workshop projects may optionally link to GitHub using either:
-
-```text
-owner/repository
-```
-
-or:
-
-```text
-https://github.com/owner/repository
-```
-
-The server can surface repository metadata, README context, recent releases, and recent issues. Data is cached server-side and a GitHub outage does not make the Workshop project unavailable.
-
-Public repository lookups can operate without a token subject to GitHub's limits. Set a server-side `GITHUB_TOKEN` for higher limits or private repositories the token is authorized to read.
+---
 
 ## Backups
 
-Create an application backup manually:
+Create an application backup with:
 
 ```bash
 npm run backup
 ```
 
-A backup contains:
+The backup script uses SQLite's backup facility and includes uploaded files where configured. Backups should also be copied off the application host and periodically restored into a test environment.
 
-- a consistent SQLite snapshot
-- current upload payloads
-- a JSON manifest
+A filesystem snapshot is useful, but it does not replace a tested application-level backup.
 
-The Lightsail deployment package also includes:
+---
+
+## Quality assurance
+
+### Complete release suite
+
+```bash
+npm run qa
+```
+
+Release verification for this source snapshot: **208 static checks + 26 integration checks + 39 Chromium checks = 273 passing checks.**
+
+This runs all three layers:
+
+1. **Static QA** — syntax, version alignment, release invariants, accessibility hooks, privacy gates, route wiring, PWA behavior, and package hygiene.
+2. **Integration QA** — starts a temporary real server and SQLite database, then tests authentication, project privacy, aggregates, calendar export, mute/block, idempotent replay, and scoped exchanges.
+3. **Browser QA** — executes the production HTML, CSS, client JavaScript, router, DOM events, atmosphere, pricing controls, media picker, mobile module map, offline queue, and server APIs in Chromium.
+
+Run layers separately:
+
+```bash
+npm run qa:static
+npm run qa:integration
+npm run qa:browser
+```
+
+When Chromium is not on the normal executable path:
+
+```bash
+CHROMIUM_PATH=/path/to/chromium npm run qa:browser
+```
+
+`npm test` and `npm run qa:full` are aliases for the complete suite.
+
+---
+
+## Deployment
+
+### Railway
+
+Railway is the lowest-maintenance supported deployment path. The repository includes:
+
+- `Dockerfile`
+- `railway.json`
+- `/api/health`
+- production-safe defaults
+- persistent-volume detection
+
+See [DEPLOYMENT_RAILWAY.md](DEPLOYMENT_RAILWAY.md).
+
+### Amazon Lightsail
+
+A single-instance deployment using Ubuntu, Node.js, systemd, Nginx, Certbot, and application backups is documented in [DEPLOYMENT_LIGHTSAIL.md](DEPLOYMENT_LIGHTSAIL.md).
+
+Before either deployment:
+
+```bash
+npm run qa
+```
+
+Do not deploy a package containing `data/`, databases, uploads, backups, `.env` files, or test browser profiles.
+
+---
+
+## Security and privacy boundaries
+
+- Project visibility is enforced on the server, not merely hidden in the interface.
+- Protected uploads are never placed in the public service-worker cache.
+- GearHead files are entitlement-checked and served with private no-store semantics.
+- Passwords are stored as salted hashes.
+- Sessions use HTTP-only cookies.
+- State-changing requests are origin checked and rate limited.
+- Administrative account actions are audited.
+- Maker Crew map locations are approximate Crew anchors, not member GPS coordinates.
+- Development authentication and demo seeding are disabled by default in production.
+
+See [SECURITY.md](SECURITY.md) for vulnerability reporting and operational expectations.
+
+---
+
+## Source layout
 
 ```text
-deploy/lightsail/workshop-backup.service
-deploy/lightsail/workshop-backup.timer
+server.js                  Node HTTP server, SQLite schema, API, authorization
+public/index.html          persistent application shell
+public/styles.css          themes, responsive UI, atmosphere, components
+public/app.js              client state, router, views, editors, offline queue
+public/sw.js               PWA cache and update lifecycle
+scripts/qa.js              static release checks
+scripts/integration-qa.js  temporary-server API checks
+scripts/browser-qa.js      Chromium route and interaction checks
+scripts/backup.js          application backup utility
 ```
 
-for automatic daily backups.
+The source is intentionally deployment-friendly: no bundler, transpiler, framework runtime, telemetry SDK, or third-party analytics service is required.
 
-Always keep important backups off the application server as well. A backup that lives only on the same VPS is not sufficient disaster recovery.
+---
 
-## Repository layout
+## Versioning
 
-```text
-.
-├── .github/
-│   ├── ISSUE_TEMPLATE/
-│   ├── pull_request_template.md
-│   └── workflows/ci.yml
-├── data/                       runtime data (ignored except .gitkeep)
-├── deploy/
-│   └── lightsail/
-│       ├── nginx.conf.example
-│       ├── workshop.service
-│       ├── workshop-backup.service
-│       └── workshop-backup.timer
-├── public/
-│   ├── app.js
-│   ├── index.html
-│   ├── manifest.webmanifest
-│   ├── styles.css
-│   └── sw.js
-├── scripts/
-│   └── backup.js
-├── .env.example
-├── .gitattributes
-├── .gitignore
-├── CHANGELOG.md
-├── CODE_OF_CONDUCT.md
-├── CONTRIBUTING.md
-├── DEPLOYMENT_LIGHTSAIL.md
-├── SECURITY.md
-├── package.json
-├── server.js
-└── start.sh
-```
-
-## GitHub-ready workflow
-
-This release includes:
-
-- clean runtime-data ignores
-- secret/environment ignores
-- `.gitattributes`
-- issue forms
-- pull-request template
-- GitHub Actions CI
-- contribution guidelines
-- security-reporting policy
-- community code of conduct
-- deployment assets
-- changelog
-
-The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and verifies `/api/health`.
-
-### Suggested first repository setup
-
-```bash
-git init
-git branch -M main
-git add .
-git commit -m "Initial THE WORKSHOP v8.0.5 release"
-git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
-git push -u origin main
-```
-
-Then create/tag the release:
-
-```bash
-git tag -a v5.8.3 -m "THE WORKSHOP v5.8.3"
-git push origin v5.8.3
-```
-
-Before accepting external contributions, also decide and publish the repository's software/content licensing policy. **No software license is assumed by this repository package.**
-
-## Development checks
-
-```bash
-node --check server.js
-node --check public/app.js
-node --check scripts/backup.js
-```
-
-Run the server and verify:
-
-```bash
-curl --fail http://127.0.2.1:8787/api/health
-```
-
-## Updating versions
-
-For a release change, keep these synchronized:
+Update these together for every release:
 
 - `package.json`
 - `APP_VERSION` in `server.js`
-- frontend fallback version in `public/app.js`
-- visible version in `public/index.html`
-- service-worker cache name in `public/sw.js`
-- `start.sh`
-- backup manifest version
-- README / CHANGELOG
+- client fallback version in `public/app.js`
+- visible shell version in `public/index.html`
+- service-worker cache key in `public/sw.js`
+- asset query strings in `public/index.html` and versioned badge references
+- `CHANGELOG.md`
 
-## Security
+The application exposes `/api/meta` and `/api/version-diagnostics` to help identify client/server mismatch and stale service-worker deployments.
 
-See **[SECURITY.md](SECURITY.md)**.
-
-Important operational rules:
-
-- never commit `.env` files or credentials;
-- never expose `GITHUB_TOKEN` to frontend code;
-- do not expose the Node port directly on the public firewall;
-- terminate public traffic through HTTPS;
-- disable development authentication in production;
-- back up both SQLite and uploaded files;
-- test restoration, not just backup creation.
+---
 
 ## Contributing
 
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)**.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
-The primary product test remains:
+Do not add a feature merely because it resembles a conventional social-network feature. Keep the Workshop centered on useful making, evidence, teaching, repair, and collaboration.
 
-> **Does this help someone make, understand, repair, design, discover, teach, or collaborate?**
+---
 
-## License
+## License and community terms
 
-A software license has not been selected in this package. Until the repository owner chooses and publishes one, do not assume permission to redistribute or modify the code beyond what copyright law otherwise permits.
-
-## One-time Owner recovery
-
-Production deployments can explicitly recover an existing Owner account with `WORKSHOP_OWNER_RECOVERY=1`, the bootstrap Owner email/password, and a unique `WORKSHOP_OWNER_RECOVERY_ID`. Each recovery ID executes once, invalidates prior sessions, and is audit logged. See `DEPLOYMENT_RAILWAY.md` for the exact procedure.
-
-## Sessions and participation
-
-WORKSHOP v4.7 adds a participation layer built around **SESSION → ASSIGNMENT → PROJECT → SHOW THE WORK → WALK THE BENCHES → MAKER ID**. Assignment responses remain normal Projects, reflections are written into the Project notebook, Session resources reuse the Library, Live events reuse the existing Live system, and final Session exhibitions reuse The Wall. There are no points, ranks, streaks, or competitive grading.
-
-Editors can author Sessions and Assignments in Deep mode through **Session Studio**.
-
-
-## Account Management
-
-Owners and Administrators can open **Account → Operations Console → Members → Manage** for account-security and lifecycle operations. Account Management supports role/state changes, one-time password reset links, forced password reset on next login, session revocation, and permanent anonymization/removal of an account. Security and destructive operations require an administrative reason and are written to the audit trail.
-
-A generated reset link is valid for 30 minutes. When transactional email is configured, WORKSHOP queues the reset message to the member automatically and still shows the URL to administrators as a fallback.
-
-Permanent account removal deliberately uses an anonymized tombstone rather than deleting the user row outright. This removes credentials and personal identity while preserving project ownership references, moderation evidence, and audit integrity as **Removed member**. Harmful content itself can still be removed through the moderation queue.
-
-
-## Terms & Community Conduct
-
-THE WORKSHOP includes a versioned, readable Terms & Community Conduct agreement at `#/terms` and in [`TERMS.md`](TERMS.md). New members must separately confirm that they are 18+ and accept the current Terms version. Existing accounts that predate the current Terms are prompted once after authentication. Acceptance stores only the Terms version and timestamp.
-
-The short-form community rule is **“Don’t be an idiot.”** The full terms cover conduct, privacy, safety, intellectual-property responsibility, moderation, local meetups/exchanges, account security, and information-quality limitations. These are operational boilerplate and should be reviewed by qualified counsel before being relied on as final legal terms for a public production service.
-
-
-## The GearHead Crew
-
-v6 adds **The GearHead Crew**, the public-facing identity for WORKSHOP supporters. The existing internal `Supporter` role and membership-provider abstraction remain compatible, while gated material is consistently labeled **GEARHEAD CREW ONLY**.
-
-GearHead Crew supports standalone tutorials, Shop Films, Bench Cam / Bench Roll entries, field notes, protected revisioned downloads, early-access material, Field Instrument previews, After Hours events, scheduled public release, mixed-access project files, search metadata, notifications, and the GearHead Crew Studio for editorial management.
-
-The community itself remains open to ordinary Members; GearHead entitlement adds deeper Green Shoe Garage material rather than removing normal member-to-member participation.
-
-The desktop left navigation also includes **GET SWAG**, which opens the Green Shoe Garage Redbubble shop in a new tab.
-
-## GearHead Crew v7 — Stripe, native media, templates
-
-The GearHead entitlement layer can now connect directly to Stripe Checkout while retaining manual, gift, invite, complimentary, lifetime, and provider-sync membership paths. Stripe billing is optional; without Stripe environment variables the existing provider-neutral membership paths continue to work.
-
-Required production variables for live Stripe billing:
-
-```text
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_GEARHEAD_PRICE_ID=price_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-```
-
-Configure the Stripe webhook endpoint as `/api/stripe/webhook`. The application creates hosted subscription Checkout Sessions and on-demand Customer Portal sessions; signed webhook events synchronize the existing `membership_connections` entitlement records.
-
-Native GearHead video uploads use FFprobe for runtime metadata and FFmpeg to generate a poster image. The Docker image installs FFmpeg automatically. `WORKSHOP_MAX_VIDEO_MB` controls the raw upload ceiling and defaults to 750 MB. Protected media remains entitlement-checked and byte-range streamed.
-
-GearHead editors can also duplicate an entry or save it as a reusable publishing template from the entry controls. Templates copy publishing structure/defaults, not protected uploaded file bytes.
-
-
-### GearHead Crew Stripe plans (v7.0.2)
-
-THE WORKSHOP can present both GearHead billing choices at checkout:
-
-- Monthly — $5/month
-- Annual — $50/year (save $10 versus 12 monthly payments)
-
-Configure the corresponding Stripe recurring Price IDs:
-
-```text
-STRIPE_GEARHEAD_MONTHLY_PRICE_ID=price_...
-STRIPE_GEARHEAD_ANNUAL_PRICE_ID=price_...
-```
-
-`STRIPE_GEARHEAD_PRICE_ID` remains supported as a legacy single-price fallback during deployment transitions. Either monthly or annual subscription grants the same GearHead Crew entitlement.
-
-
-## Craft Path
-
-Each member can track their own making practice from **MY BENCH** through three documented levels:
-
-- **Apprentice — Bronze**: establish a Bench, start a real project, keep a build record, and name what you want to learn.
-- **Journeyman — Silver**: bring work to a result, test, preserve failure/revision evidence, help another maker, and participate beyond your own Bench.
-- **Master — Gold**: demonstrate sustained documented practice, teach from experience, contribute back, support shared work, show revision at depth, and reflect on the responsibilities and limits of your practice.
-
-Progress is self-attested. Every requirement has a checkbox and an optional evidence note/link. The current craft mark is shown on the member Bench; personal evidence is returned only to the member viewing their own Bench. A level is earned only after all expectations in that level and all prior levels are complete. There are no points, XP, streaks, leaderboards, or popularity-based promotions.
-
-
-## Embeddable Bench widgets
-
-Members can open **MY BENCH → EMBED MY BENCH** to generate a revocable iframe widget for a personal website. The widget uses an opaque token and publishes only the member-selected fields. Recent-project tiles are limited to projects whose WORKSHOP visibility is **Public**. Members can disable the widget or rotate the token at any time to invalidate existing embed codes.
-
-
-## v8.0.0 — Making Becomes Community Knowledge
-
-THE WORKSHOP v8 deepens the path from private thought to shared craft knowledge.
-
-- **Workshop Notebook** — private Idea, Sketch, Question, Reference, Material, Experiment, and Someday notes; any note can become a normal Project.
-- **Failure Library** — structured, cross-project records of what failed, what was expected, evidence, causes, fixes, and lessons.
-- **Maker Crew 2.0** — Crew Handbook, Local Needs, shared Crew Projects, and Field Trips while retaining the existing ZIP-anchor privacy model.
-- **Workshop Map** — public Crew anchor regions and public events only; no member home locations and no private meetup addresses.
-- **Physical Project Labels** — printable labels that connect physical artifacts to their Workshop record. Public Projects can include a QR link; private/member-only Projects deliberately do not send a URL to an external QR service.
-- **Workshop Prompts** — shared making challenges with no winner, score, ranking, streak, or leaderboard. Different interpretations are shown beside one another as an exhibition.
-
-
-### Workshop Map
-
-The v8.0.3 Workshop Map uses Leaflet 1.9.4 and OpenStreetMap standard raster tiles. Crew and event positions remain deliberately approximate: only public Crew anchor ZIP centroids are sent to the browser. Exact member/home/private meetup coordinates are not exposed. The map requires an internet connection for basemap tiles; the directory remains usable without tiles.
+Review [TERMS.md](TERMS.md) for THE WORKSHOP's community and account terms. Repository licensing should be declared separately before broad public distribution if it is not already governed by a private or organizational agreement.

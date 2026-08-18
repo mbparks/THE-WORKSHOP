@@ -1,4 +1,59 @@
-# v8.2.3 — Active Workshop Atmosphere
+# THE WORKSHOP v9.0.0 — Reliability, Privacy, and UX Consolidation
+
+v9 completes the information-architecture consolidation with server-side privacy hardening, normalized aggregate APIs, real browser verification, and a broad cleanup of the existing application. It adds no replacement social feed and does not delete production data models.
+
+## Reliability and privacy
+
+- Added one canonical `canViewProject()` authorization gate and applied it to project collections, direct project routes, Home, search, public/member Benches, linked questions and notes, project files, releases, and GitHub metadata.
+- Normalized the access vocabulary to **Public · Members · GearHead · Private**, with **Inherit** reserved for child records.
+- Corrected Maker Crew organizer forms that referenced unavailable state.
+- Removed duplicate `visibility` controls that could silently overwrite the selected project/session access level.
+- Added account-scoped idempotency storage for queued offline mutations; replaying a successful request returns the original result instead of creating a duplicate.
+- Added reviewable Offline Work controls for Retry, Discard, and Sync All.
+- Added member Mute and Block relationships.
+
+## Unified application model
+
+- Added `/api/community-builds`, normalizing Prompts, Build Alongs, Open Briefs, Sessions, Teardowns, and Weekly Prompts for the consolidated Community Builds view.
+- Added `/api/help`, normalizing troubleshooting, Design Critique, and identification requests for Help + Critique.
+- Added `/api/calendar` and `/api/calendar.ics`, aggregating Live events, Community Build Sessions, Project Clinics, eligible Maker Crew events, and eligible GearHead events.
+- Personalized Home with a real signed-in `continueProject` rather than a generic featured project.
+- Folded Skill Exchange into People filters.
+- Unified Scrap Exchange around Workshop-wide, My Crew, Local Pickup, and Will Ship scopes.
+- Added local navigation to Project and Maker Crew pages instead of growing global navigation.
+- Consolidated Appearance controls for theme, Focused/Detailed density, and Workshop Atmosphere.
+- Kept authorized publishing and management actions available in Focused density; display density no longer acts as a permission switch.
+
+## Media, sharing, and updates
+
+- Added a shared media library/picker with upload, preview, alt text, caption, reuse, and removal support for participating editors.
+- Added clearer public sharing controls for Projects and other public maker artifacts.
+- Added a service-worker update-ready notice with explicit reload.
+- Added `/api/version-diagnostics` and client diagnostics for client/server/service-worker mismatch.
+- Preserved the active, route-aware Workshop Atmosphere while improving route choreography rather than adding more visual clutter.
+
+## Performance and source cleanup
+
+- Converted Craft Path badge delivery to optimized WebP assets and removed obsolete multi-megabyte PNG copies.
+- Lazy-loads Leaflet only when the Maker Crew map is opened.
+- Removed retired Field Instrument Lab client and standalone API routes while retaining historical tables for additive data safety.
+- Removed duplicate generations of major renderers and forms from `public/app.js`; the client now has one declaration per named function.
+- Standardized the local bind address and documentation on `127.0.0.1`.
+- Added release-package hygiene checks for runtime data, backup source copies, stale navigation documentation, and unoptimized badge assets.
+
+## Verification
+
+- Static release suite verifies syntax, version alignment, accessibility hooks, privacy gates, routes, PWA behavior, and package hygiene.
+- Integration suite starts a temporary real Node/SQLite service and verifies anonymous/member/private project boundaries, Home/search/Bench privacy, aggregates, calendar export, mute/block, account-scoped idempotency, and scoped Scrap Exchange.
+- Chromium suite executes the production shell, CSS, client JavaScript, router, DOM events, pricing cards, media picker, local navigation, mobile MODULES map, Workshop Atmosphere, and Offline Work controls against a temporary real server.
+- No production database, uploads, backups, secrets, or browser profiles are included in the release package.
+
+---
+
+# Previous releases
+
+## v8.2.3 — Active Workshop Atmosphere
+
 
 - Moved active atmosphere elements into a dedicated layer above the workspace field but below route content, so they are actually visible on every page.
 - Added continuously animated gears, paper airplanes, code fragments, circuit traces, waveforms, springs, dimensions, documents, and maker-network motifs.

@@ -7,12 +7,11 @@
   <meta name="description" content="THE WORKSHOP — The Green Shoe Garage Maker Community">
   <title>THE WORKSHOP — Green Shoe Garage</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/icon.svg?v=8.2.3" type="image/svg+xml">
-  <link rel="icon" href="/favicon.ico?v=8.2.3" sizes="any">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=8.2.3">
-  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=8.2.3" color="#10130f">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=8.2.3">
+  <link rel="icon" href="/icon.svg?v=9.0.0" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico?v=9.0.0" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=9.0.0">
+  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=9.0.0" color="#10130f">
+  <link rel="stylesheet" href="/styles.css?v=9.0.0">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to workshop</a>
@@ -81,9 +80,7 @@
         <kbd>/</kbd>
       </form>
       <div class="top-actions">
-        <button class="icon-btn" id="theme-toggle" type="button" title="Theme" aria-label="Theme"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"></circle><path d="M12 2.5v2.25M12 19.25v2.25M4.5 12H2.25M21.75 12H19.5M5.64 5.64l1.6 1.6M16.76 16.76l1.6 1.6M18.36 5.64l-1.6 1.6M7.24 16.76l-1.6 1.6"></path></svg></button>
-        <button class="icon-btn" id="atmosphere-toggle" type="button" title="Workshop atmosphere" aria-label="Workshop atmosphere"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 12h3l2-5 4 10 2-5h3"/><circle cx="5" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></button>
-        <button class="mode-toggle" id="mode-toggle" type="button" aria-label="Switch interface density"><span>SIMPLE</span></button>
+        <button class="icon-btn appearance-button" id="atmosphere-toggle" type="button" title="Appearance" aria-label="Appearance settings"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2.25M12 19.25v2.25M4.5 12H2.25M21.75 12H19.5M5.64 5.64l1.6 1.6M16.76 16.76l1.6 1.6M18.36 5.64l-1.6 1.6M7.24 16.76l-1.6 1.6"/></svg></button>
         <button class="icon-btn notification-button" id="notification-button" type="button" title="Notifications" aria-label="Notifications"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 9a5 5 0 0 1 10 0c0 6 2 6 2 8H5c0-2 2-2 2-8Z"/><path d="M10 20h4"/></svg><b id="notification-dot" hidden></b></button>
         <button class="user-chip" id="user-button" type="button" aria-label="Account"><span id="user-avatar" class="user-avatar">?</span><span id="user-name">ENTER</span></button>
       </div>
@@ -114,7 +111,7 @@
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v8.2.3</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v9.0.0</small></div>
         </div>
       </aside>
 
@@ -140,8 +137,6 @@
   <template id="project-card-template">
     <article class="project-card"></article>
   </template>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="/app.js?v=8.2.3" defer></script>
+  <script src="/app.js?v=9.0.0" defer></script>
 </body>
 </html>
