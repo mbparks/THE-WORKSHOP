@@ -1,3 +1,13 @@
+# v8.2.0 — Workshop Atmosphere
+
+- Adds a persistent theme-aware SVG/CSS background atmosphere behind the routed application.
+- Adds subtle circuit, gear, spring, drafting, waveform, node-network, code-brace, and paper-airplane motifs.
+- Changes motif families by major application section while preserving the same persistent environment.
+- Adds very slow gear, drift, float, and signal animations designed to remain peripheral.
+- Adds Background settings: Workshop, Quiet, and Off, persisted locally.
+- High Contrast suppresses decorative atmosphere; reduced-motion stops all ambient animation.
+- Keeps atmospheric layers pointer-inert and outside the router so they never interfere with application interaction.
+
 ## v8.1.2 — GearHead pricing-card cleanup
 
 - Monthly and annual GearHead pricing cards now use the same light-green outline.

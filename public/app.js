@@ -10,16 +10,18 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.1.2' },
+  meta: { version:'8.2.0' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
+  atmosphere: localStorage.getItem('workshop-atmosphere') || 'workshop',
   draftTimer: null,
   lastFocus: null,
   routeToken: 0,
 };
 
 document.documentElement.dataset.theme = state.theme;
+document.documentElement.dataset.atmosphere = state.atmosphere;
 document.body.classList.toggle('deep', state.deep);
 
 function esc(v='') { return String(v).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
@@ -192,6 +194,7 @@ function currentNavState(){
 }
 function setActiveNav(route,parts=routeParts()){
   const parent=NAV_PARENT[route]||route;
+  updateAtmosphereModule(parent);
   $$('[data-route]').forEach(a=>{const active=a.dataset.route===parent;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   const mobileModules=$('#mobile-modules');
   if(mobileModules){const moduleActive=!['home','builds','bench'].includes(parent) && Boolean(NAV_MODULES[parent]);mobileModules.classList.toggle('active',moduleActive);if(moduleActive)mobileModules.setAttribute('aria-current','page');else mobileModules.removeAttribute('aria-current');}
@@ -205,8 +208,9 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 
 async function bootstrap(){
   applyTheme(state.theme, false);
+  applyAtmosphere(state.atmosphere, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.1.2'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.2.0'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -219,6 +223,7 @@ async function bootstrap(){
   document.addEventListener('keydown',handleKeys);
   $('#global-search').addEventListener('submit',e=>{e.preventDefault();const q=$('#search-input').value.trim();if(q)location.hash=`#/search/${encodeURIComponent(q)}`;});
   $('#theme-toggle').addEventListener('click',toggleTheme);
+  $('#atmosphere-toggle').addEventListener('click',showAtmosphereSettings);
   $('#mode-toggle').addEventListener('click',toggleMode);
   $('#notification-button').addEventListener('click',showNotifications);
   $('#user-button').addEventListener('click',showAccount);
@@ -280,6 +285,27 @@ function applyTheme(theme, announce=true){
   if(announce) toast(`${meta.label} mode`);
 }
 function toggleTheme(){ const idx=THEME_ORDER.indexOf(state.theme); applyTheme(THEME_ORDER[(idx+1)%THEME_ORDER.length]); }
+const ATMOSPHERE_MODES=['quiet','workshop','off'];
+const ATMOSPHERE_META={quiet:{label:'Quiet',copy:'Technical field only. No illustrated artifacts or motion.'},workshop:{label:'Workshop',copy:'Technical field, maker artifacts, and very slow ambient motion.'},off:{label:'Off',copy:'Flat theme background with no atmospheric texture.'}};
+function updateAtmosphereButton(){
+  const btn=$('#atmosphere-toggle');if(!btn)return;const meta=ATMOSPHERE_META[state.atmosphere]||ATMOSPHERE_META.workshop;
+  btn.title=`Workshop atmosphere: ${meta.label}`;btn.setAttribute('aria-label',`Workshop atmosphere: ${meta.label}. Open background settings.`);btn.dataset.atmosphereMode=state.atmosphere;
+}
+function applyAtmosphere(mode,announce=true){
+  state.atmosphere=ATMOSPHERE_MODES.includes(mode)?mode:'workshop';
+  document.documentElement.dataset.atmosphere=state.atmosphere;
+  const root=$('#workshop-atmosphere');if(root)root.dataset.mode=state.atmosphere;
+  localStorage.setItem('workshop-atmosphere',state.atmosphere);updateAtmosphereButton();
+  if(announce)toast(`Background: ${ATMOSPHERE_META[state.atmosphere].label}`);
+}
+function updateAtmosphereModule(parent='home'){
+  const root=$('#workshop-atmosphere');if(!root)return;const key=['bench','builds','workshop','library','live','people','gearhead'].includes(parent)?parent:'home';root.dataset.module=key;
+}
+function showAtmosphereSettings(){
+  const choices=ATMOSPHERE_MODES.map(mode=>{const meta=ATMOSPHERE_META[mode],active=state.atmosphere===mode;return `<button class="atmosphere-choice ${active?'active':''}" type="button" data-action="atmosphere-mode" data-mode="${mode}" ${active?'aria-current="true"':''}><strong>${meta.label}</strong><span>${meta.copy}</span><b>${active?'CURRENT':'SELECT'} →</b></button>`}).join('');
+  modal({title:'Workshop Atmosphere',eyebrow:'BACKGROUND · YOUR PREFERENCE',size:'sm',body:`<p class="muted-copy">Keep the interface restrained or let the drafting-table ghosts show through. High Contrast always suppresses decorative atmosphere, and reduced-motion preferences stop all movement.</p><div class="atmosphere-settings">${choices}</div>`});
+}
+
 function toggleMode(){ state.deep=!state.deep; document.body.classList.toggle('deep',state.deep); localStorage.setItem('workshop-mode',state.deep?'deep':'simple'); updateUserUI(); toast(`${state.deep?'Deep':'Simple'} mode`); }
 function handleKeys(e){ if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){e.preventDefault();$('#search-input').focus();} }
 
@@ -745,7 +771,7 @@ async function showAccount(){
   if(!state.me)return showLogin();
   let local={crew:null};try{local=await api('/api/crew-home')}catch{}
   const crew=local?.crew;
-  modal({title:state.me.displayName,eyebrow:`${state.me.role} · ACCOUNT`,size:'sm',body:`<p style="font-size:12px;color:var(--muted)">${esc(state.me.email)}</p>${crew?`<div class="account-crew-card"><span class="technical-index">MY MAKER CREW</span><strong>${esc(crew.code)} · ${esc(crew.name)}</strong><div><a href="#/crew/${encodeURIComponent(crew.id)}" data-action="close-overlay">OPEN CREW →</a><a href="#/crew/${encodeURIComponent(crew.id)}/meetups" data-action="close-overlay">MEETUPS →</a></div></div>`:`<a class="account-crew-find" href="#/crews" data-action="close-overlay"><span class="technical-index">MAKER CREWS</span><strong>Find makers near you →</strong></a>`}<div style="display:grid;gap:8px"><a class="button-secondary" style="display:grid;place-items:center" href="#/bench" data-action="close-overlay">OPEN MY BENCH</a><a class="button-secondary" style="display:grid;place-items:center" href="#/gearhead" data-action="close-overlay">THE GEARHEAD CREW${state.me.supporter?' · ACCESS':' · GEARHEAD CREW ONLY'}</a><button class="button-secondary" data-action="change-password">CHANGE PASSWORD</button><button class="button-secondary" data-action="export-data">EXPORT MY DATA · JSON</button><button class="button-secondary" data-action="membership">GEARHEAD CREW${state.me.supporter?' · ACTIVE':''}</button><button class="button-danger deep-only" data-action="delete-account">DELETE ACCOUNT</button>${['Owner','Administrator','Moderator'].includes(state.me.role)?'<a class="button-secondary" style="display:grid;place-items:center" href="#/admin" data-action="close-overlay">OPERATIONS CONSOLE</a>':''}${['Owner','Administrator'].includes(state.me.role)?'<button class="button-danger deep-only" data-action="reset-demo">RESET DEMO DATA</button>':''}<a class="button-secondary" style="display:grid;place-items:center" href="#/terms" data-action="close-overlay">TERMS &amp; COMMUNITY CONDUCT</a><button class="button-secondary" data-action="logout">LEAVE THE WORKSHOP</button></div>`});
+  modal({title:state.me.displayName,eyebrow:`${state.me.role} · ACCOUNT`,size:'sm',body:`<p style="font-size:12px;color:var(--muted)">${esc(state.me.email)}</p>${crew?`<div class="account-crew-card"><span class="technical-index">MY MAKER CREW</span><strong>${esc(crew.code)} · ${esc(crew.name)}</strong><div><a href="#/crew/${encodeURIComponent(crew.id)}" data-action="close-overlay">OPEN CREW →</a><a href="#/crew/${encodeURIComponent(crew.id)}/meetups" data-action="close-overlay">MEETUPS →</a></div></div>`:`<a class="account-crew-find" href="#/crews" data-action="close-overlay"><span class="technical-index">MAKER CREWS</span><strong>Find makers near you →</strong></a>`}<div style="display:grid;gap:8px"><a class="button-secondary" style="display:grid;place-items:center" href="#/bench" data-action="close-overlay">OPEN MY BENCH</a><a class="button-secondary" style="display:grid;place-items:center" href="#/gearhead" data-action="close-overlay">THE GEARHEAD CREW${state.me.supporter?' · ACCESS':' · GEARHEAD CREW ONLY'}</a><button class="button-secondary" type="button" data-action="atmosphere-settings">WORKSHOP ATMOSPHERE</button><button class="button-secondary" data-action="change-password">CHANGE PASSWORD</button><button class="button-secondary" data-action="export-data">EXPORT MY DATA · JSON</button><button class="button-secondary" data-action="membership">GEARHEAD CREW${state.me.supporter?' · ACTIVE':''}</button><button class="button-danger deep-only" data-action="delete-account">DELETE ACCOUNT</button>${['Owner','Administrator','Moderator'].includes(state.me.role)?'<a class="button-secondary" style="display:grid;place-items:center" href="#/admin" data-action="close-overlay">OPERATIONS CONSOLE</a>':''}${['Owner','Administrator'].includes(state.me.role)?'<button class="button-danger deep-only" data-action="reset-demo">RESET DEMO DATA</button>':''}<a class="button-secondary" style="display:grid;place-items:center" href="#/terms" data-action="close-overlay">TERMS &amp; COMMUNITY CONDUCT</a><button class="button-secondary" data-action="logout">LEAVE THE WORKSHOP</button></div>`});
 }
 async function startStripeCheckout(plan,button=null){
   if(!state.me){showLogin();return}
@@ -914,6 +940,8 @@ async function handleClick(e){
   if(action==='dev-login'){devLogin();return}
   if(action==='forgot-password'){forgotPassword();return}
   if(action==='membership')return showMembership();
+  if(action==='atmosphere-settings'){showAtmosphereSettings();return}
+  if(action==='atmosphere-mode'){applyAtmosphere(btn.dataset.mode||'workshop');closeOverlay();return}
   if(action==='stripe-checkout')return startStripeCheckout(btn.dataset.plan||'',btn);
   if(action==='gearhead-send-digest')return sendGearheadDigest();
   if(action==='change-password'){changePassword();return}

@@ -182,6 +182,14 @@ const checks=[
   ,['GearHead join annual plan is actionable',app.includes('data-action="stripe-checkout" data-plan="annual"')]
   ,['GearHead checkout uses explicit plan helper',app.includes("function startStripeCheckout(plan,button=null)")&&app.includes("body:JSON.stringify({plan:normalized})")]
 
+  ,['Workshop Atmosphere persistent shell exists',html.includes('id="workshop-atmosphere"')&&html.indexOf('id="workshop-atmosphere"')<html.indexOf('id="app-shell"')]
+  ,['Workshop Atmosphere has theme-aware motif families',html.includes('atmo-circuit')&&html.includes('atmo-gear')&&html.includes('atmo-plane')&&html.includes('atmo-brace')&&css.includes('--atmo-primary')]
+  ,['Workshop Atmosphere follows section navigation',app.includes('updateAtmosphereModule(parent)')&&['bench','builds','workshop','library','live','people','gearhead'].every(k=>html.includes(`atmo-${k}`))]
+  ,['Workshop Atmosphere supports quiet workshop off modes',app.includes("const ATMOSPHERE_MODES=['quiet','workshop','off']")&&app.includes("localStorage.setItem('workshop-atmosphere'")&&css.includes('[data-mode="quiet"]')&&css.includes('[data-mode="off"]')]
+  ,['Workshop Atmosphere has user settings control',html.includes('id="atmosphere-toggle"')&&app.includes('function showAtmosphereSettings()')&&app.includes("action==='atmosphere-mode'")]
+  ,['Workshop Atmosphere respects reduced motion',css.includes('@media(prefers-reduced-motion:reduce)')&&css.includes('animation:none!important')]
+  ,['High contrast suppresses decorative atmosphere',css.includes('html[data-theme="contrast"] .workshop-atmosphere{display:none!important}')]
+
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
