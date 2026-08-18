@@ -1,3 +1,9 @@
+# THE WORKSHOP v8.0.12 — Home Community Entryways Placement
+
+- Moved **Find a Maker Crew** and **Join the GearHead Crew** from the top of Home to the bottom of the `#/home` content flow.
+- Preserved all Maker Crew search, local Crew shortcut, GearHead membership state, pricing, and membership actions.
+- No API, membership, or data model changes.
+
 # Changelog
 
 ## v8.0.10 — GearHead Crew moved to People

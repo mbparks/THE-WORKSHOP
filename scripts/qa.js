@@ -126,6 +126,7 @@ const checks=[
   ,['Home prominently exposes Maker Crew discovery',app.includes('FIND A MAKER CREW')&&app.includes('home-crew-search')&&app.includes('FIND LOCAL CREWS')&&css.includes('.community-entryways')]
   ,['Home Maker Crew search works without account gate',app.includes("$('#home-crew-search')?.addEventListener")&&app.includes('#/crews/${encodeURIComponent(q)}')]
   ,['Home prominently exposes GearHead pricing and join',app.includes('JOIN THE GEARHEAD CREW')&&app.includes('$5 <small>/ month</small>')&&app.includes('$50 <small>/ year</small>')&&app.includes('2 months free annually')]
+  ,['Home community entryways are at bottom',app.indexOf('community-entryways')>app.indexOf('NEW IN THE SHOP MANUAL')]
   ,['Craft Path persistence schema',server.includes('CREATE TABLE IF NOT EXISTS craft_progress')&&server.includes('/api/craft-progress')]
   ,['Craft Path documents all three levels',server.includes("label:'Apprentice'")&&server.includes("label:'Journeyman'")&&server.includes("label:'Master'")]
   ,['Craft Path is self tracked without XP',app.includes('SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD')&&!server.includes('craft_xp')]
