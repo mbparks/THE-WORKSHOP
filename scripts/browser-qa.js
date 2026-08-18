@@ -117,8 +117,8 @@ async function setHash(cdp,hash){
     if(appEval.exceptionDetails)throw new Error(appEval.exceptionDetails.exception?.description||appEval.exceptionDetails.text||'App script failed to execute');
     await waitForCondition(cdp,`document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'initial Home render',20000);
 
-    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v9.0.0')`,'v9 shell version');
-    check('Browser shell loads v9.0.0',true);
+    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v9.0.1')`,'v9 shell version');
+    check('Browser shell loads v9.0.1',true);
     await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.includes('WHAT ARE YOU')`,'Home hero');
     check('Home renders the Workshop hero',true);
     await waitForCondition(cdp,`document.querySelector('#workshop-atmosphere')?.dataset.module==='home'&&document.querySelectorAll('#atmo-foreground .atmo-sprite').length>=6`,'initial Home atmosphere');
@@ -184,6 +184,27 @@ async function setHash(cdp,hash){
     if(crewId){
       await setHash(cdp,`#/crew/${encodeURIComponent(crewId)}`);
       check('Maker Crew page exposes local object navigation',await evaluate(cdp,`document.querySelectorAll('.crew-local-nav a').length>=5`));
+      await evaluate(cdp,`document.querySelector('[data-action=\"crew-studio\"]')?.click()`);
+      await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')`,'Crew Studio members');
+      const beforeRole=await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent||''`);
+      await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"] [data-role=\"Moderator\"]')?.click()`);
+      await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent.includes('Moderator')&&Boolean(document.querySelector('.modal-body [data-crew-member=\"u_rin\"] [data-role=\"Member\"]'))`,'live Crew role refresh');
+      const afterRole=await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent||''`);
+      check('Crew role change updates Studio immediately without reopening',beforeRole.includes('Member')&&afterRole.includes('Moderator')&&Boolean(await evaluate(cdp,`document.querySelector('.modal')`)),`${beforeRole} -> ${afterRole}`);
+      await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"] [data-role=\"Member\"]')?.click()`);
+      await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent.includes('Member')`,'restore Crew member role');
+      await evaluate(cdp,`document.querySelector('[data-action=\"close-overlay\"]')?.click()`);
+
+      const qaCrew=await evaluate(cdp,`(async()=>{const r=await fetch('/api/crews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:'BQA901',name:'Browser One Click Map Crew',anchorPostalCode:'21502',cityRegion:'Cumberland, MD',country:'US',status:'Paused',visibility:'Private'})});return await r.json()})()`);
+      if(qaCrew?.id){
+        await evaluate(cdp,`crewStudio(${JSON.stringify(qaCrew.id)})`);
+        await waitForCondition(cdp,`Boolean(document.querySelector('[data-action=\"crew-map-enable\"]'))`,'one-click map button');
+        check('Crew Studio exposes one-click map visibility',await evaluate(cdp,`document.querySelector('.crew-map-control')?.textContent.includes('NOT VISIBLE ON MAP')`));
+        await evaluate(cdp,`document.querySelector('[data-action=\"crew-map-enable\"]')?.click()`);
+        await waitForCondition(cdp,`document.querySelector('.crew-map-control.is-ready')?.textContent.includes('VISIBLE ON MAP')`,'Crew map enable live refresh',20000);
+        check('One-click map action updates Crew Studio in place',await evaluate(cdp,`Boolean(document.querySelector('.modal'))&&Boolean(document.querySelector('.crew-map-control.is-ready'))&&Boolean(document.querySelector('a[href=\"#/crews/map\"]'))`));
+        await evaluate(cdp,`document.querySelector('[data-action=\"close-overlay\"]')?.click()`);
+      }else check('Crew Studio exposes one-click map visibility',false,'Could not create Browser QA Crew.');
     }else check('Maker Crew page exposes local object navigation',false,'No seeded Crew was available.');
 
     await setHash(cdp,'#/live');

@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.0.0**
+Current release: **v9.0.1**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -15,7 +15,7 @@ That is the product test for every feature.
 
 ---
 
-## What changed in v9.0.0
+## What changed in v9.0.1
 
 v9 is a reliability, privacy, consolidation, and usability release. It completes the information-architecture work begun in v8 while preserving the existing content models and data.
 

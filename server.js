@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.0.0';
+const APP_VERSION = '9.0.1';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -1170,7 +1170,7 @@ function renderBenchEmbed(req,res,url,token){
   const row=db.prepare('SELECT * FROM bench_embeds WHERE token=?').get(token);if(!row)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');const viewer=currentUser(req);if(!Number(row.enabled)&&viewer?.id!==row.user_id)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');
   const data=benchEmbedPayload(row.user_id,json(row.settings));if(!data)return sendBenchEmbedHtml(res,404,'Bench unavailable','This Workshop member is no longer available.');
   const q=url.searchParams,override={};for(const k of ['theme','layout'])if(q.has(k))override[k]=q.get(k);const settings=benchEmbedSettings({...data.settings,...override});data.settings=settings;
-  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.0.0':rank==='journeyman'?'/craft-journeyman.webp?v=9.0.0':rank==='apprentice'?'/craft-apprentice.webp?v=9.0.0':'/craft-default-wood.webp?v=9.0.0';
+  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.0.1':rank==='journeyman'?'/craft-journeyman.webp?v=9.0.1':rank==='apprentice'?'/craft-apprentice.webp?v=9.0.1':'/craft-default-wood.webp?v=9.0.1';
   const profileHref=data.user.profilePublic?`${base}/#/bench/${encodeURIComponent(data.user.id)}`:'';
   const themeCss=settings.theme==='dark'?':root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}':settings.theme==='light'?':root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}':'@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}}@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}}';
   const projectHtml=data.projects.length?`<div class="projects">${data.projects.map(p=>`<a href="${base}/#/projects/${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><span>${htmlEscape(p.stage)}</span><strong>${htmlEscape(p.title)}</strong></a>`).join('')}</div>`:'';
@@ -1340,6 +1340,42 @@ function crewPayload(c,viewer){
   const handbook=db.prepare(`SELECT h.*,u.display_name author FROM maker_crew_handbook_entries h JOIN users u ON u.id=h.created_by WHERE h.crew_id=? AND h.status='Published' AND (h.visibility='Public' OR ?<>'') ORDER BY h.category,h.updated_at DESC`).all(c.id,uid);
   const localNeeds=bulletin.filter(b=>['Need a Hand','Need a Tool','Have Material','Looking for Knowledge','Project Needs a Home'].includes(b.post_type));
   return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
+}
+
+
+function validMapPoint(latitude,longitude){
+  const lat=Number(latitude),lon=Number(longitude);
+  return Number.isFinite(lat)&&Number.isFinite(lon)&&lat>=-90&&lat<=90&&lon>=-180&&lon<=180;
+}
+function countryCodeForPostal(country){
+  const raw=String(country||'US').trim().toUpperCase();
+  const aliases={'UNITED STATES':'US','USA':'US','U.S.':'US','U.S.A.':'US','CANADA':'CA','UNITED KINGDOM':'GB','UK':'GB'};
+  return aliases[raw]||raw.replace(/[^A-Z]/g,'').slice(0,2)||'US';
+}
+async function resolvePostalCentroid(postal,country='US',cityRegion=''){
+  const code=String(postal||'').trim().toUpperCase();
+  if(!code)return null;
+  const cached=db.prepare(`SELECT latitude,longitude FROM maker_crew_postal_codes WHERE postal_code=? AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY is_anchor DESC LIMIT 1`).get(code);
+  if(cached&&validMapPoint(cached.latitude,cached.longitude))return {latitude:Number(cached.latitude),longitude:Number(cached.longitude),source:'Workshop postal cache'};
+  const cc=countryCodeForPostal(country);
+  try{
+    const response=await fetch(`https://api.zippopotam.us/${encodeURIComponent(cc)}/${encodeURIComponent(code)}`,{headers:{'User-Agent':`THE-WORKSHOP/${APP_VERSION}`},signal:AbortSignal.timeout(6000)});
+    if(response.ok){
+      const data=await response.json(),place=Array.isArray(data.places)?data.places[0]:null;
+      const latitude=Number(place?.latitude),longitude=Number(place?.longitude);
+      if(validMapPoint(latitude,longitude))return {latitude,longitude,source:'Postal centroid lookup'};
+    }
+  }catch{}
+  try{
+    const query=[code,cityRegion,country].filter(Boolean).join(' ');
+    const response=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,{headers:{'User-Agent':`THE-WORKSHOP/${APP_VERSION} (${PUBLIC_URL||'https://workshop.greenshoegarage.com'})`,'Accept':'application/json'},signal:AbortSignal.timeout(6000)});
+    if(response.ok){
+      const data=await response.json(),place=Array.isArray(data)?data[0]:null;
+      const latitude=Number(place?.lat),longitude=Number(place?.lon);
+      if(validMapPoint(latitude,longitude))return {latitude,longitude,source:'OpenStreetMap postal lookup'};
+    }
+  }catch{}
+  return null;
 }
 
 
@@ -2135,6 +2171,21 @@ function routeApi(req, res, url) {
   const crewMatch=pathname.match(/^\/api\/crews\/([^/]+)$/);
   if(crewMatch&&method==='GET'){const c=db.prepare('SELECT * FROM maker_crews WHERE id=? OR code=?').get(crewMatch[1],String(crewMatch[1]).toUpperCase());const payload=crewPayload(c,me);if(!payload)return sendJson(res,404,{error:'Maker Crew not found.'});return sendJson(res,200,{item:payload});}
   if(crewMatch&&method==='PUT')return readBody(req).then(body=>{const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(crewMatch[1]);if(!c)return sendJson(res,404,{error:'Crew not found.'});const u=requireUser(req,res);if(!u||!isCrewOrganizer(c.id,u))return sendJson(res,403,{error:'Crew organizer access required.'});db.prepare(`UPDATE maker_crews SET name=?,city_region=?,description=?,cover_url=?,status=?,visibility=?,updated_at=? WHERE id=?`).run(String(body.name??c.name),String(body.cityRegion??c.city_region),String(body.description??c.description),String(body.coverUrl??c.cover_url),String(body.status??c.status),String(body.visibility??c.visibility),now(),c.id);audit(u.id,'crew.update','maker_crew',c.id,{});return sendJson(res,200,{ok:true});}).catch(e=>sendJson(res,400,{error:e.message}));
+  const crewMapEnable=pathname.match(/^\/api\/crews\/([^/]+)\/map-enable$/);
+  if(crewMapEnable&&method==='POST')return readBody(req).then(async()=>{
+    const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(crewMapEnable[1]);if(!c)return sendJson(res,404,{error:'Crew not found.'});
+    const u=requireUser(req,res);if(!u||!isCrewOrganizer(c.id,u))return sendJson(res,403,{error:'Crew organizer access required.'});
+    let anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);
+    if(!anchor){db.prepare(`INSERT INTO maker_crew_postal_codes (crew_id,postal_code,latitude,longitude,is_anchor,created_at) VALUES (?,?,?,?,1,?)`).run(c.id,c.anchor_postal_code,null,null,now());anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);}
+    let point=validMapPoint(anchor?.latitude,anchor?.longitude)?{latitude:Number(anchor.latitude),longitude:Number(anchor.longitude),source:'Existing Crew centroid'}:await resolvePostalCentroid(anchor?.postal_code||c.anchor_postal_code,c.country,c.city_region);
+    if(!point)return sendJson(res,422,{error:`THE WORKSHOP could not determine an approximate map location for ${c.anchor_postal_code}. Check that the Crew anchor postal code is valid and try again.`});
+    const ts=now();
+    db.prepare('UPDATE maker_crew_postal_codes SET latitude=?,longitude=? WHERE crew_id=? AND is_anchor=1').run(point.latitude,point.longitude,c.id);
+    db.prepare("UPDATE maker_crews SET status='Active',visibility='Public',updated_at=? WHERE id=?").run(ts,c.id);
+    audit(u.id,'crew.map.enable','maker_crew',c.id,{postalCode:anchor?.postal_code||c.anchor_postal_code,latitude:point.latitude,longitude:point.longitude,source:point.source});
+    const updated=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(c.id);
+    return sendJson(res,200,{ok:true,mapVisible:true,map:{latitude:point.latitude,longitude:point.longitude,source:point.source},item:crewPayload(updated,u)});
+  }).catch(e=>sendJson(res,400,{error:e.message}));
   const joinMatch=pathname.match(/^\/api\/crews\/([^/]+)\/join$/);
   if(joinMatch&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(joinMatch[1]);if(!c||c.status!=='Active')return sendJson(res,404,{error:'Crew not available.'});const ts=now(),primary=body.primary!==false?1:0;if(primary)db.prepare('UPDATE maker_crew_members SET is_primary=0 WHERE user_id=?').run(u.id);db.prepare(`INSERT INTO maker_crew_members (crew_id,user_id,role,status,affiliation_visibility,is_primary,joined_at,updated_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(crew_id,user_id) DO UPDATE SET status='Active',affiliation_visibility=excluded.affiliation_visibility,is_primary=excluded.is_primary,updated_at=excluded.updated_at`).run(c.id,u.id,'Member','Active',canonicalVisibility(body.visibility,'Members'),primary,ts,ts);audit(u.id,'crew.join','maker_crew',c.id,{});return sendJson(res,200,{ok:true});}).catch(e=>sendJson(res,400,{error:e.message}));
   if(joinMatch&&method==='DELETE'){const u=requireUser(req,res);if(!u)return;db.prepare("UPDATE maker_crew_members SET status='Left',is_primary=0,updated_at=? WHERE crew_id=? AND user_id=?").run(now(),joinMatch[1],u.id);audit(u.id,'crew.leave','maker_crew',joinMatch[1],{});return sendJson(res,200,{ok:true});}
@@ -2161,7 +2212,7 @@ function routeApi(req, res, url) {
   const crewRequestMatch=pathname.match(/^\/api\/crew-requests\/([^/]+)$/);
   if(crewRequestMatch&&method==='PUT')return readBody(req).then(body=>{const u=requireRole(req,res,['Owner','Administrator']);if(!u)return;const r=db.prepare('SELECT * FROM maker_crew_requests WHERE id=?').get(crewRequestMatch[1]);if(!r)return sendJson(res,404,{error:'Crew request not found.'});const status=['Submitted','Reviewing','Approved','Declined'].includes(body.status)?body.status:r.status;db.prepare('UPDATE maker_crew_requests SET status=?,reviewer_notes=?,updated_at=? WHERE id=?').run(status,String(body.reviewerNotes??r.reviewer_notes),now(),r.id);let crewId='';if(status==='Approved'&&body.createCrew&&!db.prepare('SELECT 1 FROM maker_crews WHERE anchor_postal_code=?').get(r.proposed_postal_code)){const ts=now();crewId=id('crew');const code=crewCode(r.proposed_postal_code);db.prepare(`INSERT INTO maker_crews (id,code,name,anchor_postal_code,city_region,country,description,cover_url,status,visibility,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(crewId,code,r.proposed_name,r.proposed_postal_code,r.city_region,r.country,r.rationale,'','Active','Public',u.id,ts,ts);db.prepare(`INSERT INTO maker_crew_postal_codes (crew_id,postal_code,is_anchor,created_at) VALUES (?,?,1,?)`).run(crewId,r.proposed_postal_code,ts);for(const z of json(r.nearby_postal_codes))db.prepare(`INSERT OR IGNORE INTO maker_crew_postal_codes (crew_id,postal_code,is_anchor,created_at) VALUES (?,?,0,?)`).run(crewId,String(z).toUpperCase(),ts);db.prepare(`INSERT INTO maker_crew_members (crew_id,user_id,role,status,affiliation_visibility,is_primary,joined_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(crewId,r.requested_by,'Organizer','Active','Members',1,ts,ts);}audit(u.id,'crew.request.review','maker_crew_request',r.id,{status,crewId});notifyUser(r.requested_by,'moderation',status==='Approved'?`Your Maker Crew request for ${r.proposed_name} was approved.`:`Your Maker Crew request for ${r.proposed_name} was ${status.toLowerCase()}.`,crewId?`#/crew/${crewId}`:'#/crews',u.id);emailUser(r.requested_by,'moderation','crew_request_review',`Maker Crew request ${status.toLowerCase()} — ${r.proposed_name}`,`Your Maker Crew request for ${r.proposed_name} (${r.proposed_postal_code}) is now ${status}. ${crewId?`Open the Crew: ${absoluteHash(`#/crew/${crewId}`)}`:''}`);return sendJson(res,200,{ok:true,status,crewId});});
   const crewMemberManage=pathname.match(/^\/api\/crews\/([^/]+)\/members\/([^/]+)$/);
-  if(crewMemberManage&&method==='PUT')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u||!isCrewOrganizer(crewMemberManage[1],u))return sendJson(res,403,{error:'Crew organizer access required.'});const role=['Member','Organizer','Moderator'].includes(body.role)?body.role:null,status=['Active','Suspended','Left'].includes(body.status)?body.status:null;const m=db.prepare('SELECT * FROM maker_crew_members WHERE crew_id=? AND user_id=?').get(crewMemberManage[1],crewMemberManage[2]);if(!m)return sendJson(res,404,{error:'Crew member not found.'});db.prepare('UPDATE maker_crew_members SET role=?,status=?,updated_at=? WHERE crew_id=? AND user_id=?').run(role||m.role,status||m.status,now(),m.crew_id,m.user_id);audit(u.id,'crew.member.update','maker_crew',m.crew_id,{userId:m.user_id,role:role||m.role,status:status||m.status});return sendJson(res,200,{ok:true});});
+  if(crewMemberManage&&method==='PUT')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u||!isCrewOrganizer(crewMemberManage[1],u))return sendJson(res,403,{error:'Crew organizer access required.'});const role=['Member','Organizer','Moderator'].includes(body.role)?body.role:null,status=['Active','Suspended','Left'].includes(body.status)?body.status:null;const m=db.prepare('SELECT * FROM maker_crew_members WHERE crew_id=? AND user_id=?').get(crewMemberManage[1],crewMemberManage[2]);if(!m)return sendJson(res,404,{error:'Crew member not found.'});db.prepare('UPDATE maker_crew_members SET role=?,status=?,updated_at=? WHERE crew_id=? AND user_id=?').run(role||m.role,status||m.status,now(),m.crew_id,m.user_id);audit(u.id,'crew.member.update','maker_crew',m.crew_id,{userId:m.user_id,role:role||m.role,status:status||m.status});const member=db.prepare(`SELECT m.*,u.display_name,u.avatar_seed FROM maker_crew_members m JOIN users u ON u.id=m.user_id WHERE m.crew_id=? AND m.user_id=?`).get(m.crew_id,m.user_id);return sendJson(res,200,{ok:true,member});});
 
   // v4.1–v4.7 — Sessions, Assignments, Show the Work, Walk the Benches, Maker ID, Session Studio
   if(pathname==='/api/sessions' && method==='GET'){

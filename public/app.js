@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['community','C
 
 const state = {
   me: null,
-  meta: { version:'9.0.0' },
+  meta: { version:'9.0.1' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -244,7 +244,7 @@ async function bootstrap(){
   applyTheme(state.theme, false);
   applyAtmosphere(state.atmosphere, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'9.0.0'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'9.0.1'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   setupServiceWorkerUpdates();
@@ -270,7 +270,7 @@ async function bootstrap(){
 }
 function craftLevelBadgeMeta(craft={}){
   const level=craft?.currentLevel||'';
-  const src=level==='master'?'/craft-master.webp?v=9.0.0':level==='journeyman'?'/craft-journeyman.webp?v=9.0.0':level==='apprentice'?'/craft-apprentice.webp?v=9.0.0':'/craft-default-wood.webp?v=9.0.0';
+  const src=level==='master'?'/craft-master.webp?v=9.0.1':level==='journeyman'?'/craft-journeyman.webp?v=9.0.1':level==='apprentice'?'/craft-apprentice.webp?v=9.0.1':'/craft-default-wood.webp?v=9.0.1';
   const label=level?`${craft.currentLabel} · ${craft.metal}`:'Craft path in progress';
   return {level,src,label};
 }
@@ -978,6 +978,7 @@ async function handleClick(e){
   if(action==='crew-announcement'){crewAnnouncementForm(id);return}
   if(action==='crew-session'){crewSessionForm(id);return}
   if(action==='crew-studio'){crewStudio(id);return}
+  if(action==='crew-map-enable'){crewMapEnable(id,btn);return}
   if(action==='crew-rsvp'){crewRsvp(id,btn.dataset.status||'Going',btn.dataset.crewId);return}
   if(action==='admin-email'){adminEmail();return}
   if(action==='admin-email-test'){api('/api/admin/email/test',{method:'POST'}).then(r=>toast(r.configured?`Test email queued to ${r.to}.`:'Test recorded, but email provider is not configured.')).catch(err=>toast(err.message,'error'));return}
@@ -1215,13 +1216,13 @@ function chipSection(title,items=[],emptyCopy='Nothing listed yet.'){
 }
 function craftMark(craft={},memberName='Maker'){
   const level=craft.currentLevel||'';
-  const src=level==='master'?'/craft-master.webp?v=9.0.0':level==='journeyman'?'/craft-journeyman.webp?v=9.0.0':level==='apprentice'?'/craft-apprentice.webp?v=9.0.0':'/craft-default-wood.webp?v=9.0.0';
+  const src=level==='master'?'/craft-master.webp?v=9.0.1':level==='journeyman'?'/craft-journeyman.webp?v=9.0.1':level==='apprentice'?'/craft-apprentice.webp?v=9.0.1':'/craft-default-wood.webp?v=9.0.1';
   const label=level?`${craft.currentLabel} · ${craft.metal}`:'Craft path in progress';
   return `<div class="craft-mark craft-${esc(level||'neutral')}" role="img" aria-label="${esc(memberName)} · ${esc(label)}" title="${esc(label)}"><img src="${src}" alt=""><span>${esc(level?craft.currentLabel.toUpperCase():'CRAFT PATH')}</span></div>`;
 }
 function craftPathView(craft={}){
   const levels=craft.levels||[];
-  return `<section class="craft-path-section" aria-labelledby="craft-path-title"><div class="editorial-head"><div><span class="section-number">00</span><h2 id="craft-path-title">Craft Path</h2></div><span>SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD</span></div><p class="craft-path-intro">Track your own development through documented making, reflection, participation, and teaching. Check an expectation when you believe you have met it; add an optional note or link so your future self can remember the evidence. A level is earned only when every expectation in that level—and every earlier level—is complete.</p><div class="craft-level-grid">${levels.map(level=>`<article class="craft-level-card craft-level-${esc(level.id)} ${level.earned?'earned':''}"><header><img src="${level.id==='master'?'/craft-master.webp?v=9.0.0':level.id==='journeyman'?'/craft-journeyman.webp?v=9.0.0':'/craft-apprentice.webp?v=9.0.0'}" alt=""><div><span class="technical-index">${esc(level.metal.toUpperCase())} LEVEL</span><h3>${esc(level.label)}</h3><p>${esc(level.description)}</p></div><strong>${level.done}/${level.total}</strong></header><div class="craft-requirements">${level.requirements.map(req=>`<div class="craft-requirement ${req.checked?'done':''}" data-craft-row="${esc(req.id)}"><label class="craft-check"><input type="checkbox" data-craft-check="${esc(req.id)}" ${req.checked?'checked':''}><span><strong>${esc(req.title)}</strong><small>${esc(req.expectation)}</small></span></label><div class="craft-evidence-row"><input data-craft-evidence="${esc(req.id)}" value="${esc(req.evidenceNote||'')}" placeholder="Optional evidence note or link"><button class="text-button" data-action="craft-save" data-id="${esc(req.id)}">SAVE</button></div></div>`).join('')}</div>${level.earned?`<footer>✓ ${esc(level.label.toUpperCase())} EARNED</footer>`:`<footer>${level.done} OF ${level.total} EXPECTATIONS COMPLETE</footer>`}</article>`).join('')}</div></section>`;
+  return `<section class="craft-path-section" aria-labelledby="craft-path-title"><div class="editorial-head"><div><span class="section-number">00</span><h2 id="craft-path-title">Craft Path</h2></div><span>SELF-TRACKED PRACTICE · NO POINTS OR LEADERBOARD</span></div><p class="craft-path-intro">Track your own development through documented making, reflection, participation, and teaching. Check an expectation when you believe you have met it; add an optional note or link so your future self can remember the evidence. A level is earned only when every expectation in that level—and every earlier level—is complete.</p><div class="craft-level-grid">${levels.map(level=>`<article class="craft-level-card craft-level-${esc(level.id)} ${level.earned?'earned':''}"><header><img src="${level.id==='master'?'/craft-master.webp?v=9.0.1':level.id==='journeyman'?'/craft-journeyman.webp?v=9.0.1':'/craft-apprentice.webp?v=9.0.1'}" alt=""><div><span class="technical-index">${esc(level.metal.toUpperCase())} LEVEL</span><h3>${esc(level.label)}</h3><p>${esc(level.description)}</p></div><strong>${level.done}/${level.total}</strong></header><div class="craft-requirements">${level.requirements.map(req=>`<div class="craft-requirement ${req.checked?'done':''}" data-craft-row="${esc(req.id)}"><label class="craft-check"><input type="checkbox" data-craft-check="${esc(req.id)}" ${req.checked?'checked':''}><span><strong>${esc(req.title)}</strong><small>${esc(req.expectation)}</small></span></label><div class="craft-evidence-row"><input data-craft-evidence="${esc(req.id)}" value="${esc(req.evidenceNote||'')}" placeholder="Optional evidence note or link"><button class="text-button" data-action="craft-save" data-id="${esc(req.id)}">SAVE</button></div></div>`).join('')}</div>${level.earned?`<footer>✓ ${esc(level.label.toUpperCase())} EARNED</footer>`:`<footer>${level.done} OF ${level.total} EXPECTATIONS COMPLETE</footer>`}</article>`).join('')}</div></section>`;
 }
 async function renderBench(uid=''){
   setTitle('Bench');
@@ -1527,10 +1528,45 @@ function crewEventForm(crewId){modal({title:'Schedule a Crew Meetup',eyebrow:'ME
 async function crewRsvp(eventId,status,crewId){try{const r=await api(`/api/crew-events/${eventId}/attendance`,{method:'POST',body:JSON.stringify({status})});toast(r.pending?'Attendance request sent.':'Meetup response saved.');renderCrew(crewId)}catch(err){toast(err.message,'error')}}
 function crewAnnouncementForm(crewId){modal({title:'Crew Announcement',eyebrow:'USEFUL SIGNAL, NOT BROADCAST NOISE',size:'sm',body:`<form id="crew-ann-form" class="form-grid"><div class="field full"><label>Title</label><input name="title" required></div><div class="field full"><label>Message</label><textarea name="body" required></textarea></div><div class="field"><label>Visibility</label><select name="visibility">${visibilityOptions('Members')}</select></div><div class="field full"><button class="button">POST ANNOUNCEMENT</button></div></form>`,onOpen:m=>$('#crew-ann-form',m).addEventListener('submit',async e=>{e.preventDefault();try{await api(`/api/crews/${crewId}/announcements`,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();renderCrew(crewId)}catch(err){toast(err.message,'error')}})})}
 function crewSessionForm(crewId){modal({title:'Start a Crew Session',eyebrow:'LOCAL MAKING PROGRAM',size:'md',body:`<form id="crew-session-form" class="form-grid"><div class="field full"><label>Session title</label><input name="title" required></div><div class="field full"><label>Theme</label><input name="theme"></div><div class="field"><label>Access</label><select name="visibility"><option value="Public" selected>Public</option><option value="Members">Members</option><option value="GearHead">GearHead Crew</option></select></div><div class="field full"><label>Description</label><textarea name="description"></textarea></div><div class="field"><label>Starts</label><input type="date" name="startsAt"></div><div class="field"><label>Ends</label><input type="date" name="endsAt"></div><div class="field"><label>Status</label><select name="status"><option>Draft</option><option>Upcoming</option><option>Active</option></select></div><input type="hidden" name="crewId" value="${esc(crewId)}"><div class="field full"><button class="button">CREATE CREW SESSION</button></div></form>`,onOpen:m=>$('#crew-session-form',m).addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/api/sessions',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();location.hash=`#/session/${r.id}`}catch(err){toast(err.message,'error')}})})}
-async function crewStudio(crewId){const d=await api(`/api/crews/${crewId}`),c=d.item;modal({title:`${c.code} Crew Studio`,eyebrow:'LOCAL OPERATIONS',size:'xl',body:`<div class="studio-layout"><section><div class="technical-index">CREW</div><h2>${esc(c.name)}</h2><p>${esc(c.description)}</p><button class="button-secondary" data-action="crew-announcement" data-id="${esc(c.id)}">+ ANNOUNCEMENT</button></section><section><div class="studio-head"><div><span>MEMBERS</span><strong>${c.members.length}</strong></div></div>${c.members.map(m=>`<div class="studio-row"><span>${esc(m.role.slice(0,1))}</span><div><strong>${esc(m.display_name)}</strong><small>${esc(m.role)} · affiliation ${esc(m.affiliation_visibility)}</small></div><div class="head-actions">${m.role==='Member'?`<button class="text-button" data-action="crew-member-role" data-crew-id="${esc(c.id)}" data-id="${esc(m.user_id)}" data-role="Moderator">MAKE MODERATOR</button>`:`<button class="text-button" data-action="crew-member-role" data-crew-id="${esc(c.id)}" data-id="${esc(m.user_id)}" data-role="Member">MAKE MEMBER</button>`}</div></div>`).join('')}</section><section><div class="technical-index">COVERAGE ZIPS</div>${c.coverage.map(z=>`<div class="studio-row"><span>${z.is_anchor?'★':'·'}</span><div><strong>${esc(z.postal_code)}</strong><small>${z.latitude!=null?'centroid available':'distance unavailable until centroid added'}</small></div></div>`).join('')}<form id="coverage-form" class="inline-form"><input name="postalCode" placeholder="21532" required><button class="button-secondary">ADD ZIP</button></form></section><section><div class="technical-index">OPERATIONS</div><div class="crew-op-buttons"><button class="button-secondary" data-action="crew-event" data-id="${esc(c.id)}">SCHEDULE MEETUP</button><button class="button-secondary" data-action="crew-session" data-id="${esc(c.id)}">START SESSION</button><button class="button-secondary" data-action="crew-announcement" data-id="${esc(c.id)}">ANNOUNCEMENT</button></div></section></div>`,onOpen:m=>$('#coverage-form',m)?.addEventListener('submit',async e=>{e.preventDefault();try{await api(`/api/crews/${crewId}/postal-codes`,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();toast('Coverage ZIP added.');crewStudio(crewId)}catch(err){toast(err.message,'error')}})})}
+function crewStudioBody(c){
+  const anchor=c.coverage.find(z=>Number(z.is_anchor)===1)||c.coverage[0]||null;
+  const mapReady=Boolean(c.status==='Active'&&c.visibility==='Public'&&anchor&&anchor.latitude!=null&&anchor.longitude!=null);
+  return `<div class="studio-layout"><section><div class="technical-index">CREW</div><h2>${esc(c.name)}</h2><p>${esc(c.description)}</p><div class="crew-map-control ${mapReady?'is-ready':''}"><div><span class="technical-index">WORKSHOP MAP</span><strong>${mapReady?'VISIBLE ON MAP':'NOT VISIBLE ON MAP'}</strong><small>${mapReady?`${esc(anchor.postal_code)} · approximate Crew-region centroid`:`One click makes the Crew Active + Public and finds an approximate centroid for ${esc(c.anchor_postal_code)}.`}</small></div><div class="head-actions">${mapReady?`<a class="button-secondary compact" href="#/crews/map" data-action="close-overlay">OPEN MAP</a>`:`<button class="button compact" data-action="crew-map-enable" data-id="${esc(c.id)}">MAKE VISIBLE ON MAP</button>`}</div></div><button class="button-secondary" data-action="crew-announcement" data-id="${esc(c.id)}">+ ANNOUNCEMENT</button></section><section><div class="studio-head"><div><span>MEMBERS</span><strong>${c.members.length}</strong></div></div>${c.members.map(m=>`<div class="studio-row" data-crew-member="${esc(m.user_id)}"><span>${esc(m.role.slice(0,1))}</span><div><strong>${esc(m.display_name)}</strong><small>${esc(m.role)} · affiliation ${esc(m.affiliation_visibility)}</small></div><div class="head-actions">${m.role==='Member'?`<button class="text-button" data-action="crew-member-role" data-crew-id="${esc(c.id)}" data-id="${esc(m.user_id)}" data-role="Moderator">MAKE MODERATOR</button>`:m.role==='Moderator'?`<button class="text-button" data-action="crew-member-role" data-crew-id="${esc(c.id)}" data-id="${esc(m.user_id)}" data-role="Member">MAKE MEMBER</button>`:'<span class="tag">ORGANIZER</span>'}</div></div>`).join('')}</section><section><div class="technical-index">COVERAGE ZIPS</div>${c.coverage.map(z=>`<div class="studio-row"><span>${z.is_anchor?'★':'·'}</span><div><strong>${esc(z.postal_code)}</strong><small>${z.latitude!=null?'centroid available':'centroid will be resolved automatically when map visibility is enabled'}</small></div></div>`).join('')}<form id="coverage-form" class="inline-form"><input name="postalCode" placeholder="21532" required><button class="button-secondary">ADD ZIP</button></form></section><section><div class="technical-index">OPERATIONS</div><div class="crew-op-buttons"><button class="button-secondary" data-action="crew-event" data-id="${esc(c.id)}">SCHEDULE MEETUP</button><button class="button-secondary" data-action="crew-session" data-id="${esc(c.id)}">START SESSION</button><button class="button-secondary" data-action="crew-announcement" data-id="${esc(c.id)}">ANNOUNCEMENT</button></div></section></div>`;
+}
+function bindCrewStudio(m,crewId){
+  $('#coverage-form',m)?.addEventListener('submit',async e=>{e.preventDefault();try{await api(`/api/crews/${crewId}/postal-codes`,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});toast('Coverage ZIP added.');await refreshCrewStudio(crewId)}catch(err){toast(err.message,'error')}});
+}
+async function refreshCrewStudio(crewId){
+  const d=await api(`/api/crews/${crewId}`),c=d.item,m=$('.modal',overlayRoot);
+  if(!m)return crewStudio(crewId);
+  const body=$('.modal-body',m);if(!body)return crewStudio(crewId);
+  body.innerHTML=crewStudioBody(c);bindCrewStudio(m,crewId);
+  const eyebrow=$('.eyebrow',m);if(eyebrow)eyebrow.textContent='LOCAL OPERATIONS · LIVE';
+  return c;
+}
+async function crewStudio(crewId){
+  const d=await api(`/api/crews/${crewId}`),c=d.item;
+  modal({title:`${c.code} Crew Studio`,eyebrow:'LOCAL OPERATIONS',size:'xl',body:crewStudioBody(c),onOpen:m=>bindCrewStudio(m,crewId)});
+}
+async function crewMapEnable(crewId,button){
+  if(button){button.disabled=true;button.textContent='LOCATING…'}
+  try{
+    const r=await api(`/api/crews/${crewId}/map-enable`,{method:'POST',body:JSON.stringify({})});
+    toast(`Crew is visible on the Workshop Map · ${r.map?.source||'postal centroid'}.`);
+    await refreshCrewStudio(crewId);
+    if(location.hash.startsWith(`#/crew/${crewId}`))renderCrew(crewId).catch(()=>{});
+  }catch(err){toast(err.message,'error');if(button){button.disabled=false;button.textContent='MAKE VISIBLE ON MAP'}}
+}
 async function crewRequestsAdmin(){try{const d=await api('/api/crew-requests');modal({title:'Maker Crew Requests',eyebrow:'GLOBAL ADMIN',size:'lg',body:d.items.length?`<div class="admin-table">${d.items.map(r=>`<article class="admin-row"><div><strong>${esc(r.proposed_name)}</strong><small>${esc(r.proposed_postal_code)} · ${esc(r.city_region)} · ${esc(r.requester)}</small><p>${esc(r.rationale)}</p><small>${(r.nearbyPostalCodes||[]).length?`Nearby ZIPs: ${esc(r.nearbyPostalCodes.join(', '))}`:''}</small></div><div><span class="tag">${esc(r.status)}</span>${r.status==='Submitted'||r.status==='Reviewing'?`<div class="head-actions"><button class="text-button" data-action="crew-request-review" data-id="${esc(r.id)}" data-status="Approved" data-create-crew="1">APPROVE + CREATE</button><button class="text-button danger-text" data-action="crew-request-review" data-id="${esc(r.id)}" data-status="Declined">DECLINE</button></div>`:''}</div></article>`).join('')}</div>`:'<p class="muted-copy">No Maker Crew requests are waiting.</p>'})}catch(err){toast(err.message,'error')}}
 async function crewRequestReview(id,status,createCrew=false){try{const r=await api(`/api/crew-requests/${id}`,{method:'PUT',body:JSON.stringify({status,createCrew})});closeOverlay();toast(status==='Approved'?'Crew request approved.':'Crew request declined.');if(r.crewId)location.hash=`#/crew/${r.crewId}`;else crewRequestsAdmin()}catch(err){toast(err.message,'error')}}
-async function crewMemberRole(crewId,userId,role,status='Active'){try{await api(`/api/crews/${crewId}/members/${userId}`,{method:'PUT',body:JSON.stringify({role,status})});toast('Crew member updated.');renderCrew(crewId)}catch(err){toast(err.message,'error')}}
+async function crewMemberRole(crewId,userId,role,status='Active'){
+  try{
+    await api(`/api/crews/${crewId}/members/${userId}`,{method:'PUT',body:JSON.stringify({role,status})});
+    toast(`Crew member is now ${role}.`);
+    await refreshCrewStudio(crewId);
+    if(location.hash.startsWith(`#/crew/${crewId}`))renderCrew(crewId).catch(()=>{});
+  }catch(err){toast(err.message,'error')}
+}
 
 
 // v8.0.0 — Workshop Notebook

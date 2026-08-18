@@ -1,3 +1,13 @@
+# THE WORKSHOP v9.0.1 — Maker Crew Studio Map + Live Roles
+
+- Adds one-click **MAKE VISIBLE ON MAP** in Crew Studio. The action makes the Crew Active + Public and automatically resolves an approximate anchor postal centroid, using an existing Workshop postal centroid first and low-volume postal geocoding only when needed.
+- Adds immediate Crew Studio refresh after Member ↔ Moderator role changes. Organizers no longer need to leave and reopen Crew Studio to see the new role.
+- Returns the updated Crew member record from the role API and adds behavioral QA for live role changes.
+- Adds map-readiness status and direct OPEN MAP action inside Crew Studio.
+- Preserves privacy: only the Crew anchor postal centroid is mapped; member locations and private venue addresses are never used.
+
+---
+
 # THE WORKSHOP v9.0.0 — Reliability, Privacy, and UX Consolidation
 
 v9 completes the information-architecture consolidation with server-side privacy hardening, normalized aggregate APIs, real browser verification, and a broad cleanup of the existing application. It adds no replacement social feed and does not delete production data models.

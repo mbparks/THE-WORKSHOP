@@ -23,7 +23,7 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
   const base=`http://127.0.0.1:${port}`;
   try{
     await waitFor(base+'/api/meta');
-    let r=await json(base,'/api/meta');check('meta reports v9.0.0',r.res.ok&&r.data.version==='9.0.0');
+    let r=await json(base,'/api/meta');check('meta reports v9.0.1',r.res.ok&&r.data.version==='9.0.1');
 
     r=await json(base,'/api/projects');
     check('anonymous project list hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob'));
@@ -34,6 +34,15 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     const loginMike=await json(base,'/api/auth/dev-login',{method:'POST',body:{userId:'u_mike'}});const mike=cookieFrom(loginMike.res);
     check('development Mike login works',loginMike.res.ok&&mike.includes('='));
     r=await json(base,'/api/projects/p_knob',{cookie:mike});check('signed-in member can view Members project',r.res.ok&&r.data.project?.id==='p_knob');
+
+    const mapCrewCreate=await json(base,'/api/crews',{method:'POST',cookie:mike,body:{code:'QA901',name:'One Click Map QA Crew',anchorPostalCode:'21502',cityRegion:'Cumberland, MD',country:'US',status:'Paused',visibility:'Private'}});
+    const mapCrewId=mapCrewCreate.data.id;check('QA Crew can start hidden with no coordinates',mapCrewCreate.res.status===201&&mapCrewId);
+    r=await json(base,`/api/crews/${mapCrewId}/map-enable`,{method:'POST',cookie:mike,body:{}});check('One-click Crew map enable succeeds',r.res.ok&&r.data.mapVisible===true&&Number.isFinite(Number(r.data.map?.latitude))&&r.data.item?.status==='Active'&&r.data.item?.visibility==='Public');
+    r=await json(base,'/api/workshop-map');check('One-click map-enabled Crew appears on public Workshop Map',r.res.ok&&r.data.crews.some(c=>c.id===mapCrewId));
+
+    r=await json(base,'/api/crews/crew_21502/members/u_rin',{method:'PUT',cookie:mike,body:{role:'Moderator',status:'Active'}});check('Crew role update returns the live updated member',r.res.ok&&r.data.member?.role==='Moderator'&&r.data.member?.user_id==='u_rin');
+    r=await json(base,'/api/crews/crew_21502',{cookie:mike});check('Crew role change is immediately visible on the next Crew payload',r.res.ok&&r.data.item?.members.some(m=>m.user_id==='u_rin'&&m.role==='Moderator'));
+    await json(base,'/api/crews/crew_21502/members/u_rin',{method:'PUT',cookie:mike,body:{role:'Member',status:'Active'}});
 
     const privateCreate=await json(base,'/api/projects',{method:'POST',cookie:mike,body:{title:'Integration Private Project',visibility:'Private',status:'Active'}});
     const privateId=privateCreate.data.project?.id;check('owner can create Private project',privateCreate.res.status===201&&privateId);
@@ -47,7 +56,7 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
       r=await json(base,url,{cookie:mike});check(`${name} responds`,r.res.ok&&Array.isArray(r.data[key]));
     }
     const ics=await fetch(base+'/api/calendar.ics',{headers:{cookie:mike}});const icsText=await ics.text();check('Calendar ICS export responds',ics.ok&&icsText.includes('BEGIN:VCALENDAR'));
-    r=await json(base,'/api/version-diagnostics',{cookie:mike});check('Version diagnostics aligns',r.res.ok&&r.data.serverVersion==='9.0.0');
+    r=await json(base,'/api/version-diagnostics',{cookie:mike});check('Version diagnostics aligns',r.res.ok&&r.data.serverVersion==='9.0.1');
     r=await json(base,'/api/instruments',{cookie:mike});check('Retired Field Instrument Lab API is not routable',r.res.status===404);
 
     r=await json(base,'/api/blocks/u_lee',{method:'POST',cookie:mike,body:{kind:'Mute'}});check('Mute relation can be created',r.res.status===201&&r.data.kind==='Mute');
