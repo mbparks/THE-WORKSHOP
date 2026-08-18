@@ -1,3 +1,13 @@
+# THE WORKSHOP v8.1.1 — GearHead Monthly Checkout Fix
+
+- Made the $5/month and $50/year GearHead Crew cards on the Crew join page real interactive buttons.
+- Each plan now starts Stripe Checkout with an explicit `monthly` or `annual` plan rather than routing through a generic membership action.
+- Reused the same checkout helper in the membership modal so plan behavior is consistent in both places.
+- Added keyboard-accessible buttons, plan-specific accessible labels, busy/disabled handling, and an error when no valid plan is supplied.
+- Preserved the v8.1.0 information-architecture consolidation and all existing membership entitlement checks.
+
+---
+
 # THE WORKSHOP v8.1.0 — Information Architecture Consolidation
 
 This release reduces overlapping modules without deleting the underlying data models.

@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.1.0' },
+  meta: { version:'8.1.1' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -206,7 +206,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 async function bootstrap(){
   applyTheme(state.theme, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.1.0'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.1.1'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -747,18 +747,34 @@ async function showAccount(){
   const crew=local?.crew;
   modal({title:state.me.displayName,eyebrow:`${state.me.role} · ACCOUNT`,size:'sm',body:`<p style="font-size:12px;color:var(--muted)">${esc(state.me.email)}</p>${crew?`<div class="account-crew-card"><span class="technical-index">MY MAKER CREW</span><strong>${esc(crew.code)} · ${esc(crew.name)}</strong><div><a href="#/crew/${encodeURIComponent(crew.id)}" data-action="close-overlay">OPEN CREW →</a><a href="#/crew/${encodeURIComponent(crew.id)}/meetups" data-action="close-overlay">MEETUPS →</a></div></div>`:`<a class="account-crew-find" href="#/crews" data-action="close-overlay"><span class="technical-index">MAKER CREWS</span><strong>Find makers near you →</strong></a>`}<div style="display:grid;gap:8px"><a class="button-secondary" style="display:grid;place-items:center" href="#/bench" data-action="close-overlay">OPEN MY BENCH</a><a class="button-secondary" style="display:grid;place-items:center" href="#/gearhead" data-action="close-overlay">THE GEARHEAD CREW${state.me.supporter?' · ACCESS':' · GEARHEAD CREW ONLY'}</a><button class="button-secondary" data-action="change-password">CHANGE PASSWORD</button><button class="button-secondary" data-action="export-data">EXPORT MY DATA · JSON</button><button class="button-secondary" data-action="membership">GEARHEAD CREW${state.me.supporter?' · ACTIVE':''}</button><button class="button-danger deep-only" data-action="delete-account">DELETE ACCOUNT</button>${['Owner','Administrator','Moderator'].includes(state.me.role)?'<a class="button-secondary" style="display:grid;place-items:center" href="#/admin" data-action="close-overlay">OPERATIONS CONSOLE</a>':''}${['Owner','Administrator'].includes(state.me.role)?'<button class="button-danger deep-only" data-action="reset-demo">RESET DEMO DATA</button>':''}<a class="button-secondary" style="display:grid;place-items:center" href="#/terms" data-action="close-overlay">TERMS &amp; COMMUNITY CONDUCT</a><button class="button-secondary" data-action="logout">LEAVE THE WORKSHOP</button></div>`});
 }
+async function startStripeCheckout(plan,button=null){
+  if(!state.me){showLogin();return}
+  const normalized=String(plan||'').toLowerCase();
+  if(!['monthly','annual'].includes(normalized)){toast('Choose a GearHead Crew plan.','error');return}
+  const original=button?.innerHTML;
+  try{
+    if(button){button.disabled=true;button.setAttribute('aria-busy','true')}
+    const r=await api('/api/membership/stripe-checkout',{method:'POST',body:JSON.stringify({plan:normalized})});
+    if(!r?.url)throw new Error('Checkout did not return a payment URL.');
+    location.href=r.url;
+  }catch(err){
+    if(button){button.disabled=false;button.removeAttribute('aria-busy');if(original!==undefined)button.innerHTML=original}
+    toast(err.message,'error');
+  }
+}
+
 async function showMembership(){
   if(!state.me)return showLogin();
   try{
     const d=await api('/api/membership'),m=d.membership,p=d.provider||{},digest=d.digest||{enabled:true,frequency:'Monthly'},plans=p.stripePlans||{};
     const joinChoices=!d.supporter&&p.stripeCheckout?`<div class="gearhead-plan-grid">
-      ${plans.monthly?.enabled?`<button class="gearhead-plan-card" data-stripe-plan="monthly"><span class="technical-index">MONTHLY</span><strong>$5 <small>/ month</small></strong><em>JOIN MONTHLY →</em></button>`:''}
-      ${plans.annual?.enabled?`<button class="gearhead-plan-card featured" data-stripe-plan="annual"><span class="technical-index">ANNUAL</span><strong>$50 <small>/ year</small></strong><em>SAVE $10 · JOIN ANNUALLY →</em></button>`:''}
+      ${plans.monthly?.enabled?`<button type="button" class="gearhead-plan-card" data-stripe-plan="monthly"><span class="technical-index">MONTHLY</span><strong>$5 <small>/ month</small></strong><em>JOIN MONTHLY →</em></button>`:''}
+      ${plans.annual?.enabled?`<button type="button" class="gearhead-plan-card featured" data-stripe-plan="annual"><span class="technical-index">ANNUAL</span><strong>$50 <small>/ year</small></strong><em>SAVE $10 · JOIN ANNUALLY →</em></button>`:''}
       ${!plans.monthly?.enabled&&!plans.annual?.enabled?`<button class="button" data-stripe-plan="">JOIN WITH STRIPE →</button>`:''}
     </div>`:'';
     modal({title:'The GearHead Crew',eyebrow:'THE PEOPLE WHO HELP KEEP THE SHOP MOVING',size:'md',body:`${d.supporter?`<div class="notice success"><strong>GEARHEAD CREW ACCESS</strong><p>${esc(m?.label||'GearHead Crew')}${m?.provider?` · ${esc(m.provider)}`:''}${m?.expiresAt?` · through ${fmtDate(m.expiresAt)}`:''}</p></div>`:`<p>The GearHead Crew supports Green Shoe Garage and unlocks deeper tutorials, films, files, early releases, and After Hours sessions. THE WORKSHOP community stays open to everyone.</p>${joinChoices||p.joinUrl?joinChoices||`<a class="button" href="${esc(p.joinUrl)}" target="_blank" rel="noopener">JOIN THE GEARHEAD CREW ↗</a>`:''}`}<div class="membership-self-service"><div><span class="technical-index">MEMBERSHIP</span><strong>${d.supporter?'ACTIVE':'NOT ACTIVE'}</strong><small>${esc(p.provider||'manual')} provider · provider-neutral entitlement</small></div>${d.supporter?(m?.provider==='Stripe'&&p.stripePortal?`<button class="button-secondary" id="gearhead-stripe-portal">MANAGE BILLING →</button>`:p.manageUrl?`<a class="button-secondary" href="${esc(p.manageUrl)}" target="_blank" rel="noopener">MANAGE WITH PROVIDER ↗</a>`:`<button class="button-secondary" id="gearhead-cancel-membership">CANCEL GEARHEAD ACCESS</button>`):''}</div><form id="gearhead-digest-pref" class="form-grid"><div class="field full"><label>GearHead digest</label><select name="frequency"><option ${digest.frequency==='Weekly'?'selected':''}>Weekly</option><option ${digest.frequency==='Monthly'?'selected':''}>Monthly</option><option ${digest.frequency==='Off'?'selected':''}>Off</option></select><small class="field-help">Optional summary of new Crew material. No streaks or engagement nags.</small></div><div class="field full"><button class="button-secondary">SAVE DIGEST PREFERENCE</button></div></form><form id="supporter-code" class="form-grid"><div class="field full"><label>GearHead Crew / gift / invite code</label><input name="code" placeholder="ENTER CODE"></div><div class="field full"><button class="button">REDEEM CODE</button></div></form><p class="field-help">Manual, gift, complimentary, lifetime, invite, and external provider memberships all map to the same GearHead entitlement.</p>${d.history?.length?`<details class="membership-history"><summary>MEMBERSHIP HISTORY</summary><div>${d.history.map(h=>`<div class="studio-row"><span>${esc(h.provider)}</span><div><strong>${esc(h.label||'GearHead Crew')}</strong><small>${esc(h.status)}${h.metadata?.plan?` · ${esc(String(h.metadata.plan).toUpperCase())}`:''}${h.starts_at?` · ${fmtDate(h.starts_at)}`:''}${h.expires_at?` → ${fmtDate(h.expires_at)}`:''}</small></div></div>`).join('')}</div></details>`:''}`,
       onOpen:m0=>{
-        $$('[data-stripe-plan]',m0).forEach(btn=>btn.addEventListener('click',async()=>{try{const plan=btn.dataset.stripePlan||'';btn.disabled=true;const r=await api('/api/membership/stripe-checkout',{method:'POST',body:JSON.stringify({plan})});location.href=r.url}catch(err){btn.disabled=false;toast(err.message,'error')}}));
+        $$('[data-stripe-plan]',m0).forEach(btn=>btn.addEventListener('click',()=>startStripeCheckout(btn.dataset.stripePlan,btn)));
         $('#gearhead-stripe-portal',m0)?.addEventListener('click',async()=>{try{const r=await api('/api/membership/stripe-portal',{method:'POST',body:'{}'});location.href=r.url}catch(err){toast(err.message,'error')}});
         $('#supporter-code',m0)?.addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/api/membership/redeem',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});state.me=r.user;updateUserUI();closeOverlay();toast('GearHead Crew access activated.')}catch(err){toast(err.message,'error')}});
         $('#gearhead-digest-pref',m0)?.addEventListener('submit',async e=>{e.preventDefault();const frequency=new FormData(e.currentTarget).get('frequency');try{await api('/api/gearhead/digest-preferences',{method:'PUT',body:JSON.stringify({frequency,enabled:frequency!=='Off'})});toast('GearHead digest preference saved.')}catch(err){toast(err.message,'error')}});
@@ -898,6 +914,7 @@ async function handleClick(e){
   if(action==='dev-login'){devLogin();return}
   if(action==='forgot-password'){forgotPassword();return}
   if(action==='membership')return showMembership();
+  if(action==='stripe-checkout')return startStripeCheckout(btn.dataset.plan||'',btn);
   if(action==='gearhead-send-digest')return sendGearheadDigest();
   if(action==='change-password'){changePassword();return}
   if(action==='delete-account'){deleteAccount();return}
@@ -1358,9 +1375,9 @@ function gearheadCard(g){return `<a class="gearhead-card ${g.locked?'locked':''}
 function gearheadSection(title,kicker,items=[]){return `<section class="section gearhead-shelf"><div class="section-head"><div><div class="technical-index">${esc(kicker)}</div><h2>${esc(title)}</h2></div></div>${items.length?`<div class="gearhead-grid">${items.map(gearheadCard).join('')}</div>`:'<p class="muted-copy">Nothing on this shelf yet.</p>'}</section>`}
 function gearheadJoinLanding(d){
   const p=d.provider||{},plans=p.stripePlans||{};
-  const planCards=p.stripeCheckout?`<div class="gearhead-plan-grid">
-    ${plans.monthly?.enabled?`<div class="gearhead-plan-card"><span class="technical-index">MONTHLY</span><strong>$5 <small>/ month</small></strong><em>JOIN MONTHLY →</em></div>`:''}
-    ${plans.annual?.enabled?`<div class="gearhead-plan-card featured"><span class="technical-index">ANNUAL</span><strong>$50 <small>/ year</small></strong><em>SAVE $10 · JOIN ANNUALLY →</em></div>`:''}
+  const planCards=p.stripeCheckout?`<div class="gearhead-plan-grid" aria-label="GearHead Crew membership plans">
+    ${plans.monthly?.enabled?`<button type="button" class="gearhead-plan-card" data-action="stripe-checkout" data-plan="monthly" aria-label="Join GearHead Crew for 5 dollars per month"><span class="technical-index">MONTHLY</span><strong>$5 <small>/ month</small></strong><em>JOIN MONTHLY →</em></button>`:''}
+    ${plans.annual?.enabled?`<button type="button" class="gearhead-plan-card featured" data-action="stripe-checkout" data-plan="annual" aria-label="Join GearHead Crew for 50 dollars per year"><span class="technical-index">ANNUAL</span><strong>$50 <small>/ year</small></strong><em>SAVE $10 · JOIN ANNUALLY →</em></button>`:''}
   </div>`:'';
   return `<div class="view gearhead-view gearhead-join-view"><header class="gearhead-hero"><div><div class="gearhead-stamp large">THE GEARHEAD CREW</div><h1>Help keep Green Shoe Garage building.</h1><p>The Workshop community stays open to everyone. GearHead Crew is the supporter layer for people who want deeper access to the work and want to help keep it moving.</p><strong>${esc(d.principle||'Support the work. Get closer to the process.')}</strong></div><div class="gearhead-access-card"><div class="gearhead-stamp">JOIN THE GEARHEAD CREW</div><h2>GET CLOSER TO THE WORK.</h2><p>Membership unlocks deeper tutorials, shop films, revisioned files, early releases, Crew projects, requests, contributions, and After Hours sessions.</p>${planCards}${!planCards&&p.joinUrl?`<a class="button" href="${esc(p.joinUrl)}" target="_blank" rel="noopener">JOIN THE GEARHEAD CREW ↗</a>`:`<button class="button" data-action="membership">JOIN THE GEARHEAD CREW</button>`}${state.me?'<button class="button-secondary" data-action="membership">MEMBERSHIP OPTIONS</button>':'<button class="button-secondary" data-action="login">SIGN IN / CREATE ACCOUNT</button>'}</div></header><section class="section"><div class="section-head"><div><div class="technical-index">WHAT MEMBERSHIP OPENS</div><h2>THE CREW WORKSPACE</h2></div></div><div class="gearhead-grid"><article class="gearhead-card"><div class="gearhead-card-copy"><div class="gearhead-stamp">FILES</div><h3>File Vault</h3><p>Protected, revisioned downloads tied back to the work that produced them.</p></div></article><article class="gearhead-card"><div class="gearhead-card-copy"><div class="gearhead-stamp">PARTICIPATE</div><h3>Contributions + Projects</h3><p>Test, correct, review, extend, and build alongside the Crew.</p></div></article><article class="gearhead-card"><div class="gearhead-card-copy"><div class="gearhead-stamp">REQUEST</div><h3>Shape What Comes Next</h3><p>Ask for tutorials, files, Field Instruments, or After Hours topics that would actually help.</p></div></article></div></section><section class="section"><div class="gearhead-public-preview"><span class="technical-index">NO PAYWALL AROUND THE COMMUNITY</span><p>Projects, discussions, people, the public Library, and the rest of THE WORKSHOP remain available without GearHead Crew membership. Crew membership supports Green Shoe Garage and opens the deeper supporter workspace.</p></div></section></div>`;
 }
@@ -1673,7 +1690,7 @@ async function projectLabel(id){try{const d=await api(`/api/projects/${id}/label
 function crewHandbookForm(crewId){modal({title:'Add to the Crew Handbook',eyebrow:'HYPERLOCAL MAKER KNOWLEDGE',size:'md',body:`<form id="crew-handbook-form" class="form-grid"><div class="field"><label>Category</label><select name="category">${['Material Source','Tool / Shop','Repair Resource','Supplier','Public Facility','Museum / Place','Process Knowledge','Local Knowledge'].map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>Visibility</label><select name="visibility"><option>Members</option><option>Public</option></select></div><div class="field full"><label>Title</label><input name="title" required></div><div class="field full"><label>What should the Crew know?</label><textarea name="body" required></textarea></div><div class="field full"><label>Reference URL · optional</label><input name="url" type="url"></div><div class="field full"><button class="button">ADD TO CREW HANDBOOK</button></div></form>`,onOpen:m=>$('#crew-handbook-form',m).addEventListener('submit',async e=>{e.preventDefault();try{await api(`/api/crews/${crewId}/handbook`,{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();toast('Local knowledge added to the Crew Handbook.');renderCrew(crewId)}catch(err){toast(err.message,'error')}})})}
 
 
-// v8.1.0 — Information architecture consolidation
+// v8.1.1 — Information architecture consolidation
 function communityBuildTile(x){
   return `<a class="program-card community-build-tile" href="${esc(x.href)}" data-community-type="${esc(x.type)}" data-community-status="${esc((x.status||'Active').toLowerCase())}"><div class="label">${esc(x.type)} · ${esc(x.status||'Active')}</div><h3>${esc(x.title)}</h3><p>${esc(x.copy||'')}</p><div class="program-meta"><span>${esc(x.meta||'')}</span><span>OPEN →</span></div></a>`;
 }

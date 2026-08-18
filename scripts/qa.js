@@ -176,6 +176,10 @@ const checks=[
   ,['GearHead vault includes archive',app.includes("label:'VAULT'")&&app.includes('renderGearheadVaultHub')&&app.includes('ARCHIVE')]
   ,['Start Something is intent based',app.includes('START WITH THE INTENT, NOT THE CONTENT TYPE')&&app.includes('MAKE SOMETHING')&&app.includes('DOCUMENT SOMETHING')&&app.includes('ASK FOR HELP')&&app.includes('JOIN SOMETHING')]
   ,['Home uses consolidated editorial sections',app.includes('YOUR WORKSHOP')&&app.includes('JOIN IN')&&app.includes('SHOP TALK')&&app.includes('NEW FROM THE SHOP')]
+  ,['GearHead join monthly plan is actionable',app.includes('data-action="stripe-checkout" data-plan="monthly"')]
+  ,['GearHead join annual plan is actionable',app.includes('data-action="stripe-checkout" data-plan="annual"')]
+  ,['GearHead checkout uses explicit plan helper',app.includes("function startStripeCheckout(plan,button=null)")&&app.includes("body:JSON.stringify({plan:normalized})")]
+
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
