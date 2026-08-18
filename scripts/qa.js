@@ -148,18 +148,21 @@ const checks=[
   ,['Workshop Map uses Crew anchor centroids only',server.includes("pathname==='/api/workshop-map'")&&server.includes('z.is_anchor=1')&&server.includes('never member home locations')&&app.includes('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS')]
   ,['Physical project labels support public QR only',server.includes('/label$/')&&server.includes("p.visibility==='Public'?")&&app.includes('DIGITAL HISTORY → PHYSICAL ARTIFACT')&&app.includes('PRINT LABEL')]
   ,['Workshop Prompts are explicitly noncompetitive',server.includes('CREATE TABLE IF NOT EXISTS workshop_prompts')&&app.includes('NO WINNER · NO RANKING')&&app.includes('AN EXHIBITION, NOT A LEADERBOARD')]
+  ,['Prompts and Sessions share one Build destination',app.includes("href:'#/participate',label:'PROMPTS + SESSIONS'")&&app.includes("else if(route==='participate') await renderParticipate()")&&app.includes("Promise.all([api('/api/prompts'),api('/api/sessions')])")&&!app.includes("href:'#/prompts',label:'PROMPTS'")&&!app.includes("href:'#/sessions',label:'SESSIONS'")]
   ,['Mobile module switcher exposes all route families',app.includes('const NAV_MODULES=')&&['bench','builds','workshop','library','live','people'].every(k=>app.includes(`${k}:{label:`))&&app.includes('Object.entries(NAV_MODULES).map')]
-  ,['Mobile module switcher includes v8 tools',app.includes('WORKSHOP NOTEBOOK')&&app.includes('FAILURE LIBRARY')&&app.includes('PROMPTS')&&app.includes('WORKSHOP MAP')&&app.includes('MAKER CREWS')]
+  ,['Mobile module switcher includes v8 tools',app.includes('WORKSHOP NOTEBOOK')&&app.includes('FAILURE LIBRARY')&&app.includes('PROMPTS + SESSIONS')&&app.includes('WORKSHOP MAP')&&app.includes('MAKER CREWS')]
   ,['Mobile module switcher includes external navigation',app.includes('https://mbparks.com/almanac')&&app.includes('https://mbparks.com/almanac2')&&app.includes('GreenShoeGarage/shop')]
   ,['Workshop Map uses real Leaflet map',app.includes('L.map(host')&&app.includes('tile.openstreetmap.org/{z}/{x}/{y}.png')&&html.includes('leaflet@1.9.4/dist/leaflet.js')&&html.includes('leaflet@1.9.4/dist/leaflet.css')]
   ,['Workshop Map preserves region-only event privacy',app.includes('Shown at Crew region, not an exact address.')&&app.includes('Public events are also plotted at the Crew region rather than an exact venue address.')]
   ,['Workshop Map CSP allows required map origins',server.includes("script-src 'self' https://unpkg.com")&&server.includes("style-src 'self' 'unsafe-inline' https://unpkg.com")&&server.includes('https://tile.openstreetmap.org')]
   ,['Desktop navigation keeps module tools in context rail',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('href="#/notebook"')&&!lower.includes('href="#/map"')&&!lower.includes('href="#/gearhead"')&&!lower.includes('href="#/saved"')})()]
-  ,['Context navigation uses exact route matching',app.includes('function contextItemActive(item,route){ return item.routes.includes(route); }')&&!app.includes("href.includes('#/'+route)")]
+  ,['Context navigation uses exact route matching',app.includes('function contextItemActive(item,route,parts=routeParts())')&&app.includes("const path=parts.join('/')")&&!app.includes("href.includes('#/'+route)")]
+  ,['Build Along + Briefs uses a routable Builds subroute',app.includes("href:'#/builds/programs',label:'BUILD ALONGS + BRIEFS'")&&app.includes("else if(route==='builds') await renderBuilds(parts[1]||'')")&&app.includes('id="programs"')&&!app.includes('#/builds#programs')]
   ,['Desktop and mobile share context module definitions',app.includes('const NAV_MODULES=')&&app.includes('const module=NAV_MODULES[parent]')&&app.includes('Object.entries(NAV_MODULES).map')]
   ,['GearHead contribution routes stay in Library navigation',app.includes("href:'#/gearhead-contributions',label:'CONTRIBUTIONS',routes:['gearhead-contributions']")&&app.includes("href:'#/gearhead-projects',label:'CREW PROJECTS',routes:['gearhead-projects']")]
   ,['Lower desktop rail contains only site-wide destinations',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('#/notebook')&&!lower.includes('#/map')&&!lower.includes('#/saved')&&!lower.includes('#/gearhead')&&lower.includes('mbparks.com/almanac')&&lower.includes('mbparks.com/almanac2')&&lower.includes('redbubble.com')&&lower.includes('#/about')&&lower.includes('#/terms')})()]
-];
+
+  ,['Field Instrument Lab module is retired',!app.includes("href:'#/lab',label:'FIELD INSTRUMENT LAB'")&&!app.includes("route==='lab'")&&!app.includes('OPEN LAB →')&&!app.includes("['instruments','Field Instruments']")&&server.includes('fieldInstrumentLab:false')]];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}
 if(failed){console.error(`\n${failed} QA check(s) failed.`);process.exit(1)}

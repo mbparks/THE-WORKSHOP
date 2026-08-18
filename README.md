@@ -177,7 +177,6 @@ The supplied production layout keeps code, mutable community data, secrets, and 
 - Build Alongs with **START MY VERSION**
 - Open Briefs with equal-footing response exhibitions
 - Live From the Garage
-- Field Instrument Lab
 - curated Library / Shop Manual
 - curated project exhibitions through **The Wall**
 - optional provider-neutral Supporter entitlements

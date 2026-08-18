@@ -1,5 +1,37 @@
 # Changelog
 
+## 8.0.9 — Combined Prompts + Sessions
+
+- Combined the separate Builds navigation destinations for Prompts and Sessions into one **PROMPTS + SESSIONS** destination.
+- Added a unified participation view that presents asynchronous Workshop Prompts and organized Workshop Sessions together while preserving their distinct behaviors.
+- Existing prompt, session, and assignment detail routes remain compatible and now highlight the same combined navigation item.
+- Updated the static service-worker cache key.
+
+## v8.0.8 — Remove Field Instrument Lab module
+
+- Removed the standalone **FIELD INSTRUMENT LAB** entry from Library navigation and the mobile module switcher.
+- Removed `/lab` and `/lab/:id` from client-side route handling.
+- Removed the Field Instrument Lab teaser from Home.
+- Removed Field Instruments as a dedicated global-search result category so search no longer leads into retired Lab routes.
+- Retained ordinary Library resources that may reference or link to Field Instruments; the Library remains the canonical place for those resources.
+- Preserved the underlying database/API data for backward compatibility and data safety, but the Lab is no longer exposed as a THE-WORKSHOP module.
+
+## 8.0.7 — Build Programs Navigation Hotfix
+
+- Fixed **Build → Build Alongs + Briefs** dead navigation caused by an invalid nested hash route.
+- Added the routable `#/builds/programs` destination.
+- Community Programs now receives a stable `programs` anchor and scrolls into view when opened from the Build tools navigation.
+- Desktop and mobile navigation both highlight **Build Alongs + Briefs** on the programs subroute.
+
+## v8.0.6 — Maker ID Craft Path Badge
+
+- Replaces the Maker ID monogram with the member's current Craft Path badge.
+- Uses Apprentice/Bronze, Journeyman/Silver, or Master/Gold artwork according to earned Craft Path level.
+- Uses the existing wood Craft Path badge only while no level has yet been earned.
+- Adds an accessible label and compact level caption beside the Maker ID identity block.
+
+# Changelog
+
 ## v8.0.5 — Navigation Map Hardening
 
 - unified desktop contextual navigation and the mobile MODULES switcher around one shared module definition
