@@ -1,7 +1,7 @@
 {
   "name": "THE WORKSHOP \u2014 Green Shoe Garage",
   "short_name": "WORKSHOP",
-  "version": "9.0.2",
+  "version": "9.1.0",
   "start_url": "/#/home",
   "display": "standalone",
   "background_color": "#171714",

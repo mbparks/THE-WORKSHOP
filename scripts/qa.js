@@ -15,7 +15,7 @@ const browserQa=read('scripts/browser-qa.js');
 const integrationQa=read('scripts/integration-qa.js');
 const ci=read('.github/workflows/ci.yml');
 const checks=[
-  ['version aligned in app',html.includes(`THE WORKSHOP v${pkg.version}`)&&app.includes("state.meta.version||'9.0.2'")],
+  ['version aligned in app',html.includes(`THE WORKSHOP v${pkg.version}`)&&app.includes("state.meta.version||'9.1.0'")],
   ['version aligned in manifest',String(manifest.version||pkg.version).includes(pkg.version)||read('public/sw.js').includes(pkg.version)],
   ['modal uses aria-labelledby',app.includes('aria-labelledby=')],
   ['modal traps focus',app.includes("e.key!=='Tab'")],
@@ -223,17 +223,31 @@ const checks=[
   ,['Browser QA exercises route persistence and real editors',browserQa.includes('Atmosphere recomposes between major modules')&&browserQa.includes('Shared media picker is available in the project editor')]
   ,['Integration QA verifies account-scoped idempotency',integrationQa.includes('Idempotency keys are scoped per account')&&integrationQa.includes('x-idempotent-replay')]
   ,['Crew Studio has one-click Workshop Map enable',app.includes('crew-map-enable')&&app.includes('MAKE VISIBLE ON MAP')&&server.includes('/map-enable')&&server.includes('resolveCrewAnchorCentroid')]
-  ,['Crew map defaults to starred ZIP and permits coordinate editing',app.includes('crew-map-location-form')&&app.includes('RESET TO ★ ZIP CENTROID')&&app.includes('name=\"latitude\"')&&app.includes('name=\"longitude\"')&&server.includes('/map-location')&&server.includes('body.resetToAnchor')]
+  ,['Crew map defaults to starred ZIP and permits full-precision coordinate editing',app.includes('crew-map-location-form')&&app.includes('RESET TO ★ ZIP CENTROID')&&app.includes('name=\"latitude\"')&&app.includes('name=\"longitude\"')&&app.includes('COORDINATE_DECIMALS=14')&&app.includes('39.68050852174287')&&app.includes('-78.76667986159089')&&app.includes('step=\"any\"')&&server.includes('/map-location')&&server.includes('body.resetToAnchor')]
   ,['Crew role changes refresh Crew Studio in place',app.includes('await refreshCrewStudio(crewId)')&&app.includes('Crew member is now')&&server.includes('return sendJson(res,200,{ok:true,member})')]
   ,['Crew map automation uses only the Crew anchor postal centroid',server.includes('crew.map.enable')&&server.includes('resolveCrewAnchorCentroid(c,anchor)')&&server.includes("UPDATE maker_crews SET status='Active',visibility='Public'")]
   ,['Project editor uses the shared media picker',app.includes("mediaPickerField({name:'coverUrl',label:'Project cover'")]
   ,['Scrap Exchange naming reflects the unified destination',app.includes("label:'SCRAP EXCHANGE'")&&!app.includes("label:'SCRAP BIN',routes:['scrap']")]
-  ,['v9 navigation document replaces the obsolete route map',fs.existsSync(path.join(root,'NAVIGATION.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v8.0.5.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v9.0.2.md'))]
+  ,['v9 navigation document replaces the obsolete route map',fs.existsSync(path.join(root,'NAVIGATION.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v8.0.5.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v9.0.4.md'))]
   ,['Release omits development dedupe snapshots',!fs.existsSync(path.join(root,'public/app.pre-dedupe.js'))&&!fs.existsSync(path.join(root,'public/app.pre-dedupe2.js'))]
   ,['Release omits superseded full-size Craft badge PNGs',['craft-apprentice.png','craft-default-wood.png','craft-journeyman.png','craft-master.png'].every(name=>!fs.existsSync(path.join(root,'public',name)))]
-  ,['Release documentation is current',read('README.md').includes('Current release: **v9.0.2**')&&!read('README.md').includes('Current version: **v5.8.3**')&&read('CHANGELOG.md').startsWith('# THE WORKSHOP v9.0.2')]
+  ,['Release documentation is current',read('README.md').includes('Current release: **v9.1.0**')&&!read('README.md').includes('Current version: **v5.8.3**')&&read('CHANGELOG.md').startsWith('# THE WORKSHOP v9.1.0')]
   ,['Local bind address is aligned',server.includes("'127.0.0.1'")&&read('.env.example').includes('HOST=127.0.0.1')&&read('start.sh').includes('127.0.0.1:8787')&&!read('README.md').includes('127.0.2.1')]
   ,['Zero-dependency CI does not require an npm cache lockfile',!ci.includes('cache: npm')]
+
+  ,['Crew Studio uses redesigned workspace shell',app.includes('crew-studio-shell')&&app.includes('crew-studio-overview')&&app.includes('crew-studio-content-grid')]
+  ,['Crew Studio exposes full precision coordinate pair',app.includes('39.68050852174287')&&app.includes('-78.76667986159089')&&app.includes('PUBLIC MARKER · LAT / LON')]
+  ,['Crew Studio member controls are compact cards',app.includes('crew-member-card')&&app.includes('crew-role-button')&&app.includes('crew-role-pill')]
+  ,['Crew Studio avoids duplicate announcement control',((app.match(/data-action=\"crew-announcement\"/g)||[]).length>=1)]
+
+  ,['Build Fit uses existing Bench tools skills and learning goals',server.includes('function workFit')&&server.includes('want_learn')&&app.includes('Recommended for My Bench')&&app.includes('build-fit-pill')]
+  ,['Make It Yours clones a project without creating a new module',server.includes('/clone')&&server.includes('parent_type')&&app.includes('MAKE IT YOURS')&&app.includes('makeItYours')]
+  ,['Guided Build lives inside project workflow',app.includes('Guided Build')&&app.includes('project-guided-build')&&app.includes('guided-toggle')&&app.includes('OPTIONAL WORKING AID · NOT A SCORE')]
+  ,['Contextual Help can carry project evidence',app.includes('PROJECT CONTEXT INCLUDED')&&app.includes('project-help')&&app.includes('Latest Notebook entry')]
+  ,['Shop Manual exposes provenance and build context',server.includes('tested_by')&&server.includes('source_project_ids')&&app.includes('Build Context + Provenance')&&app.includes('BUILT / TESTED BY')]
+  ,['Saved surfaces practical readiness',app.includes('saved-readiness')&&app.includes('MATERIALS TO CHECK')&&app.includes('fit:x.fit')]
+  ,['Community Build derivatives are framed as maker variations',app.includes('Maker Variations')&&server.includes("CASE WHEN p.status='Complete' THEN 0 ELSE 1 END")]
+  ,['Finished derivative projects can return their result to the Workshop',app.includes('SHOW WHAT YOU BUILT')&&app.includes('showWhatBuilt')&&app.includes("type:'Result'")]
 
 ];
 let failed=0;

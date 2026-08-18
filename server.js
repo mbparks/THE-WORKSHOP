@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.0.2';
+const APP_VERSION = '9.1.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -229,7 +229,34 @@ function ensureColumn(table, name, definition) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(r => r.name);
   if (!cols.includes(name)) db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
 }
-function projectRow(r) {
+function capabilityKey(value=''){return String(value||'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();}
+function capabilityList(value){return (Array.isArray(value)?value:json(value)).map(x=>String(x||'').trim()).filter(Boolean);}
+function capabilityMatch(needle,haystack){
+  const n=capabilityKey(needle);if(!n)return false;
+  return haystack.some(raw=>{const h=capabilityKey(raw);return h===n||h.includes(n)||n.includes(h)});
+}
+function workFit(requirements,user){
+  if(!user)return null;
+  const tools=capabilityList(user.tools),skills=capabilityList(user.skills),wantLearn=capabilityList(user.want_learn);
+  const requiredTools=capabilityList(requirements.tools),requiredSkills=capabilityList(requirements.skills||requirements.disciplines),topics=[...requiredSkills,...capabilityList(requirements.tags)];
+  const haveTools=requiredTools.filter(x=>capabilityMatch(x,tools)),missingTools=requiredTools.filter(x=>!capabilityMatch(x,tools));
+  const matchingSkills=requiredSkills.filter(x=>capabilityMatch(x,skills));
+  const learningMatches=topics.filter(x=>capabilityMatch(x,wantLearn));
+  const toolRatio=requiredTools.length?haveTools.length/requiredTools.length:1;
+  const skillRatio=requiredSkills.length?matchingSkills.length/requiredSkills.length:.5;
+  const learningBoost=learningMatches.length?1:0;
+  const score=Math.max(0,Math.min(100,Math.round(toolRatio*60+skillRatio*25+learningBoost*15)));
+  let status='GOOD FIT';
+  if(learningMatches.length&&missingTools.length<=1)status='STRETCH BUILD';
+  else if(!missingTools.length)status=requiredTools.length?'READY NOW':'GOOD FIT';
+  else status='NEED TOOL';
+  return {status,score,haveTools,missingTools,matchingSkills,learningMatches,requiredTools,requiredSkills};
+}
+function projectFit(row,user){
+  if(!row||!user)return null;
+  return workFit({tools:row.tools,skills:row.disciplines,tags:row.tags},user);
+}
+function projectRow(r,viewer=null) {
   if (!r) return null;
   return {
     id:r.id, ownerId:r.owner_id, owner:r.owner_name, title:r.title, slug:r.slug, description:r.description,
@@ -237,7 +264,7 @@ function projectRow(r) {
     visibility:r.visibility, license:r.license, estimatedCost:r.estimated_cost, difficulty:r.difficulty, tools:json(r.tools),
     materials:json(r.materials), website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
     parentType:r.parent_type, parentId:r.parent_id, crewId:r.crew_id||'', crewCode:r.crew_code||'', crewName:r.crew_name||'', createdAt:r.created_at, updatedAt:r.updated_at,
-    saved:Boolean(r.saved), logCount:Number(r.log_count || 0), commentCount:Number(r.comment_count || 0)
+    saved:Boolean(r.saved), logCount:Number(r.log_count || 0), commentCount:Number(r.comment_count || 0), fit:viewer?projectFit(r,viewer):null
   };
 }
 
@@ -953,6 +980,12 @@ ensureColumn('library_items','status',"TEXT DEFAULT 'Published'");
 ensureColumn('library_items','featured',"INTEGER DEFAULT 0");
 ensureColumn('library_items','updated_at',"TEXT DEFAULT ''");
 ensureColumn('library_items','author_id',"TEXT DEFAULT ''");
+ensureColumn('library_items','difficulty',"TEXT DEFAULT ''");
+ensureColumn('library_items','estimated_time',"TEXT DEFAULT ''");
+ensureColumn('library_items','tools',"TEXT DEFAULT '[]'");
+ensureColumn('library_items','materials',"TEXT DEFAULT '[]'");
+ensureColumn('library_items','tested_by',"TEXT DEFAULT ''");
+ensureColumn('library_items','source_project_ids',"TEXT DEFAULT '[]'");
 ensureColumn('live_events','visibility',"TEXT DEFAULT 'Public'");
 ensureColumn('project_files','access_level',"TEXT DEFAULT 'Inherit'");
 ensureColumn('email_preferences','gearhead',"INTEGER DEFAULT 1");
@@ -1144,7 +1177,13 @@ function benchPayload(viewer, uid){
   const cabinetVisible=u.tool_cabinet_visibility==='Public'||(u.tool_cabinet_visibility==='Members'&&viewer)||viewer?.id===u.id;
   const toolCabinet=cabinetVisible?db.prepare('SELECT * FROM tool_cabinet_items WHERE user_id=? ORDER BY relationship,category,manufacturer,model').all(uid):[];
   const currentAssignments=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,a.due_at,s.id session_id,s.title session_title,s.theme,p.id project_id,p.title project_title,p.stage,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id JOIN projects p ON p.id=ap.project_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=p.id WHERE ap.user_id=? AND s.status IN ('Active','Upcoming') ORDER BY a.due_at,a.sort_order`).all(uid);
-  return {restricted:false,user:safeUser(u),craft:craftProgressFor(uid,viewer?.id===uid),projects:rows,toolCabinet,currentAssignments,crew:visiblePrimaryCrew(uid,viewer),cabinetVisible,locationVisible:(u.location_visibility==='Public'||(u.location_visibility==='Members'&&viewer)||viewer?.id===u.id)};
+  let nextStretch=null;
+  if(viewer?.id===uid){
+    const candidates=filterVisibleProjects(db.prepare(projectSelect(uid)+` WHERE p.owner_id<>? AND p.status IN ('Active','Complete') ORDER BY p.updated_at DESC LIMIT 80`).all(uid,uid),viewer)
+      .map(r=>projectRow(r,viewer)).filter(p=>p.fit?.status==='STRETCH BUILD').sort((a,b)=>(b.fit?.score||0)-(a.fit?.score||0));
+    nextStretch=candidates[0]||null;
+  }
+  return {restricted:false,user:safeUser(u),craft:craftProgressFor(uid,viewer?.id===uid),projects:rows,toolCabinet,currentAssignments,nextStretch,crew:visiblePrimaryCrew(uid,viewer),cabinetVisible,locationVisible:(u.location_visibility==='Public'||(u.location_visibility==='Members'&&viewer)||viewer?.id===u.id)};
 }
 const BENCH_EMBED_DEFAULTS={theme:'auto',layout:'card',showBio:true,showLocation:false,showCrew:true,showCraft:true,showGearhead:true,showSkills:true,showProjects:true,projectLimit:3};
 function benchEmbedSettings(raw={}){
@@ -1170,7 +1209,7 @@ function renderBenchEmbed(req,res,url,token){
   const row=db.prepare('SELECT * FROM bench_embeds WHERE token=?').get(token);if(!row)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');const viewer=currentUser(req);if(!Number(row.enabled)&&viewer?.id!==row.user_id)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');
   const data=benchEmbedPayload(row.user_id,json(row.settings));if(!data)return sendBenchEmbedHtml(res,404,'Bench unavailable','This Workshop member is no longer available.');
   const q=url.searchParams,override={};for(const k of ['theme','layout'])if(q.has(k))override[k]=q.get(k);const settings=benchEmbedSettings({...data.settings,...override});data.settings=settings;
-  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.0.2':rank==='journeyman'?'/craft-journeyman.webp?v=9.0.2':rank==='apprentice'?'/craft-apprentice.webp?v=9.0.2':'/craft-default-wood.webp?v=9.0.2';
+  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.1.0':rank==='journeyman'?'/craft-journeyman.webp?v=9.1.0':rank==='apprentice'?'/craft-apprentice.webp?v=9.1.0':'/craft-default-wood.webp?v=9.1.0';
   const profileHref=data.user.profilePublic?`${base}/#/bench/${encodeURIComponent(data.user.id)}`:'';
   const themeCss=settings.theme==='dark'?':root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}':settings.theme==='light'?':root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}':'@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}}@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}}';
   const projectHtml=data.projects.length?`<div class="projects">${data.projects.map(p=>`<a href="${base}/#/projects/${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><span>${htmlEscape(p.stage)}</span><strong>${htmlEscape(p.title)}</strong></a>`).join('')}</div>`:'';
@@ -1258,10 +1297,16 @@ function openBriefRow(r){
 function libraryRow(r,viewerId=''){
   if(!r)return null;
   const saved=viewerId?Boolean(db.prepare(`SELECT 1 FROM saved_items WHERE user_id=? AND item_type='library' AND item_id=?`).get(viewerId,r.id)):false;
-  return {...r,tags:json(r.tags), saved:Boolean(saved), featured:Boolean(r.featured)};
+  const author=r.author_id?db.prepare('SELECT display_name FROM users WHERE id=?').get(r.author_id)?.display_name||'':'';
+  const viewer=viewerId?db.prepare('SELECT * FROM users WHERE id=?').get(viewerId):null;
+  const sourceIds=capabilityList(r.source_project_ids),sourceProjects=[];
+  for(const pid of sourceIds){const p=db.prepare('SELECT id,title,visibility,owner_id,status,stage FROM projects WHERE id=?').get(pid);if(p&&canViewProject(p,viewer))sourceProjects.push({id:p.id,title:p.title,status:p.status,stage:p.stage});}
+  return {...r,tags:json(r.tags),tools:capabilityList(r.tools),materials:capabilityList(r.materials),sourceProjectIds:sourceIds,sourceProjects,author,saved:Boolean(saved),featured:Boolean(r.featured)};
 }
 function childProjects(parentType,parentId,viewerId=''){
-  return db.prepare(projectSelect(viewerId)+` WHERE p.parent_type=? AND p.parent_id=? ORDER BY p.updated_at DESC`).all(viewerId,parentType,parentId).map(projectRow);
+  const viewer=viewerId?db.prepare('SELECT * FROM users WHERE id=?').get(viewerId):null;
+  const rows=db.prepare(projectSelect(viewerId)+` WHERE p.parent_type=? AND p.parent_id=? ORDER BY CASE WHEN p.status='Complete' THEN 0 ELSE 1 END, p.updated_at DESC`).all(viewerId,parentType,parentId);
+  return filterVisibleProjects(rows,viewer).map(r=>projectRow(r,viewer));
 }
 
 
@@ -1450,9 +1495,9 @@ function routeApi(req, res, url) {
   if(pathname==='/api/community-builds' && method==='GET'){
     const items=[];
     for(const x of db.prepare(`SELECT w.*,u.display_name author,(SELECT COUNT(*) FROM workshop_prompt_projects p WHERE p.prompt_id=w.id) project_count FROM workshop_prompts w JOIN users u ON u.id=w.created_by ORDER BY w.updated_at DESC`).all())if(canAccessLevel(x.visibility||'Public',me,x.created_by))items.push({id:x.id,type:'PROMPT',status:x.status||'Open',title:x.title,summary:x.brief||'',meta:`${x.project_count||0} interpretations`,startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:canonicalVisibility(x.visibility,'Public'),href:`#/prompt/${x.id}`});
-    for(const x of db.prepare(`SELECT * FROM build_alongs ORDER BY created_at DESC`).all())items.push({id:x.id,type:'BUILD ALONG',status:x.status||'Active',title:x.title,summary:x.overview||'',meta:[x.difficulty,x.expected_time].filter(Boolean).join(' · '),startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:'Public',href:`#/build-along/${x.id}`});
-    for(const x of db.prepare(`SELECT * FROM open_briefs ORDER BY created_at DESC`).all())items.push({id:x.id,type:'OPEN BRIEF',status:x.status||'Open',title:x.title,summary:x.objective||'',meta:x.time_window||'',startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:'Public',href:`#/open-brief/${x.id}`});
-    for(const x of db.prepare(`SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status<>'Draft' ORDER BY s.starts_at DESC`).all())if(canSeeSession(x,me))items.push({id:x.id,type:'SESSION',status:x.status||'Upcoming',title:x.title,summary:x.theme||x.description||'',meta:x.host||'',startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:canonicalVisibility(x.visibility,'Public'),href:`#/session/${x.id}`});
+    for(const x of db.prepare(`SELECT b.*,(SELECT COUNT(*) FROM projects p WHERE p.parent_type='Build Along' AND p.parent_id=b.id) variation_count FROM build_alongs b ORDER BY created_at DESC`).all())items.push({id:x.id,type:'BUILD ALONG',status:x.status||'Active',title:x.title,summary:x.overview||'',meta:[x.difficulty,x.expected_time,`${x.variation_count||0} maker variations`].filter(Boolean).join(' · '),startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:'Public',href:`#/build-along/${x.id}`,fit:me?workFit({tools:x.tools,skills:x.skills},me):null,variationCount:Number(x.variation_count||0)});
+    for(const x of db.prepare(`SELECT b.*,(SELECT COUNT(*) FROM projects p WHERE p.parent_type='Open Brief' AND p.parent_id=b.id) variation_count FROM open_briefs b ORDER BY created_at DESC`).all())items.push({id:x.id,type:'OPEN BRIEF',status:x.status||'Open',title:x.title,summary:x.objective||'',meta:[x.time_window,`${x.variation_count||0} maker variations`].filter(Boolean).join(' · '),startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:'Public',href:`#/open-brief/${x.id}`,fit:me?workFit({skills:x.recommended_skills},me):null,variationCount:Number(x.variation_count||0)});
+    for(const x of db.prepare(`SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status<>'Draft' ORDER BY s.starts_at DESC`).all())if(canSeeSession(x,me)){const req=db.prepare('SELECT suggested_tools FROM session_assignments WHERE session_id=?').all(x.id).flatMap(a=>json(a.suggested_tools));items.push({id:x.id,type:'SESSION',status:x.status||'Upcoming',title:x.title,summary:x.theme||x.description||'',meta:x.host||'',startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:canonicalVisibility(x.visibility,'Public'),href:`#/session/${x.id}`,fit:me?workFit({tools:req},me):null});}
     for(const x of db.prepare(`SELECT t.*,u.display_name curator,(SELECT COUNT(*) FROM teardown_contributions c WHERE c.teardown_id=t.id) contribution_count FROM teardown_clubs t JOIN users u ON u.id=t.curator_id ORDER BY t.updated_at DESC`).all())if(canAccessLevel(x.visibility||'Public',me,x.curator_id))items.push({id:x.id,type:'TEARDOWN',status:x.status||'Active',title:x.title,summary:x.overview||'',meta:`${x.contribution_count||0} contributions`,startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:canonicalVisibility(x.visibility,'Public'),href:`#/teardown/${x.id}`});
     for(const x of db.prepare(`SELECT q.*,u.display_name author,(SELECT COUNT(*) FROM weekly_question_responses r WHERE r.question_id=q.id) response_count FROM weekly_questions q JOIN users u ON u.id=q.created_by WHERE q.status<>'Draft' ORDER BY q.updated_at DESC`).all())if(canAccessLevel(x.visibility||'Public',me,x.created_by))items.push({id:x.id,type:'WEEKLY PROMPT',status:'Open',title:x.prompt,summary:'One good question from the shop.',meta:`${x.response_count||0} responses`,startsAt:x.starts_at||'',endsAt:x.ends_at||'',visibility:canonicalVisibility(x.visibility,'Public'),href:`#/weekly/${x.id}`});
     items.sort((a,b)=>{const rank=x=>['Active','Open','Live'].includes(x.status)?0:x.status==='Upcoming'?1:2;return rank(a)-rank(b)||String(b.startsAt||'').localeCompare(String(a.startsAt||''));});
@@ -1530,7 +1575,7 @@ function routeApi(req, res, url) {
   // v8.0 — Workshop Prompts: shared making without winners
   if(pathname==='/api/prompts'&&method==='GET'){const uid=me?.id||'';const rows=db.prepare(`SELECT w.*,u.display_name author,(SELECT COUNT(*) FROM workshop_prompt_projects x WHERE x.prompt_id=w.id) project_count FROM workshop_prompts w JOIN users u ON u.id=w.created_by WHERE w.visibility='Public' OR ?<>'' ORDER BY CASE w.status WHEN 'Open' THEN 0 WHEN 'Upcoming' THEN 1 ELSE 2 END,w.updated_at DESC`).all(uid).map(x=>({...x,constraints:json(x.constraints),optionalConstraints:json(x.optional_constraints)}));return sendJson(res,200,{items:rows,canEdit:canEditEditorial(me)});}
   if(pathname==='/api/prompts'&&method==='POST')return readBody(req).then(body=>{const u=requireRole(req,res,['Owner','Administrator','Editor']);if(!u)return;const title=String(body.title||'').trim(),brief=String(body.brief||'').trim();if(!title||!brief)return sendJson(res,400,{error:'Prompt title and brief are required.'});const pid=id('prompt'),ts=now();db.prepare(`INSERT INTO workshop_prompts (id,created_by,title,brief,constraints,optional_constraints,inspiration,status,starts_at,ends_at,visibility,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(pid,u.id,title,brief,JSON.stringify(parseList(body.constraints)),JSON.stringify(parseList(body.optionalConstraints)),String(body.inspiration||''),String(body.status||'Open'),String(body.startsAt||''),String(body.endsAt||''),canonicalVisibility(body.visibility,'Public'),ts,ts);return sendJson(res,201,{id:pid});});
-  const promptMatch=pathname.match(/^\/api\/prompts\/([^/]+)$/);if(promptMatch&&method==='GET'){const p=db.prepare(`SELECT w.*,u.display_name author FROM workshop_prompts w JOIN users u ON u.id=w.created_by WHERE w.id=?`).get(promptMatch[1]);if(!p||!canAccessLevel(p.visibility||'Public',me,p.created_by))return sendJson(res,404,{error:'Prompt not found.'});const projects=db.prepare(projectSelect(me?.id||'')+` JOIN workshop_prompt_projects x ON x.project_id=p.id WHERE x.prompt_id=? ORDER BY p.updated_at DESC`).all(me?.id||'',p.id).map(projectRow);const mine=me?db.prepare('SELECT project_id FROM workshop_prompt_projects WHERE prompt_id=? AND user_id=? ORDER BY created_at DESC LIMIT 1').get(p.id,me.id):null;return sendJson(res,200,{item:{...p,constraints:json(p.constraints),optionalConstraints:json(p.optional_constraints)},projects,myProjectId:mine?.project_id||''});}
+  const promptMatch=pathname.match(/^\/api\/prompts\/([^/]+)$/);if(promptMatch&&method==='GET'){const p=db.prepare(`SELECT w.*,u.display_name author FROM workshop_prompts w JOIN users u ON u.id=w.created_by WHERE w.id=?`).get(promptMatch[1]);if(!p||!canAccessLevel(p.visibility||'Public',me,p.created_by))return sendJson(res,404,{error:'Prompt not found.'});const promptRows=db.prepare(projectSelect(me?.id||'')+` JOIN workshop_prompt_projects x ON x.project_id=p.id WHERE x.prompt_id=? ORDER BY CASE WHEN p.status='Complete' THEN 0 ELSE 1 END,p.updated_at DESC`).all(me?.id||'',p.id);const projects=filterVisibleProjects(promptRows,me).map(r=>projectRow(r,me));const mine=me?db.prepare('SELECT project_id FROM workshop_prompt_projects WHERE prompt_id=? AND user_id=? ORDER BY created_at DESC LIMIT 1').get(p.id,me.id):null;return sendJson(res,200,{item:{...p,constraints:json(p.constraints),optionalConstraints:json(p.optional_constraints)},projects,myProjectId:mine?.project_id||''});}
   const promptStart=pathname.match(/^\/api\/prompts\/([^/]+)\/start$/);if(promptStart&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const p=db.prepare('SELECT * FROM workshop_prompts WHERE id=?').get(promptStart[1]);if(!p||p.status!=='Open')return sendJson(res,404,{error:'That prompt is not open.'});const existing=db.prepare('SELECT project_id FROM workshop_prompt_projects WHERE prompt_id=? AND user_id=?').get(p.id,u.id);if(existing)return sendJson(res,200,{projectId:existing.project_id,existing:true});const pid=id('p'),ts=now(),title=String(body.title||p.title).trim();db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(pid,u.id,title,slugify(title),String(p.brief),'Idea','Active','[]',JSON.stringify(['Workshop Prompt']),'◇','Members','Unspecified','','Approachable','[]','Prompt',p.id,ts,ts);db.prepare('INSERT INTO workshop_prompt_projects (prompt_id,project_id,user_id,created_at) VALUES (?,?,?,?)').run(p.id,pid,u.id,ts);return sendJson(res,201,{projectId:pid});});
 
   // v8.0 — public Workshop Map; exact member locations are never returned
@@ -1577,11 +1622,13 @@ function routeApi(req, res, url) {
   if (pathname === '/api/home' && method === 'GET') {
     const uid = me?.id || '';
     const projectRows = db.prepare(projectSelect(uid)+' ORDER BY p.updated_at DESC LIMIT 40').all(uid);
-    const projects = filterVisibleProjects(projectRows,me).slice(0,8).map(projectRow);
+    const visibleProjectRows=filterVisibleProjects(projectRows,me);
+    const projects = visibleProjectRows.slice(0,8).map(r=>projectRow(r,me));
+    const recommendedProjects=me?visibleProjectRows.filter(r=>r.owner_id!==me.id).map(r=>projectRow(r,me)).filter(p=>p.fit).sort((a,b)=>(b.fit?.score||0)-(a.fit?.score||0)).slice(0,3):[];
     let continueProject=null;
     if(me){
       const candidates=db.prepare(projectSelect(uid)+` WHERE p.status='Active' AND (p.owner_id=? OR EXISTS(SELECT 1 FROM project_collaborators pc WHERE pc.project_id=p.id AND pc.user_id=?)) ORDER BY p.updated_at DESC LIMIT 12`).all(uid,me.id,me.id);
-      const c=filterVisibleProjects(candidates,me)[0];continueProject=c?projectRow(c):null;
+      const c=filterVisibleProjects(candidates,me)[0];continueProject=c?projectRow(c,me):null;
     }
     const rawNotes = db.prepare(`SELECT n.*,u.display_name author,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id FROM shop_notes n JOIN users u ON u.id=n.user_id LEFT JOIN projects p ON p.id=n.project_id WHERE n.status='Published' ORDER BY n.created_at DESC LIMIT 30`).all();
     const notes=rawNotes.filter(n=>canAccessLevel(n.visibility||'Public',me,n.user_id)&&(!n.project_id||canViewProject({id:n.project_id,visibility:n.project_visibility,owner_id:n.project_owner_id},me))).slice(0,5);
@@ -1592,7 +1639,7 @@ function routeApi(req, res, url) {
     const liveEvent = db.prepare(`SELECT e.*,p.title project_title FROM live_events e LEFT JOIN projects p ON p.id=e.project_id WHERE e.status IN ('Live','Scheduled') ORDER BY CASE e.status WHEN 'Live' THEN 0 ELSE 1 END,e.starts_at ASC`).all().find(e=>canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me)));
     const wallExhibition=db.prepare("SELECT * FROM wall_exhibitions WHERE status='Published' AND visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
     const activeSession=db.prepare("SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status IN ('Active','Upcoming') ORDER BY CASE s.status WHEN 'Active' THEN 0 ELSE 1 END,s.starts_at").all().find(x=>canSeeSession(x,me));
-    return sendJson(res,200,{projects,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null});
+    return sendJson(res,200,{projects,recommendedProjects,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null});
   }
 
   if (pathname === '/api/projects' && method === 'GET') {
@@ -1601,7 +1648,7 @@ function routeApi(req, res, url) {
     const rows = mine && me
       ? db.prepare(projectSelect(uid)+' WHERE p.owner_id=? ORDER BY p.updated_at DESC').all(uid,me.id)
       : db.prepare(projectSelect(uid)+' ORDER BY p.updated_at DESC').all(uid);
-    return sendJson(res,200,{projects:filterVisibleProjects(rows,me).map(projectRow)});
+    return sendJson(res,200,{projects:filterVisibleProjects(rows,me).map(r=>projectRow(r,me))});
   }
 
   if (pathname === '/api/projects' && method === 'POST') {
@@ -1614,7 +1661,25 @@ function routeApi(req, res, url) {
         .run(pid,u.id,title,slugify(title),String(body.description||''),String(body.stage||'Idea'),String(body.status||'Active'),JSON.stringify(parseList(body.disciplines)),JSON.stringify(parseList(body.tags)),String(body.coverEmoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(body.license||'Unspecified'),String(body.estimatedCost||''),String(body.difficulty||'Approachable'),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.materials)),String(body.website||''),normalizeGitHubRepo(body.githubRepo)?.url||'',String(body.coverUrl||''),String(body.projectType||'Project'),body.parentType||null,body.parentId||null,ts,ts);
       if (String(body.firstEntry || '').trim()) db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,String(body.entryType||'Idea'),'First note',String(body.firstEntry).trim(),ts,ts);
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,pid);
-      sendJson(res,201,{project:projectRow(row)});
+      sendJson(res,201,{project:projectRow(row,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const projectCloneMatch = pathname.match(/^\/api\/projects\/([^/]+)\/clone$/);
+  if(projectCloneMatch && method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    const source=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,projectCloneMatch[1]);
+    if(!source||!canViewProject(source,u))return sendJson(res,404,{error:'Project not found.'});
+    return readBody(req).then(body=>{
+      const title=String(body.title||`${source.title} — My Build`).trim();if(!title)return sendJson(res,400,{error:'Give your version a name.'});
+      const pid=id('p'),ts=now(),adaptation=String(body.adaptation||'').trim();
+      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(pid,u.id,title,slugify(title),String(body.description??source.description),String(body.stage||'Idea'),'Active',source.disciplines,source.tags,String(source.cover_emoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(source.license||'Unspecified'),String(body.estimatedCost??source.estimated_cost),String(body.difficulty||source.difficulty||'Approachable'),source.tools,source.materials,'','',String(source.cover_url||''),String(source.project_type||'Project'),'Project',source.id,ts,ts);
+      const note=[`Started from “${source.title}” by ${source.owner_name}.`,adaptation?`What I plan to change: ${adaptation}`:'I will adapt the reference to my own tools, materials, constraints, and goals.'].join('\n\n');
+      db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,'Idea','Make It Yours',note,ts,ts);
+      audit(u.id,'project.clone','project',pid,{sourceProjectId:source.id});
+      const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,pid);
+      return sendJson(res,201,{project:projectRow(row,u),source:{id:source.id,title:source.title}});
     }).catch(e=>sendJson(res,400,{error:e.message}));
   }
 
@@ -1634,7 +1699,7 @@ function routeApi(req, res, url) {
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
-    return sendJson(res,200,{project:projectRow(row),logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -1793,13 +1858,13 @@ function routeApi(req, res, url) {
   }
   if(pathname==='/api/library' && method==='POST'){
     const u=requireUser(req,res);if(!u)return;if(!canEditEditorial(u))return sendJson(res,403,{error:'Library resources are curated by Workshop editors.'});
-    return readBody(req).then(body=>{const title=String(body.title||'').trim(),summary=String(body.summary||'').trim(),section=String(body.section||'').trim(),type=String(body.type||'').trim();if(!title||!summary||!section||!type)return sendJson(res,400,{error:'A Library item needs a type, title, section, and summary.'});const lid=id('lib'),ts=now();db.prepare(`INSERT INTO library_items (id,type,title,section,summary,tags,url,created_at,body,visibility,status,featured,updated_at,author_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(lid,type,title,section,summary,JSON.stringify(parseList(body.tags)),String(body.url||''),ts,String(body.body||''),['Public','Members'].includes(body.visibility)?body.visibility:'Public',body.status==='Draft'?'Draft':'Published',body.featured?1:0,ts,u.id);sendJson(res,201,{id:lid});}).catch(e=>sendJson(res,400,{error:e.message}));
+    return readBody(req).then(body=>{const title=String(body.title||'').trim(),summary=String(body.summary||'').trim(),section=String(body.section||'').trim(),type=String(body.type||'').trim();if(!title||!summary||!section||!type)return sendJson(res,400,{error:'A Library item needs a type, title, section, and summary.'});const lid=id('lib'),ts=now();db.prepare(`INSERT INTO library_items (id,type,title,section,summary,tags,url,created_at,body,visibility,status,featured,updated_at,author_id,difficulty,estimated_time,tools,materials,tested_by,source_project_ids) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(lid,type,title,section,summary,JSON.stringify(parseList(body.tags)),String(body.url||''),ts,String(body.body||''),['Public','Members'].includes(body.visibility)?body.visibility:'Public',body.status==='Draft'?'Draft':'Published',body.featured?1:0,ts,u.id,String(body.difficulty||''),String(body.estimatedTime||''),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.materials)),String(body.testedBy||''),JSON.stringify(parseList(body.sourceProjectIds)));sendJson(res,201,{id:lid});}).catch(e=>sendJson(res,400,{error:e.message}));
   }
   const libraryMatch=pathname.match(/^\/api\/library\/([^/]+)$/);
   if(libraryMatch && method==='GET'){const r=db.prepare('SELECT * FROM library_items WHERE id=?').get(libraryMatch[1]);if(!r)return sendJson(res,404,{error:'Library item not found.'});if(r.status!=='Published'&&!canEditEditorial(me))return sendJson(res,404,{error:'Library item not found.'});return sendJson(res,200,{item:libraryRow(r,me?.id||''),canEdit:canEditEditorial(me)});}
   if(libraryMatch && method==='PUT'){
     const u=requireUser(req,res);if(!u)return;if(!canEditEditorial(u))return sendJson(res,403,{error:'Library resources are curated by Workshop editors.'});const old=db.prepare('SELECT * FROM library_items WHERE id=?').get(libraryMatch[1]);if(!old)return sendJson(res,404,{error:'Library item not found.'});
-    return readBody(req).then(body=>{db.prepare(`UPDATE library_items SET type=?,title=?,section=?,summary=?,tags=?,url=?,body=?,visibility=?,status=?,featured=?,updated_at=? WHERE id=?`).run(String(body.type??old.type),String(body.title??old.title).trim(),String(body.section??old.section),String(body.summary??old.summary).trim(),JSON.stringify(parseList(body.tags??json(old.tags))),String(body.url??old.url),String(body.body??old.body),['Public','Members'].includes(body.visibility)?body.visibility:old.visibility,body.status==='Draft'?'Draft':'Published',body.featured?1:0,now(),old.id);sendJson(res,200,{item:libraryRow(db.prepare('SELECT * FROM library_items WHERE id=?').get(old.id),u.id)});}).catch(e=>sendJson(res,400,{error:e.message}));
+    return readBody(req).then(body=>{db.prepare(`UPDATE library_items SET type=?,title=?,section=?,summary=?,tags=?,url=?,body=?,visibility=?,status=?,featured=?,updated_at=?,difficulty=?,estimated_time=?,tools=?,materials=?,tested_by=?,source_project_ids=? WHERE id=?`).run(String(body.type??old.type),String(body.title??old.title).trim(),String(body.section??old.section),String(body.summary??old.summary).trim(),JSON.stringify(parseList(body.tags??json(old.tags))),String(body.url??old.url),String(body.body??old.body),['Public','Members'].includes(body.visibility)?body.visibility:old.visibility,body.status==='Draft'?'Draft':'Published',body.featured?1:0,now(),String(body.difficulty??old.difficulty??''),String(body.estimatedTime??old.estimated_time??''),JSON.stringify(parseList(body.tools??json(old.tools))),JSON.stringify(parseList(body.materials??json(old.materials))),String(body.testedBy??old.tested_by??''),JSON.stringify(parseList(body.sourceProjectIds??json(old.source_project_ids))),old.id);sendJson(res,200,{item:libraryRow(db.prepare('SELECT * FROM library_items WHERE id=?').get(old.id),u.id)});}).catch(e=>sendJson(res,400,{error:e.message}));
   }
   if(libraryMatch && method==='DELETE'){
     const u=requireUser(req,res);if(!u)return;if(!canEditEditorial(u))return sendJson(res,403,{error:'Library resources are curated by Workshop editors.'});db.prepare(`DELETE FROM saved_items WHERE item_type='library' AND item_id=?`).run(libraryMatch[1]);db.prepare('DELETE FROM library_items WHERE id=?').run(libraryMatch[1]);return sendJson(res,200,{ok:true});
@@ -1989,10 +2054,10 @@ function routeApi(req, res, url) {
     const library=db.prepare(`SELECT l.* FROM library_items l JOIN saved_items s ON s.item_id=l.id AND s.item_type='library' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(r=>libraryRow(r,u.id));
     const questions=db.prepare(`SELECT q.id,q.title,q.status,q.updated_at,u.display_name author FROM questions q JOIN users u ON u.id=q.user_id JOIN saved_items s ON s.item_id=q.id AND s.item_type='question' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id);
     const shopNotes=db.prepare(`SELECT n.id,n.title,n.body,n.created_at,u.display_name author FROM shop_notes n JOIN users u ON u.id=n.user_id JOIN saved_items s ON s.item_id=n.id AND s.item_type='shop-note' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id);
-    const buildAlongs=db.prepare(`SELECT b.* FROM build_alongs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='build-along' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(buildAlongRow);
-    const openBriefs=db.prepare(`SELECT b.* FROM open_briefs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='open-brief' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(openBriefRow);
+    const buildAlongs=db.prepare(`SELECT b.* FROM build_alongs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='build-along' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(r=>({...buildAlongRow(r),fit:workFit({tools:r.tools,skills:r.skills},u)}));
+    const openBriefs=db.prepare(`SELECT b.* FROM open_briefs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='open-brief' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(r=>({...openBriefRow(r),fit:workFit({skills:r.recommended_skills},u)}));
     const collections=db.prepare(`SELECT c.*,(SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id=c.id) item_count FROM collections c WHERE c.user_id=? ORDER BY c.updated_at DESC`).all(u.id);
-    return sendJson(res,200,{projects:rows.map(projectRow),library,questions,shopNotes,buildAlongs,openBriefs,collections,saved});
+    return sendJson(res,200,{projects:rows.map(r=>projectRow(r,u)),library,questions,shopNotes,buildAlongs,openBriefs,collections,saved});
   }
   if(pathname==='/api/question-of-the-week' && method==='GET'){
     const rows=db.prepare(`SELECT q.*,u.display_name author,(SELECT COUNT(*) FROM weekly_question_responses r WHERE r.question_id=q.id) response_count FROM weekly_questions q JOIN users u ON u.id=q.created_by WHERE q.status='Published' AND (q.visibility='Public' OR (?<>'' AND q.visibility='Members')) ORDER BY CASE WHEN q.starts_at<>'' THEN q.starts_at ELSE q.created_at END DESC`).all(me?.id||'');

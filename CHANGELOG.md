@@ -1,3 +1,41 @@
+# THE WORKSHOP v9.1.0
+
+## Build discovery and personalization inside existing modules
+
+- Added Bench-aware **Build Fit** and **Recommended for My Bench** without rankings or engagement scoring.
+- Added **Make It Yours** to clone a visible project into a linked personal variation.
+- Added optional **Guided Build** structure inside Project pages: Prepare → Build → Check → Reflect.
+- Added **Next Stretch Build** to My Bench using the member’s stated Want to Learn and current capabilities.
+- Added project-aware **Help + Critique** entry that preloads editable project context and evidence.
+- Added **Maker Variations** presentation for Community Build derivatives, with completed work surfaced first.
+- Added Shop Manual provenance fields for curator/tester, tools, materials, difficulty, time, and linked Workshop projects.
+- Added practical readiness context to Saved items.
+- Added **Show What You Built** to return a completed derivative project to its originating work.
+- No new top-level modules were introduced.
+
+# THE WORKSHOP v9.0.4 — Crew Studio Redesign
+
+- Rebuilt Crew Studio from a dense generic two-column form into a purpose-built Crew operations workspace.
+- Added a Crew identity/status dashboard for members, local leaders, coverage ZIPs, and map publication state.
+- Reorganized map controls into one dedicated regional-location workspace using the ★ starred ZIP as the canonical default.
+- Preserves full-precision coordinates in the format `39.68050852174287, -78.76667986159089`.
+- Replaced oversized member rows with compact member cards, visible role badges, and clearer promotion/demotion controls.
+- Reworked coverage ZIPs into scannable regional cards with the starred ZIP visually emphasized.
+- Grouped Meetup, Session, and Announcement tools into a compact Quick Actions panel.
+- Added responsive Crew Studio layouts for desktop and mobile administration.
+- Removed a duplicate client-side Crew role function left from earlier hotfix layering.
+
+---
+
+# THE WORKSHOP v9.0.3
+
+## Maker Crew coordinate precision
+
+- Crew Studio now displays and edits map coordinates at 14 decimal places.
+- Latitude/longitude are presented consistently as `39.68050852174287, -78.76667986159089`.
+- Coordinate inputs use unrestricted decimal stepping so precise manually supplied map points are not rejected by the browser.
+- The starred ZIP remains the default regional marker source; precise coordinates can still be edited or reset to the starred ZIP centroid.
+
 # THE WORKSHOP v9.0.2 — Maker Crew Map Placement Controls
 
 - **MAKE VISIBLE ON MAP** now places a Crew at the approximate centroid of its **★ starred/anchor ZIP** by default instead of trusting a pre-existing marker.
