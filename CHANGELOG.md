@@ -1,3 +1,9 @@
+## v8.1.2 — GearHead pricing-card cleanup
+
+- Monthly and annual GearHead pricing cards now use the same light-green outline.
+- Removed the redundant standalone “JOIN THE GEARHEAD CREW” button when direct Stripe plan cards are available.
+- Membership Options remains available for account and membership management.
+
 # THE WORKSHOP v8.1.1 — GearHead Monthly Checkout Fix
 
 - Made the $5/month and $50/year GearHead Crew cards on the Crew join page real interactive buttons.

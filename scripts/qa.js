@@ -177,6 +177,8 @@ const checks=[
   ,['Start Something is intent based',app.includes('START WITH THE INTENT, NOT THE CONTENT TYPE')&&app.includes('MAKE SOMETHING')&&app.includes('DOCUMENT SOMETHING')&&app.includes('ASK FOR HELP')&&app.includes('JOIN SOMETHING')]
   ,['Home uses consolidated editorial sections',app.includes('YOUR WORKSHOP')&&app.includes('JOIN IN')&&app.includes('SHOP TALK')&&app.includes('NEW FROM THE SHOP')]
   ,['GearHead join monthly plan is actionable',app.includes('data-action="stripe-checkout" data-plan="monthly"')]
+  ,['GearHead monthly and annual cards share accent outline',css.includes('.gearhead-plan-card{appearance:none;display:grid;gap:10px;text-align:left;padding:18px;border:2px solid var(--accent)')]
+  ,['GearHead join page suppresses redundant join button when plan cards exist',app.includes("${planCards}${!planCards?(p.joinUrl?")]
   ,['GearHead join annual plan is actionable',app.includes('data-action="stripe-checkout" data-plan="annual"')]
   ,['GearHead checkout uses explicit plan helper',app.includes("function startStripeCheckout(plan,button=null)")&&app.includes("body:JSON.stringify({plan:normalized})")]
 
