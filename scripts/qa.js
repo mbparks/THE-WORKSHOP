@@ -183,7 +183,10 @@ const checks=[
   ,['GearHead checkout uses explicit plan helper',app.includes("function startStripeCheckout(plan,button=null)")&&app.includes("body:JSON.stringify({plan:normalized})")]
 
   ,['Workshop Atmosphere persistent shell exists',html.includes('id="workshop-atmosphere"')&&html.indexOf('id="workshop-atmosphere"')<html.indexOf('id="app-shell"')]
-  ,['Workshop Atmosphere has theme-aware motif families',html.includes('atmo-circuit')&&html.includes('atmo-gear')&&html.includes('atmo-plane')&&html.includes('atmo-brace')&&css.includes('--atmo-primary')]
+  ,['Workshop Atmosphere has theme-aware motif families',html.includes('data-atmo-motif="circuit"')&&html.includes('data-atmo-motif="gear"')&&html.includes('data-atmo-motif="plane"')&&html.includes('data-atmo-motif="brace"')&&css.includes('--atmo-primary')]
+
+  ,['Workshop Atmosphere avoids hash-fragment SVG references',!html.includes('<use href="#atmo-')&&html.includes('data-atmo-motif="gear"')]
+  ,['Workshop Atmosphere resyncs after async route render',app.includes('updateAtmosphereModule(NAV_PARENT[route]||route)')]
   ,['Workshop Atmosphere follows section navigation',app.includes('updateAtmosphereModule(parent)')&&['bench','builds','workshop','library','live','people','gearhead'].every(k=>html.includes(`atmo-${k}`))]
   ,['Workshop Atmosphere supports quiet workshop off modes',app.includes("const ATMOSPHERE_MODES=['quiet','workshop','off']")&&app.includes("localStorage.setItem('workshop-atmosphere'")&&css.includes('[data-mode="quiet"]')&&css.includes('[data-mode="off"]')]
   ,['Workshop Atmosphere has user settings control',html.includes('id="atmosphere-toggle"')&&app.includes('function showAtmosphereSettings()')&&app.includes("action==='atmosphere-mode'")]

@@ -1,3 +1,10 @@
+## v8.2.2 — Atmosphere Route Persistence Hotfix
+
+- Replaced fragment-based SVG `<use href="#…">` motif references with fully inline SVG geometry so hash-route changes cannot invalidate the artwork.
+- Reasserts the active atmosphere module after every asynchronous route render.
+- Preserves section-aware motif switching, theme palettes, Workshop/Quiet/Off modes, reduced-motion behavior, and High Contrast suppression.
+- Added regression checks for hash-safe SVG geometry and route-state resynchronization.
+
 # v8.2.1 — Workshop Atmosphere Visibility Hotfix
 
 - Corrected atmosphere layering that made motifs effectively invisible behind the main content field.

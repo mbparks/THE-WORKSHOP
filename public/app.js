@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.2.1' },
+  meta: { version:'8.2.2' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -210,7 +210,7 @@ async function bootstrap(){
   applyTheme(state.theme, false);
   applyAtmosphere(state.atmosphere, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.2.1'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.2.2'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -392,6 +392,9 @@ async function renderRoute(){
     else if(route==='about') renderAbout();
     else await renderHome();
     if(token===state.routeToken){
+      // Reassert atmosphere after route content finishes rendering. The atmosphere lives
+      // outside #route-view, but this keeps its section state synchronized with async routes.
+      updateAtmosphereModule(NAV_PARENT[route]||route);
       view.setAttribute('aria-busy','false');
       requestAnimationFrame(()=>{
         const heading=$('h1',view);

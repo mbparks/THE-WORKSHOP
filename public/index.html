@@ -7,75 +7,65 @@
   <meta name="description" content="THE WORKSHOP — The Green Shoe Garage Maker Community">
   <title>THE WORKSHOP — Green Shoe Garage</title>
   <link rel="manifest" href="/manifest.webmanifest">
-  <link rel="icon" href="/icon.svg?v=8.2.0" type="image/svg+xml">
-  <link rel="icon" href="/favicon.ico?v=8.2.0" sizes="any">
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=8.2.0">
-  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=8.2.0" color="#10130f">
+  <link rel="icon" href="/icon.svg?v=8.2.2" type="image/svg+xml">
+  <link rel="icon" href="/favicon.ico?v=8.2.2" sizes="any">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=8.2.2">
+  <link rel="mask-icon" href="/safari-pinned-tab.svg?v=8.2.2" color="#10130f">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
-  <link rel="stylesheet" href="/styles.css?v=8.2.0">
+  <link rel="stylesheet" href="/styles.css?v=8.2.2">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to workshop</a>
   <div id="workshop-atmosphere" class="workshop-atmosphere" aria-hidden="true" data-mode="workshop" data-module="home">
     <div class="atmo-field"></div>
     <svg class="atmo-artifacts" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" focusable="false">
-      <defs>
-        <g id="atmo-gear"><circle cx="0" cy="0" r="34"/><circle cx="0" cy="0" r="12"/><path d="M0-48v14M0 34v14M-48 0h14M34 0h14M-34-34l10 10M24 24l10 10M34-34L24-24M-24 24l-10 10"/></g>
-        <g id="atmo-circuit"><path d="M0 30h55V0h55v45h55"/><circle cx="0" cy="30" r="4"/><circle cx="55" cy="30" r="4"/><circle cx="110" cy="0" r="4"/><circle cx="165" cy="45" r="4"/></g>
-        <g id="atmo-plane"><path d="M0 20 72 0 46 58 30 34 0 20Z"/><path d="M30 34 72 0M30 34l4 23"/></g>
-        <g id="atmo-spring"><path d="M0 0c18-28 36 28 54 0s36 28 54 0 36 28 54 0"/></g>
-        <g id="atmo-dimension"><path d="M0 0h130M0-10v20M130-10v20M12-5 0 0l12 5M118-5l12 5-12 5"/></g>
-        <g id="atmo-wave"><path d="M0 25h22c12 0 12-25 24-25s12 50 24 50 12-25 24-25h26"/></g>
-        <g id="atmo-node"><circle cx="20" cy="20" r="5"/><circle cx="105" cy="0" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="55" cy="92" r="5"/><path d="M24 18 100 2M108 5l29 60M135 72 60 89M52 87 24 25"/></g>
-        <g id="atmo-brace"><path d="M28 0c-14 0-14 12-14 28v18C14 58 8 64 0 64c8 0 14 6 14 18v18c0 16 0 28 14 28M54 0c14 0 14 12 14 28v18c0 12 6 18 14 18-8 0-14 6-14 18v18c0 16 0 28-14 28"/></g>
-      </defs>
-      <g class="atmo-module atmo-home">
-        <use href="#atmo-circuit" x="90" y="120" class="atmo-artifact atmo-primary"/>
-        <use href="#atmo-gear" x="1390" y="160" class="atmo-artifact atmo-secondary atmo-rotate"/>
-        <use href="#atmo-plane" x="1260" y="760" class="atmo-artifact atmo-tertiary atmo-drift"/>
-        <use href="#atmo-dimension" x="120" y="850" class="atmo-artifact atmo-secondary"/>
-        <use href="#atmo-brace" x="1470" y="500" class="atmo-artifact atmo-primary atmo-float"/>
+<g class="atmo-module atmo-home">
+        <g transform="translate(90 120)" class="atmo-artifact atmo-primary" data-atmo-motif="circuit"><path d="M0 30h55V0h55v45h55"/><circle cx="0" cy="30" r="4"/><circle cx="55" cy="30" r="4"/><circle cx="110" cy="0" r="4"/><circle cx="165" cy="45" r="4"/></g>
+        <g transform="translate(1390 160)" class="atmo-artifact atmo-secondary atmo-rotate" data-atmo-motif="gear"><circle cx="0" cy="0" r="34"/><circle cx="0" cy="0" r="12"/><path d="M0-48v14M0 34v14M-48 0h14M34 0h14M-34-34l10 10M24 24l10 10M34-34L24-24M-24 24l-10 10"/></g>
+        <g transform="translate(1260 760)" class="atmo-artifact atmo-tertiary atmo-drift" data-atmo-motif="plane"><path d="M0 20 72 0 46 58 30 34 0 20Z"/><path d="M30 34 72 0M30 34l4 23"/></g>
+        <g transform="translate(120 850)" class="atmo-artifact atmo-secondary" data-atmo-motif="dimension"><path d="M0 0h130M0-10v20M130-10v20M12-5 0 0l12 5M118-5l12 5-12 5"/></g>
+        <g transform="translate(1470 500)" class="atmo-artifact atmo-primary atmo-float" data-atmo-motif="brace"><path d="M28 0c-14 0-14 12-14 28v18C14 58 8 64 0 64c8 0 14 6 14 18v18c0 16 0 28 14 28M54 0c14 0 14 12 14 28v18c0 12 6 18 14 18-8 0-14 6-14 18v18c0 16 0 28-14 28"/></g>
       </g>
       <g class="atmo-module atmo-bench">
-        <use href="#atmo-dimension" x="80" y="160" class="atmo-artifact atmo-primary"/>
-        <use href="#atmo-spring" x="1280" y="180" class="atmo-artifact atmo-secondary"/>
-        <use href="#atmo-circuit" x="128" y="760" class="atmo-artifact atmo-tertiary"/>
+        <g transform="translate(80 160)" class="atmo-artifact atmo-primary" data-atmo-motif="dimension"><path d="M0 0h130M0-10v20M130-10v20M12-5 0 0l12 5M118-5l12 5-12 5"/></g>
+        <g transform="translate(1280 180)" class="atmo-artifact atmo-secondary" data-atmo-motif="spring"><path d="M0 0c18-28 36 28 54 0s36 28 54 0 36 28 54 0"/></g>
+        <g transform="translate(128 760)" class="atmo-artifact atmo-tertiary" data-atmo-motif="circuit"><path d="M0 30h55V0h55v45h55"/><circle cx="0" cy="30" r="4"/><circle cx="55" cy="30" r="4"/><circle cx="110" cy="0" r="4"/><circle cx="165" cy="45" r="4"/></g>
         <circle cx="1450" cy="740" r="72" class="atmo-artifact atmo-secondary construction"/><circle cx="1450" cy="740" r="35" class="atmo-artifact atmo-secondary construction"/>
       </g>
       <g class="atmo-module atmo-builds">
-        <use href="#atmo-gear" x="100" y="170" class="atmo-artifact atmo-primary atmo-rotate"/>
-        <use href="#atmo-gear" x="180" y="220" class="atmo-artifact atmo-secondary atmo-rotate-reverse"/>
-        <use href="#atmo-circuit" x="1280" y="110" class="atmo-artifact atmo-tertiary"/>
-        <use href="#atmo-spring" x="1220" y="800" class="atmo-artifact atmo-primary"/>
-        <use href="#atmo-brace" x="130" y="720" class="atmo-artifact atmo-secondary atmo-float"/>
+        <g transform="translate(100 170)" class="atmo-artifact atmo-primary atmo-rotate" data-atmo-motif="gear"><circle cx="0" cy="0" r="34"/><circle cx="0" cy="0" r="12"/><path d="M0-48v14M0 34v14M-48 0h14M34 0h14M-34-34l10 10M24 24l10 10M34-34L24-24M-24 24l-10 10"/></g>
+        <g transform="translate(180 220)" class="atmo-artifact atmo-secondary atmo-rotate-reverse" data-atmo-motif="gear"><circle cx="0" cy="0" r="34"/><circle cx="0" cy="0" r="12"/><path d="M0-48v14M0 34v14M-48 0h14M34 0h14M-34-34l10 10M24 24l10 10M34-34L24-24M-24 24l-10 10"/></g>
+        <g transform="translate(1280 110)" class="atmo-artifact atmo-tertiary" data-atmo-motif="circuit"><path d="M0 30h55V0h55v45h55"/><circle cx="0" cy="30" r="4"/><circle cx="55" cy="30" r="4"/><circle cx="110" cy="0" r="4"/><circle cx="165" cy="45" r="4"/></g>
+        <g transform="translate(1220 800)" class="atmo-artifact atmo-primary" data-atmo-motif="spring"><path d="M0 0c18-28 36 28 54 0s36 28 54 0 36 28 54 0"/></g>
+        <g transform="translate(130 720)" class="atmo-artifact atmo-secondary atmo-float" data-atmo-motif="brace"><path d="M28 0c-14 0-14 12-14 28v18C14 58 8 64 0 64c8 0 14 6 14 18v18c0 16 0 28 14 28M54 0c14 0 14 12 14 28v18c0 12 6 18 14 18-8 0-14 6-14 18v18c0 16 0 28-14 28"/></g>
       </g>
       <g class="atmo-module atmo-workshop">
-        <use href="#atmo-plane" x="90" y="160" class="atmo-artifact atmo-primary atmo-drift"/>
-        <use href="#atmo-node" x="1300" y="180" class="atmo-artifact atmo-secondary"/>
-        <use href="#atmo-brace" x="120" y="720" class="atmo-artifact atmo-tertiary atmo-float"/>
+        <g transform="translate(90 160)" class="atmo-artifact atmo-primary atmo-drift" data-atmo-motif="plane"><path d="M0 20 72 0 46 58 30 34 0 20Z"/><path d="M30 34 72 0M30 34l4 23"/></g>
+        <g transform="translate(1300 180)" class="atmo-artifact atmo-secondary" data-atmo-motif="node"><circle cx="20" cy="20" r="5"/><circle cx="105" cy="0" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="55" cy="92" r="5"/><path d="M24 18 100 2M108 5l29 60M135 72 60 89M52 87 24 25"/></g>
+        <g transform="translate(120 720)" class="atmo-artifact atmo-tertiary atmo-float" data-atmo-motif="brace"><path d="M28 0c-14 0-14 12-14 28v18C14 58 8 64 0 64c8 0 14 6 14 18v18c0 16 0 28 14 28M54 0c14 0 14 12 14 28v18c0 12 6 18 14 18-8 0-14 6-14 18v18c0 16 0 28-14 28"/></g>
         <path d="M1240 760q70-95 145 0t130 0" class="atmo-artifact atmo-primary construction"/>
       </g>
       <g class="atmo-module atmo-library">
         <path d="M90 140h150v190H90zM112 175h106M112 205h82M112 235h96" class="atmo-artifact atmo-primary construction"/>
-        <use href="#atmo-dimension" x="1280" y="180" class="atmo-artifact atmo-secondary"/>
+        <g transform="translate(1280 180)" class="atmo-artifact atmo-secondary" data-atmo-motif="dimension"><path d="M0 0h130M0-10v20M130-10v20M12-5 0 0l12 5M118-5l12 5-12 5"/></g>
         <path d="M1250 720h180v115h-180zM1274 748h112M1274 778h80" class="atmo-artifact atmo-tertiary construction"/>
       </g>
       <g class="atmo-module atmo-live">
-        <use href="#atmo-wave" x="100" y="160" class="atmo-artifact atmo-primary atmo-pulse"/>
-        <use href="#atmo-wave" x="1250" y="740" class="atmo-artifact atmo-secondary atmo-pulse"/>
+        <g transform="translate(100 160)" class="atmo-artifact atmo-primary atmo-pulse" data-atmo-motif="wave"><path d="M0 25h22c12 0 12-25 24-25s12 50 24 50 12-25 24-25h26"/></g>
+        <g transform="translate(1250 740)" class="atmo-artifact atmo-secondary atmo-pulse" data-atmo-motif="wave"><path d="M0 25h22c12 0 12-25 24-25s12 50 24 50 12-25 24-25h26"/></g>
         <circle cx="1400" cy="170" r="40" class="atmo-artifact atmo-tertiary construction"/><circle cx="1400" cy="170" r="75" class="atmo-artifact atmo-tertiary construction"/>
       </g>
       <g class="atmo-module atmo-people">
-        <use href="#atmo-node" x="80" y="170" class="atmo-artifact atmo-primary"/>
-        <use href="#atmo-node" x="1280" y="680" class="atmo-artifact atmo-secondary"/>
-        <use href="#atmo-plane" x="1340" y="180" class="atmo-artifact atmo-tertiary atmo-drift"/>
+        <g transform="translate(80 170)" class="atmo-artifact atmo-primary" data-atmo-motif="node"><circle cx="20" cy="20" r="5"/><circle cx="105" cy="0" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="55" cy="92" r="5"/><path d="M24 18 100 2M108 5l29 60M135 72 60 89M52 87 24 25"/></g>
+        <g transform="translate(1280 680)" class="atmo-artifact atmo-secondary" data-atmo-motif="node"><circle cx="20" cy="20" r="5"/><circle cx="105" cy="0" r="5"/><circle cx="140" cy="70" r="5"/><circle cx="55" cy="92" r="5"/><path d="M24 18 100 2M108 5l29 60M135 72 60 89M52 87 24 25"/></g>
+        <g transform="translate(1340 180)" class="atmo-artifact atmo-tertiary atmo-drift" data-atmo-motif="plane"><path d="M0 20 72 0 46 58 30 34 0 20Z"/><path d="M30 34 72 0M30 34l4 23"/></g>
       </g>
       <g class="atmo-module atmo-gearhead">
-        <use href="#atmo-gear" x="100" y="170" class="atmo-artifact atmo-primary atmo-rotate"/>
-        <use href="#atmo-circuit" x="1270" y="160" class="atmo-artifact atmo-secondary"/>
-        <use href="#atmo-brace" x="120" y="720" class="atmo-artifact atmo-tertiary atmo-float"/>
-        <use href="#atmo-wave" x="1250" y="760" class="atmo-artifact atmo-primary atmo-pulse"/>
-        <use href="#atmo-dimension" x="690" y="900" class="atmo-artifact atmo-secondary"/>
+        <g transform="translate(100 170)" class="atmo-artifact atmo-primary atmo-rotate" data-atmo-motif="gear"><circle cx="0" cy="0" r="34"/><circle cx="0" cy="0" r="12"/><path d="M0-48v14M0 34v14M-48 0h14M34 0h14M-34-34l10 10M24 24l10 10M34-34L24-24M-24 24l-10 10"/></g>
+        <g transform="translate(1270 160)" class="atmo-artifact atmo-secondary" data-atmo-motif="circuit"><path d="M0 30h55V0h55v45h55"/><circle cx="0" cy="30" r="4"/><circle cx="55" cy="30" r="4"/><circle cx="110" cy="0" r="4"/><circle cx="165" cy="45" r="4"/></g>
+        <g transform="translate(120 720)" class="atmo-artifact atmo-tertiary atmo-float" data-atmo-motif="brace"><path d="M28 0c-14 0-14 12-14 28v18C14 58 8 64 0 64c8 0 14 6 14 18v18c0 16 0 28 14 28M54 0c14 0 14 12 14 28v18c0 12 6 18 14 18-8 0-14 6-14 18v18c0 16 0 28-14 28"/></g>
+        <g transform="translate(1250 760)" class="atmo-artifact atmo-primary atmo-pulse" data-atmo-motif="wave"><path d="M0 25h22c12 0 12-25 24-25s12 50 24 50 12-25 24-25h26"/></g>
+        <g transform="translate(690 900)" class="atmo-artifact atmo-secondary" data-atmo-motif="dimension"><path d="M0 0h130M0-10v20M130-10v20M12-5 0 0l12 5M118-5l12 5-12 5"/></g>
       </g>
     </svg>
   </div>
@@ -124,7 +114,7 @@
         </div>
         <div class="side-status">
           <span class="status-led" aria-hidden="true"></span>
-          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v8.2.1</small></div>
+          <div><strong>CONNECTED</strong><small id="version-label">THE WORKSHOP v8.2.2</small></div>
         </div>
       </aside>
 
@@ -151,6 +141,6 @@
   </template>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
-  <script src="/app.js?v=8.2.0" defer></script>
+  <script src="/app.js?v=8.2.2" defer></script>
 </body>
 </html>
