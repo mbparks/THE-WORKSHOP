@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.2.2' },
+  meta: { version:'8.2.3' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -210,7 +210,7 @@ async function bootstrap(){
   applyTheme(state.theme, false);
   applyAtmosphere(state.atmosphere, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.2.2'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.2.3'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -224,6 +224,7 @@ async function bootstrap(){
   $('#global-search').addEventListener('submit',e=>{e.preventDefault();const q=$('#search-input').value.trim();if(q)location.hash=`#/search/${encodeURIComponent(q)}`;});
   $('#theme-toggle').addEventListener('click',toggleTheme);
   $('#atmosphere-toggle').addEventListener('click',showAtmosphereSettings);
+  setupAtmosphereParallax();
   $('#mode-toggle').addEventListener('click',toggleMode);
   $('#notification-button').addEventListener('click',showNotifications);
   $('#user-button').addEventListener('click',showAccount);
@@ -296,14 +297,51 @@ function applyAtmosphere(mode,announce=true){
   document.documentElement.dataset.atmosphere=state.atmosphere;
   const root=$('#workshop-atmosphere');if(root)root.dataset.mode=state.atmosphere;
   localStorage.setItem('workshop-atmosphere',state.atmosphere);updateAtmosphereButton();
+  renderActiveAtmosphere(root?.dataset.module||'home');
   if(announce)toast(`Background: ${ATMOSPHERE_META[state.atmosphere].label}`);
 }
+const ATMO_SVG={
+  gear:'<svg viewBox="-55 -55 110 110"><circle r="34"/><circle r="12"/><path d="M0-50v16M0 34v16M-50 0h16M34 0h16M-35-35l12 12M23 23l12 12M35-35 23-23M-23 23-35 35"/></svg>',
+  plane:'<svg viewBox="0 0 76 62"><path d="M2 22 73 2 47 59 31 36 2 22Z"/><path d="M31 36 73 2M31 36l4 22"/></svg>',
+  circuit:'<svg viewBox="0 0 190 80"><path d="M0 44h55V14h52v42h73"/><circle cx="4" cy="44" r="4"/><circle cx="55" cy="44" r="4"/><circle cx="107" cy="14" r="4"/><circle cx="180" cy="56" r="4"/></svg>',
+  wave:'<svg viewBox="0 0 180 70"><path d="M0 36h28c14 0 14-30 28-30s14 60 28 60 14-30 28-30h68"/></svg>',
+  node:'<svg viewBox="0 0 170 120"><circle cx="20" cy="25" r="6"/><circle cx="110" cy="8" r="6"/><circle cx="150" cy="76" r="6"/><circle cx="58" cy="105" r="6"/><path d="M26 23 104 10M114 13l32 58M144 80 64 101M53 99 24 31"/></svg>',
+  spring:'<svg viewBox="0 0 190 70"><path d="M3 35c20-34 40 34 60 0s40 34 60 0 40 34 60 0"/></svg>',
+  dimension:'<svg viewBox="0 0 180 60"><path d="M10 30h150M10 15v30M160 15v30M24 23 10 30l14 7M146 23l14 7-14 7"/></svg>',
+  paper:'<svg viewBox="0 0 130 160"><path d="M14 8h88l18 18v126H14zM102 8v24h18M30 54h72M30 78h58M30 102h66"/></svg>'
+};
+const ATMO_COMPOSITIONS={
+  home:[['circuit',5,11,210,.27],['gear',83,12,120,.25],['plane',54,70,100,.28],['code',8,67,0,.25,'{ build(); }'],['wave',75,45,210,.22],['node',12,40,170,.20],['code',67,18,0,.18,'1010 0110']],
+  bench:[['dimension',4,15,210,.27],['spring',75,14,220,.25],['circuit',7,71,200,.23],['code',77,61,0,.23,'0xBEEF'],['gear',87,77,105,.21],['paper',15,47,110,.19],['wave',43,82,180,.17]],
+  builds:[['gear',6,15,135,.28],['gear',14,24,95,.21,'reverse'],['circuit',76,12,220,.27],['spring',73,73,220,.25],['code',6,70,0,.27,'while(make)'],['plane',47,41,105,.21],['dimension',60,84,185,.18]],
+  workshop:[['plane',5,16,110,.30],['node',77,14,190,.25],['code',6,69,0,.28,'? → try();'],['wave',73,73,220,.23],['paper',87,47,115,.20],['circuit',45,11,190,.19],['code',61,25,0,.18,'// weird idea']],
+  library:[['paper',6,13,125,.26],['dimension',75,15,220,.25],['code',7,70,0,.23,'// notes'],['paper',81,69,105,.20],['circuit',45,81,190,.19],['gear',87,41,92,.17],['code',56,18,0,.16,'README.md']],
+  live:[['wave',4,15,240,.31],['wave',75,71,240,.27],['node',81,12,160,.23],['code',7,69,0,.25,'LIVE >'],['circuit',42,82,200,.20],['plane',53,32,98,.19],['wave',31,22,160,.17]],
+  people:[['node',4,15,195,.30],['node',76,68,195,.26],['plane',75,13,105,.25],['code',6,70,0,.21,'hello maker'],['circuit',42,13,190,.19],['gear',87,45,92,.17],['node',49,80,140,.18]],
+  gearhead:[['gear',5,14,140,.31],['circuit',74,12,230,.29],['code',6,70,0,.28,'sudo make'],['wave',74,72,230,.26],['gear',83,47,100,.23,'reverse'],['plane',42,28,102,.20],['code',59,18,0,.18,'./garage --go']]
+};
+function renderActiveAtmosphere(module){
+  const host=$('#atmo-foreground');if(!host)return;
+  if(state.atmosphere!=='workshop'||document.documentElement.dataset.theme==='contrast'){host.innerHTML='';return;}
+  const items=ATMO_COMPOSITIONS[module]||ATMO_COMPOSITIONS.home;
+  const html=items.map((item,i)=>{const [type,x,y,size,alpha,extra]=item;const cls=['atmo-sprite',type,i%3===1?'secondary':i%3===2?'tertiary':'',extra==='reverse'?'reverse':''].filter(Boolean).join(' ');const dur=type==='plane'?18+i*2:type==='gear'?14+i*3:type==='code'?9+i*1.5:6+i*1.5;const body=type==='code'?esc(extra||'{ }'):(ATMO_SVG[type]||'');return `<div class="${cls}" style="--x:${x}%;--y:${y}%;--size:${size||90}px;--alpha:${alpha||.22};--dur:${dur}s;--delay:-${i*1.8}s">${body}</div>`}).join('');
+  host.innerHTML=`<div class="atmo-route-flash"></div>${html}`;
+}
 function updateAtmosphereModule(parent='home'){
-  const root=$('#workshop-atmosphere');if(!root)return;const key=['bench','builds','workshop','library','live','people','gearhead'].includes(parent)?parent:'home';root.dataset.module=key;
+  const root=$('#workshop-atmosphere');const key=['bench','builds','workshop','library','live','people','gearhead'].includes(parent)?parent:'home';if(root)root.dataset.module=key;renderActiveAtmosphere(key);
 }
 function showAtmosphereSettings(){
   const choices=ATMOSPHERE_MODES.map(mode=>{const meta=ATMOSPHERE_META[mode],active=state.atmosphere===mode;return `<button class="atmosphere-choice ${active?'active':''}" type="button" data-action="atmosphere-mode" data-mode="${mode}" ${active?'aria-current="true"':''}><strong>${meta.label}</strong><span>${meta.copy}</span><b>${active?'CURRENT':'SELECT'} →</b></button>`}).join('');
   modal({title:'Workshop Atmosphere',eyebrow:'BACKGROUND · YOUR PREFERENCE',size:'sm',body:`<p class="muted-copy">Keep the interface restrained or let the drafting-table ghosts show through. High Contrast always suppresses decorative atmosphere, and reduced-motion preferences stop all movement.</p><div class="atmosphere-settings">${choices}</div>`});
+}
+
+function setupAtmosphereParallax(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const host=$('#atmo-foreground');if(!host)return;
+  let frame=0;
+  const move=e=>{if(state.atmosphere!=='workshop')return;cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const x=((e.clientX/innerWidth)-.5)*14,y=((e.clientY/innerHeight)-.5)*10;host.style.setProperty('--atmo-shift-x',`${x.toFixed(1)}px`);host.style.setProperty('--atmo-shift-y',`${y.toFixed(1)}px`);});};
+  window.addEventListener('pointermove',move,{passive:true});
+  window.addEventListener('blur',()=>{host.style.setProperty('--atmo-shift-x','0px');host.style.setProperty('--atmo-shift-y','0px')});
 }
 
 function toggleMode(){ state.deep=!state.deep; document.body.classList.toggle('deep',state.deep); localStorage.setItem('workshop-mode',state.deep?'deep':'simple'); updateUserUI(); toast(`${state.deep?'Deep':'Simple'} mode`); }

@@ -193,6 +193,10 @@ const checks=[
   ,['Workshop Atmosphere respects reduced motion',css.includes('@media(prefers-reduced-motion:reduce)')&&css.includes('animation:none!important')]
   ,['High contrast suppresses decorative atmosphere',css.includes('html[data-theme="contrast"] .workshop-atmosphere{display:none!important}')]
   ,['Workshop Atmosphere is visibly exposed through content field',css.includes('main{position:relative;background:color-mix(in srgb,var(--paper) 58%,transparent)}')&&css.includes('.atmo-primary{color:var(--atmo-primary);opacity:.17}')]
+  ,['Workshop Atmosphere active foreground exists',html.includes('id="atmo-foreground"')&&css.includes('.atmo-foreground{position:fixed')]
+  ,['Workshop Atmosphere recomposes per route',app.includes('renderActiveAtmosphere(key)')&&app.includes('ATMO_COMPOSITIONS')]
+  ,['Workshop Atmosphere has active motion',css.includes('atmo-active-plane')&&css.includes('atmo-active-spin')&&css.includes('atmo-active-code')]
+  ,['Workshop Atmosphere supports subtle parallax',app.includes('function setupAtmosphereParallax()')&&css.includes('--atmo-shift-x')]
 
 ];
 let failed=0;

@@ -1,3 +1,12 @@
+# v8.2.3 — Active Workshop Atmosphere
+
+- Moved active atmosphere elements into a dedicated layer above the workspace field but below route content, so they are actually visible on every page.
+- Added continuously animated gears, paper airplanes, code fragments, circuit traces, waveforms, springs, dimensions, documents, and maker-network motifs.
+- Each major module now re-composes its atmosphere on navigation rather than sharing a mostly static canvas.
+- Increased movement cadence from nearly imperceptible 48–110 second cycles to gentle 6–30 second ambient cycles.
+- Added subtle pointer parallax on capable devices.
+- Preserved WORKSHOP / QUIET / OFF modes, reduced-motion support, and High Contrast suppression.
+
 ## v8.2.2 — Atmosphere Route Persistence Hotfix
 
 - Replaced fragment-based SVG `<use href="#…">` motif references with fully inline SVG geometry so hash-route changes cannot invalidate the artwork.
