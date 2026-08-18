@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.0.1';
+const APP_VERSION = '9.0.2';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -1170,7 +1170,7 @@ function renderBenchEmbed(req,res,url,token){
   const row=db.prepare('SELECT * FROM bench_embeds WHERE token=?').get(token);if(!row)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');const viewer=currentUser(req);if(!Number(row.enabled)&&viewer?.id!==row.user_id)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');
   const data=benchEmbedPayload(row.user_id,json(row.settings));if(!data)return sendBenchEmbedHtml(res,404,'Bench unavailable','This Workshop member is no longer available.');
   const q=url.searchParams,override={};for(const k of ['theme','layout'])if(q.has(k))override[k]=q.get(k);const settings=benchEmbedSettings({...data.settings,...override});data.settings=settings;
-  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.0.1':rank==='journeyman'?'/craft-journeyman.webp?v=9.0.1':rank==='apprentice'?'/craft-apprentice.webp?v=9.0.1':'/craft-default-wood.webp?v=9.0.1';
+  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.0.2':rank==='journeyman'?'/craft-journeyman.webp?v=9.0.2':rank==='apprentice'?'/craft-apprentice.webp?v=9.0.2':'/craft-default-wood.webp?v=9.0.2';
   const profileHref=data.user.profilePublic?`${base}/#/bench/${encodeURIComponent(data.user.id)}`:'';
   const themeCss=settings.theme==='dark'?':root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}':settings.theme==='light'?':root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}':'@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}}@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}}';
   const projectHtml=data.projects.length?`<div class="projects">${data.projects.map(p=>`<a href="${base}/#/projects/${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><span>${htmlEscape(p.stage)}</span><strong>${htmlEscape(p.title)}</strong></a>`).join('')}</div>`:'';
@@ -1375,6 +1375,33 @@ async function resolvePostalCentroid(postal,country='US',cityRegion=''){
       if(validMapPoint(latitude,longitude))return {latitude,longitude,source:'OpenStreetMap postal lookup'};
     }
   }catch{}
+  return null;
+}
+
+async function resolveCrewAnchorCentroid(crew,anchor){
+  const code=String(anchor?.postal_code||crew?.anchor_postal_code||'').trim().toUpperCase();
+  if(!code)return null;
+  const cc=countryCodeForPostal(crew?.country||'US');
+  try{
+    const response=await fetch(`https://api.zippopotam.us/${encodeURIComponent(cc)}/${encodeURIComponent(code)}`,{headers:{'User-Agent':`THE-WORKSHOP/${APP_VERSION}`},signal:AbortSignal.timeout(6000)});
+    if(response.ok){
+      const data=await response.json(),place=Array.isArray(data.places)?data.places[0]:null;
+      const latitude=Number(place?.latitude),longitude=Number(place?.longitude);
+      if(validMapPoint(latitude,longitude))return {latitude,longitude,source:`★ ${code} postal centroid`};
+    }
+  }catch{}
+  const cached=db.prepare(`SELECT latitude,longitude FROM maker_crew_postal_codes WHERE postal_code=? AND crew_id<>? AND latitude IS NOT NULL AND longitude IS NOT NULL ORDER BY is_anchor DESC LIMIT 1`).get(code,crew.id);
+  if(cached&&validMapPoint(cached.latitude,cached.longitude))return {latitude:Number(cached.latitude),longitude:Number(cached.longitude),source:`★ ${code} Workshop centroid cache`};
+  try{
+    const query=[code,crew?.city_region,crew?.country].filter(Boolean).join(' ');
+    const response=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`,{headers:{'User-Agent':`THE-WORKSHOP/${APP_VERSION} (${PUBLIC_URL||'https://workshop.greenshoegarage.com'})`,'Accept':'application/json'},signal:AbortSignal.timeout(6000)});
+    if(response.ok){
+      const data=await response.json(),place=Array.isArray(data)?data[0]:null;
+      const latitude=Number(place?.lat),longitude=Number(place?.lon);
+      if(validMapPoint(latitude,longitude))return {latitude,longitude,source:`★ ${code} OpenStreetMap centroid`};
+    }
+  }catch{}
+  if(validMapPoint(anchor?.latitude,anchor?.longitude))return {latitude:Number(anchor.latitude),longitude:Number(anchor.longitude),source:'Existing marker fallback'};
   return null;
 }
 
@@ -2177,7 +2204,7 @@ function routeApi(req, res, url) {
     const u=requireUser(req,res);if(!u||!isCrewOrganizer(c.id,u))return sendJson(res,403,{error:'Crew organizer access required.'});
     let anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);
     if(!anchor){db.prepare(`INSERT INTO maker_crew_postal_codes (crew_id,postal_code,latitude,longitude,is_anchor,created_at) VALUES (?,?,?,?,1,?)`).run(c.id,c.anchor_postal_code,null,null,now());anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);}
-    let point=validMapPoint(anchor?.latitude,anchor?.longitude)?{latitude:Number(anchor.latitude),longitude:Number(anchor.longitude),source:'Existing Crew centroid'}:await resolvePostalCentroid(anchor?.postal_code||c.anchor_postal_code,c.country,c.city_region);
+    let point=await resolveCrewAnchorCentroid(c,anchor);
     if(!point)return sendJson(res,422,{error:`THE WORKSHOP could not determine an approximate map location for ${c.anchor_postal_code}. Check that the Crew anchor postal code is valid and try again.`});
     const ts=now();
     db.prepare('UPDATE maker_crew_postal_codes SET latitude=?,longitude=? WHERE crew_id=? AND is_anchor=1').run(point.latitude,point.longitude,c.id);
@@ -2185,6 +2212,21 @@ function routeApi(req, res, url) {
     audit(u.id,'crew.map.enable','maker_crew',c.id,{postalCode:anchor?.postal_code||c.anchor_postal_code,latitude:point.latitude,longitude:point.longitude,source:point.source});
     const updated=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(c.id);
     return sendJson(res,200,{ok:true,mapVisible:true,map:{latitude:point.latitude,longitude:point.longitude,source:point.source},item:crewPayload(updated,u)});
+  }).catch(e=>sendJson(res,400,{error:e.message}));
+  const crewMapLocation=pathname.match(/^\/api\/crews\/([^/]+)\/map-location$/);
+  if(crewMapLocation&&method==='PUT')return readBody(req).then(async body=>{
+    const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(crewMapLocation[1]);if(!c)return sendJson(res,404,{error:'Crew not found.'});
+    const u=requireUser(req,res);if(!u||!isCrewOrganizer(c.id,u))return sendJson(res,403,{error:'Crew organizer access required.'});
+    let anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);
+    if(!anchor){db.prepare(`INSERT INTO maker_crew_postal_codes (crew_id,postal_code,latitude,longitude,is_anchor,created_at) VALUES (?,?,?,?,1,?)`).run(c.id,c.anchor_postal_code,null,null,now());anchor=db.prepare('SELECT * FROM maker_crew_postal_codes WHERE crew_id=? AND is_anchor=1 LIMIT 1').get(c.id);}
+    let point;
+    if(body.resetToAnchor){point=await resolveCrewAnchorCentroid(c,anchor);if(!point)return sendJson(res,422,{error:`Could not resolve the centroid for starred ZIP ${anchor.postal_code||c.anchor_postal_code}. Enter latitude and longitude manually.`});}
+    else {const latitude=Number(body.latitude),longitude=Number(body.longitude);if(!validMapPoint(latitude,longitude))return sendJson(res,400,{error:'Enter a valid latitude (-90 to 90) and longitude (-180 to 180).'});point={latitude,longitude,source:'Manual Crew marker'};}
+    db.prepare('UPDATE maker_crew_postal_codes SET latitude=?,longitude=? WHERE crew_id=? AND is_anchor=1').run(point.latitude,point.longitude,c.id);
+    db.prepare('UPDATE maker_crews SET updated_at=? WHERE id=?').run(now(),c.id);
+    audit(u.id,body.resetToAnchor?'crew.map.reset':'crew.map.location','maker_crew',c.id,{postalCode:anchor.postal_code,latitude:point.latitude,longitude:point.longitude,source:point.source});
+    const updated=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(c.id);
+    return sendJson(res,200,{ok:true,map:{postalCode:anchor.postal_code,latitude:point.latitude,longitude:point.longitude,source:point.source},item:crewPayload(updated,u)});
   }).catch(e=>sendJson(res,400,{error:e.message}));
   const joinMatch=pathname.match(/^\/api\/crews\/([^/]+)\/join$/);
   if(joinMatch&&method==='POST')return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(joinMatch[1]);if(!c||c.status!=='Active')return sendJson(res,404,{error:'Crew not available.'});const ts=now(),primary=body.primary!==false?1:0;if(primary)db.prepare('UPDATE maker_crew_members SET is_primary=0 WHERE user_id=?').run(u.id);db.prepare(`INSERT INTO maker_crew_members (crew_id,user_id,role,status,affiliation_visibility,is_primary,joined_at,updated_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(crew_id,user_id) DO UPDATE SET status='Active',affiliation_visibility=excluded.affiliation_visibility,is_primary=excluded.is_primary,updated_at=excluded.updated_at`).run(c.id,u.id,'Member','Active',canonicalVisibility(body.visibility,'Members'),primary,ts,ts);audit(u.id,'crew.join','maker_crew',c.id,{});return sendJson(res,200,{ok:true});}).catch(e=>sendJson(res,400,{error:e.message}));

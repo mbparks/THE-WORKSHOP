@@ -117,8 +117,8 @@ async function setHash(cdp,hash){
     if(appEval.exceptionDetails)throw new Error(appEval.exceptionDetails.exception?.description||appEval.exceptionDetails.text||'App script failed to execute');
     await waitForCondition(cdp,`document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'initial Home render',20000);
 
-    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v9.0.1')`,'v9 shell version');
-    check('Browser shell loads v9.0.1',true);
+    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v9.0.2')`,'v9 shell version');
+    check('Browser shell loads v9.0.2',true);
     await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.includes('WHAT ARE YOU')`,'Home hero');
     check('Home renders the Workshop hero',true);
     await waitForCondition(cdp,`document.querySelector('#workshop-atmosphere')?.dataset.module==='home'&&document.querySelectorAll('#atmo-foreground .atmo-sprite').length>=6`,'initial Home atmosphere');
@@ -203,6 +203,11 @@ async function setHash(cdp,hash){
         await evaluate(cdp,`document.querySelector('[data-action=\"crew-map-enable\"]')?.click()`);
         await waitForCondition(cdp,`document.querySelector('.crew-map-control.is-ready')?.textContent.includes('VISIBLE ON MAP')`,'Crew map enable live refresh',20000);
         check('One-click map action updates Crew Studio in place',await evaluate(cdp,`Boolean(document.querySelector('.modal'))&&Boolean(document.querySelector('.crew-map-control.is-ready'))&&Boolean(document.querySelector('a[href=\"#/crews/map\"]'))`));
+        check('Crew Studio exposes editable latitude and longitude',await evaluate(cdp,`Boolean(document.querySelector('#crew-map-location-form [name=\"latitude\"]'))&&Boolean(document.querySelector('#crew-map-location-form [name=\"longitude\"]'))&&document.querySelector('.crew-map-anchor')?.textContent.includes('21502')`));
+        await evaluate(cdp,`(()=>{const f=document.querySelector('#crew-map-location-form');f.querySelector('[name=\"latitude\"]').value='39.660123';f.querySelector('[name=\"longitude\"]').value='-78.770456';f.requestSubmit()})()`);
+        await waitForCondition(cdp,`document.querySelector('.crew-map-control')?.textContent.includes('39.660123')&&document.querySelector('#crew-map-location-form [name=\"longitude\"]')?.value==='-78.770456'`,'live manual Crew marker refresh');
+        check('Saving Crew marker coordinates refreshes Studio in place',await evaluate(cdp,`Boolean(document.querySelector('.modal'))&&document.querySelector('.crew-map-control')?.textContent.includes('39.660123')`));
+        check('Crew Studio provides starred ZIP centroid reset',await evaluate(cdp,`Boolean(document.querySelector('[data-action=\"crew-map-reset\"]'))&&document.querySelector('[data-action=\"crew-map-reset\"]')?.textContent.includes('ZIP CENTROID')`));
         await evaluate(cdp,`document.querySelector('[data-action=\"close-overlay\"]')?.click()`);
       }else check('Crew Studio exposes one-click map visibility',false,'Could not create Browser QA Crew.');
     }else check('Maker Crew page exposes local object navigation',false,'No seeded Crew was available.');

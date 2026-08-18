@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.0.1**
+Current release: **v9.0.2**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -15,7 +15,14 @@ That is the product test for every feature.
 
 ---
 
-## What changed in v9.0.1
+## What changed in v9.0.2
+
+### Maker Crew map placement
+
+- **MAKE VISIBLE ON MAP** now seeds the Crew marker from the centroid of the **★ starred/anchor ZIP**.
+- Crew Studio exposes editable **Latitude** and **Longitude** fields for fine placement.
+- **RESET TO ★ ZIP CENTROID** restores the default ZIP-based position at any time.
+- Marker edits refresh Crew Studio immediately and drive the public Workshop Map without reopening the Studio.
 
 v9 is a reliability, privacy, consolidation, and usability release. It completes the information-architecture work begun in v8 while preserving the existing content models and data.
 

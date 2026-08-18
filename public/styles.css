@@ -535,7 +535,7 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 @media(prefers-reduced-motion:reduce){.atmo-sprite.circuit svg path,.atmo-sprite.wave svg path{animation:none!important}}
 @media(max-width:760px){.appearance-options,.media-library{grid-template-columns:1fr}.media-picker-row{grid-template-columns:1fr}.version-status{grid-template-columns:1fr}.version-status>div{border-right:0;border-bottom:1px solid var(--rule)}.version-status>div:last-child{border-bottom:0}.offline-work-item{grid-template-columns:1fr}.app-update-banner{left:10px;right:10px;bottom:78px;justify-content:space-between}}
 
-/* v9.0.1 — Maker Crew Studio live map control */
+/* v9.0.2 — Maker Crew Studio live map control */
 .crew-map-control{display:flex;align-items:center;justify-content:space-between;gap:18px;margin:18px 0;padding:16px 18px;border:1px solid var(--line);background:color-mix(in srgb,var(--panel) 88%,transparent)}
 .crew-map-control>div:first-child{display:grid;gap:4px}
 .crew-map-control strong{font-family:var(--display);font-size:18px;letter-spacing:.035em}
@@ -543,3 +543,10 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .crew-map-control.is-ready{border-color:color-mix(in srgb,var(--accent) 62%,var(--line));box-shadow:inset 3px 0 0 color-mix(in srgb,var(--accent) 78%,transparent)}
 .crew-map-control.is-ready strong{color:var(--accent)}
 @media(max-width:760px){.crew-map-control{align-items:stretch;flex-direction:column}.crew-map-control .head-actions{width:100%}.crew-map-control .head-actions>*{flex:1;justify-content:center}}
+
+
+/* v9.0.2 — editable Maker Crew map marker */
+.crew-map-location-form{display:grid;grid-template-columns:minmax(180px,1fr) minmax(150px,.7fr) minmax(150px,.7fr);gap:12px;align-items:end;margin:-8px 0 18px;padding:14px 16px;border:1px solid var(--line);border-top:0;background:color-mix(in srgb,var(--panel) 78%,transparent)}
+.crew-map-location-form label{display:grid;gap:6px}.crew-map-location-form label>span,.crew-map-anchor>span{font:700 9px/1.2 var(--mono);letter-spacing:.08em;color:var(--muted)}
+.crew-map-location-form input{width:100%}.crew-map-anchor{display:grid;gap:4px}.crew-map-anchor strong{font-family:var(--display);font-size:19px;color:var(--accent)}.crew-map-anchor small{color:var(--muted);max-width:46ch}.crew-map-location-form .head-actions{grid-column:1/-1}
+@media(max-width:760px){.crew-map-location-form{grid-template-columns:1fr}.crew-map-location-form .head-actions{grid-column:auto}.crew-map-location-form .head-actions>*{flex:1}}

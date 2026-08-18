@@ -1,4 +1,4 @@
-# THE WORKSHOP v9.0.1 — Navigation and Information Architecture
+# THE WORKSHOP v9.0.2 — Navigation and Information Architecture
 
 THE WORKSHOP exposes a small number of durable destinations. Specialized content types remain available inside those destinations rather than each becoming a global module.
 

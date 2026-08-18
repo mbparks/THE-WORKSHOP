@@ -1,10 +1,11 @@
-# THE WORKSHOP v9.0.1 — Maker Crew Studio Map + Live Roles
+# THE WORKSHOP v9.0.2 — Maker Crew Map Placement Controls
 
-- Adds one-click **MAKE VISIBLE ON MAP** in Crew Studio. The action makes the Crew Active + Public and automatically resolves an approximate anchor postal centroid, using an existing Workshop postal centroid first and low-volume postal geocoding only when needed.
-- Adds immediate Crew Studio refresh after Member ↔ Moderator role changes. Organizers no longer need to leave and reopen Crew Studio to see the new role.
-- Returns the updated Crew member record from the role API and adds behavioral QA for live role changes.
-- Adds map-readiness status and direct OPEN MAP action inside Crew Studio.
-- Preserves privacy: only the Crew anchor postal centroid is mapped; member locations and private venue addresses are never used.
+- **MAKE VISIBLE ON MAP** now places a Crew at the approximate centroid of its **★ starred/anchor ZIP** by default instead of trusting a pre-existing marker.
+- Crew Studio now exposes editable **Latitude** and **Longitude** fields with immediate save/refresh behavior.
+- Adds **RESET TO ★ ZIP CENTROID** so organizers can always restore the canonical regional position.
+- The Workshop Map continues to use only the Crew anchor record; member locations and private event addresses remain excluded.
+- Preserves the v9.0.1 immediate Member ↔ Moderator role refresh behavior.
+- Adds static, integration, and Chromium coverage for default ZIP placement, manual coordinate editing, public-marker propagation, and live Studio refresh.
 
 ---
 

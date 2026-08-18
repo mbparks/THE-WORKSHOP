@@ -1,4 +1,4 @@
-# THE WORKSHOP v9.0.1 — Maker Crew Studio Hotfix
+# THE WORKSHOP v9.0.2 — Maker Crew Studio Hotfix
 
 ## One-click Workshop Map publishing
 
