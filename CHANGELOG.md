@@ -1,3 +1,39 @@
+# Changelog
+
+## v8.0.5 — Navigation Map Hardening
+
+- unified desktop contextual navigation and the mobile MODULES switcher around one shared module definition
+- made contextual active states exact for detail routes such as project, prompt, session, discussion, question, failure, critique, mystery, Crew, and other child views
+- clarified the desktop hierarchy with SECTIONS and module-specific tool labels
+- added visible current-item state inside the mobile MODULES switcher
+- kept the lower desktop rail limited to site-wide/external destinations
+- bumped the service-worker cache key to prevent stale navigation assets after deployment
+
+## v8.0.4 — Consistent Module Navigation
+
+- Normalized the desktop left rail so top-level module families are always fixed and module-specific tools appear only in the context navigation.
+- Removed duplicate GearHead Crew, Notebook, Workshop Map, and Saved links from the site-wide lower rail.
+- Kept the lower rail reserved for Almanac, Almanac II, GET SWAG, About, and Terms.
+- Added exact route matching for context active states, including detail routes such as Prompt, Session, Failure, Critique, Mystery, and Maker Crew.
+- Desktop and mobile module navigation now use the same `CONTEXT_NAV` source of truth.
+- Added sidebar overflow handling so long module lists remain usable on shorter displays.
+
+## v8.0.3 — Real Workshop Map
+
+- Replaced the schematic Workshop Map with a real interactive Leaflet map using OpenStreetMap raster tiles.
+- Added pan, zoom, automatic fit-to-Crews, touch-friendly mobile navigation, Crew markers, public-event region markers, popups, and direct links back into THE WORKSHOP.
+- Preserved the privacy boundary: Crew pins remain anchor ZIP centroids and public events are shown at the Crew region rather than exact venue addresses.
+- Added visible OpenStreetMap attribution and a graceful directory fallback if the external basemap cannot load.
+- Updated CSP to allow only the Leaflet CDN scripts/styles and OpenStreetMap standard tile images needed by this map.
+
+## v8.0.2 — Complete Mobile Module Access
+
+- Replaced the fourth mobile bottom-navigation slot with **MODULES** while preserving the five-column mobile layout.
+- Added a full mobile module switcher covering My Bench, Builds, Workshop, Library, Live, and People route families.
+- Made Notebook, Prompts, Sessions, The Wall, Failure Library, Critique, Scrap Bin, GearHead tools, Project Clinic, Maker Crews, Workshop Map, Skill Exchange, Maker ID, and related modules directly discoverable on mobile.
+- Added mobile access to Almanac, Almanac II, GET SWAG, About, and Terms.
+- Permission-dependent Operations Console remains available through the mobile account menu.
+
 ## v8.0.1 — Startup Hotfix
 
 - Fixed a frontend boot-order regression that caused `applyTheme()` to run before `THEME_ORDER` and `THEME_META` were initialized.

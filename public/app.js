@@ -10,7 +10,7 @@ const SEARCH_KINDS=[['all','Everything'],['projects','Projects'],['logs','Build 
 
 const state = {
   me: null,
-  meta: { version:'8.0.1' },
+  meta: { version:'8.0.5' },
   home: null,
   theme: localStorage.getItem('workshop-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'),
   deep: localStorage.getItem('workshop-mode') === 'deep',
@@ -140,21 +140,69 @@ function empty(title,copy,action='',actionLabel='Start Something'){
 function pageHead(eyebrow,title,copy='',actions=''){
   return `<header class="page-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h1>${esc(title)}</h1>${copy?`<p>${esc(copy)}</p>`:''}</div>${actions?`<div class="head-actions">${actions}</div>`:''}</header>`;
 }
-const NAV_PARENT={notebook:'bench',failures:'workshop',failure:'workshop',prompts:'builds',prompt:'builds',map:'people','gearhead-vault':'library','gearhead-requests':'library','gearhead-archive':'library',gearhead:'library',sessions:'builds',session:'builds',assignment:'builds','maker-id':'people',crews:'people',crew:'people',projects:'builds','build-along':'builds','open-brief':'builds',wall:'builds',discussion:'workshop',question:'workshop',critiques:'workshop',critique:'workshop',weekly:'workshop',mysteries:'workshop',mystery:'workshop',teardown:'workshop',scrap:'workshop',lab:'library',saved:'library',clinic:'live','skill-exchange':'people'};
-const CONTEXT_NAV={
-  bench:[['#/bench','MY BENCH'],['#/notebook','WORKSHOP NOTEBOOK']],
-  builds:[['#/builds','PROJECTS'],['#/prompts','PROMPTS'],['#/sessions','SESSIONS'],['#/builds#programs','BUILD ALONGS + BRIEFS'],['#/wall','THE WALL']],
-  workshop:[['#/workshop','DISCUSSIONS'],['#/failures','FAILURE LIBRARY'],['#/critiques','CRITIQUE'],['#/weekly','QUESTION OF THE WEEK'],['#/mysteries','WHAT IS THIS?'],['#/teardown','TEARDOWN CLUB'],['#/scrap','SCRAP BIN']],
-  library:[['#/library','SHOP MANUAL'],['#/lab','FIELD INSTRUMENT LAB'],['#/gearhead','GEARHEAD CREW'],['#/gearhead-vault','FILE VAULT'],['#/gearhead-requests','CREW REQUESTS'],['#/gearhead-archive','ARCHIVE'],['#/saved','SAVED']],
-  live:[['#/live','LIVE FROM THE GARAGE'],['#/clinic','PROJECT CLINIC']],
-  people:[['#/people','PEOPLE'],['#/crews','MAKER CREWS'],['#/map','WORKSHOP MAP'],['#/skill-exchange','SKILL EXCHANGE'],['#/maker-id','MAKER ID']]
+const NAV_MODULES={
+  bench:{label:'MY BENCH',contextLabel:'BENCH TOOLS',href:'#/bench',items:[
+    {href:'#/bench',label:'OVERVIEW',routes:['bench']},
+    {href:'#/notebook',label:'WORKSHOP NOTEBOOK',routes:['notebook']}
+  ]},
+  builds:{label:'BUILDS',contextLabel:'BUILD TOOLS',href:'#/builds',items:[
+    {href:'#/builds',label:'PROJECTS',routes:['builds','projects']},
+    {href:'#/prompts',label:'PROMPTS',routes:['prompts','prompt']},
+    {href:'#/sessions',label:'SESSIONS',routes:['sessions','session','assignment']},
+    {href:'#/builds#programs',label:'BUILD ALONGS + BRIEFS',routes:['build-along','open-brief']},
+    {href:'#/wall',label:'THE WALL',routes:['wall']}
+  ]},
+  workshop:{label:'WORKSHOP',contextLabel:'WORKSHOP TOOLS',href:'#/workshop',items:[
+    {href:'#/workshop',label:'DISCUSSIONS',routes:['workshop','discussion','question']},
+    {href:'#/failures',label:'FAILURE LIBRARY',routes:['failures','failure']},
+    {href:'#/critiques',label:'CRITIQUE',routes:['critiques','critique']},
+    {href:'#/weekly',label:'QUESTION OF THE WEEK',routes:['weekly']},
+    {href:'#/mysteries',label:'WHAT IS THIS?',routes:['mysteries','mystery']},
+    {href:'#/teardown',label:'TEARDOWN CLUB',routes:['teardown']},
+    {href:'#/scrap',label:'SCRAP BIN',routes:['scrap']}
+  ]},
+  library:{label:'LIBRARY',contextLabel:'LIBRARY TOOLS',href:'#/library',items:[
+    {href:'#/library',label:'SHOP MANUAL',routes:['library']},
+    {href:'#/lab',label:'FIELD INSTRUMENT LAB',routes:['lab']},
+    {href:'#/gearhead',label:'GEARHEAD CREW',routes:['gearhead']},
+    {href:'#/gearhead-vault',label:'FILE VAULT',routes:['gearhead-vault']},
+    {href:'#/gearhead-contributions',label:'CONTRIBUTIONS',routes:['gearhead-contributions']},
+    {href:'#/gearhead-projects',label:'CREW PROJECTS',routes:['gearhead-projects']},
+    {href:'#/gearhead-requests',label:'CREW REQUESTS',routes:['gearhead-requests']},
+    {href:'#/gearhead-archive',label:'ARCHIVE',routes:['gearhead-archive']},
+    {href:'#/saved',label:'SAVED',routes:['saved']}
+  ]},
+  live:{label:'LIVE',contextLabel:'LIVE TOOLS',href:'#/live',items:[
+    {href:'#/live',label:'LIVE FROM THE GARAGE',routes:['live']},
+    {href:'#/clinic',label:'PROJECT CLINIC',routes:['clinic']}
+  ]},
+  people:{label:'PEOPLE',contextLabel:'PEOPLE TOOLS',href:'#/people',items:[
+    {href:'#/people',label:'DIRECTORY',routes:['people']},
+    {href:'#/crews',label:'MAKER CREWS',routes:['crews','crew']},
+    {href:'#/map',label:'WORKSHOP MAP',routes:['map']},
+    {href:'#/skill-exchange',label:'SKILL EXCHANGE',routes:['skill-exchange']},
+    {href:'#/maker-id',label:'MAKER ID',routes:['maker-id']}
+  ]}
 };
+const NAV_PARENT=Object.entries(NAV_MODULES).reduce((map,[key,module])=>{
+  map[key]=key;
+  for(const item of module.items) for(const route of item.routes) map[route]=key;
+  return map;
+},{});
+function contextItemActive(item,route){ return item.routes.includes(route); }
+function currentNavState(){
+  const route=routeParts()[0]||'home';
+  return {route,parent:NAV_PARENT[route]||route};
+}
 function setActiveNav(route){
   const parent=NAV_PARENT[route]||route;
   $$('[data-route]').forEach(a=>{const active=a.dataset.route===parent;a.classList.toggle('active',active);if(active)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  const mobileModules=$('#mobile-modules');
+  if(mobileModules){const moduleActive=!['home','builds','bench'].includes(parent) && Boolean(NAV_MODULES[parent]);mobileModules.classList.toggle('active',moduleActive);if(moduleActive)mobileModules.setAttribute('aria-current','page');else mobileModules.removeAttribute('aria-current');}
   const host=$('#context-nav'); if(!host)return;
-  const items=CONTEXT_NAV[parent]||[];
-  host.innerHTML=items.length?`<div class="context-label">${esc(parent.toUpperCase())}</div>${items.map(([href,label])=>`<a href="${href}" class="${href.includes('#/'+route)||href===location.hash?'active':''}">${esc(label)}</a>`).join('')}`:'';
+  const module=NAV_MODULES[parent];
+  const items=module?.items||[];
+  host.innerHTML=items.length?`<div class="context-label">${esc(module.contextLabel||module.label)}</div>${items.map(item=>{const active=contextItemActive(item,route);return `<a href="${esc(item.href)}" class="${active?'active':''}" ${active?'aria-current="page"':''}>${esc(item.label)}</a>`}).join('')}`:'';
   host.hidden=!items.length;
 }
 function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; return raw.split('/').filter(Boolean); }
@@ -162,7 +210,7 @@ function routeParts(){ const raw=location.hash.replace(/^#\/?/,'')||'home'; retu
 async function bootstrap(){
   applyTheme(state.theme, false);
   try { state.meta=await api('/api/meta'); } catch {}
-  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.0.1'}`;
+  $('#version-label').textContent=`THE WORKSHOP v${state.meta.version||'8.0.5'}`;
   try { state.me=(await api('/api/me')).user; } catch { state.me=null; }
   updateUserUI();
   if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
@@ -180,6 +228,7 @@ async function bootstrap(){
   $('#user-button').addEventListener('click',showAccount);
   $('#start-button').addEventListener('click',showStart);
   $('#mobile-start').addEventListener('click',showStart);
+  $('#mobile-modules').addEventListener('click',showMobileModules);
   await renderRoute();
   enforceAccountRequirements();
 }
@@ -237,6 +286,16 @@ function applyTheme(theme, announce=true){
 function toggleTheme(){ const idx=THEME_ORDER.indexOf(state.theme); applyTheme(THEME_ORDER[(idx+1)%THEME_ORDER.length]); }
 function toggleMode(){ state.deep=!state.deep; document.body.classList.toggle('deep',state.deep); localStorage.setItem('workshop-mode',state.deep?'deep':'simple'); updateUserUI(); toast(`${state.deep?'Deep':'Simple'} mode`); }
 function handleKeys(e){ if(e.key==='/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !document.activeElement.isContentEditable){e.preventDefault();$('#search-input').focus();} }
+
+function showMobileModules(){
+  const {route,parent}=currentNavState();
+  const groupHtml=Object.entries(NAV_MODULES).map(([key,module])=>{
+    const groupActive=parent===key;
+    return `<section class="mobile-module-group ${groupActive?'active':''}"><div class="mobile-module-group-head"><span>${esc(module.label)}</span><a href="${esc(module.href)}" data-action="close-overlay" ${groupActive?'aria-current="page"':''}>OPEN ${esc(module.label)} →</a></div><div class="mobile-module-links">${module.items.map(item=>{const active=contextItemActive(item,route);return `<a href="${esc(item.href)}" data-action="close-overlay" class="${active?'active':''}" ${active?'aria-current="page"':''}>${esc(item.label)}<span aria-hidden="true">→</span></a>`}).join('')}</div></section>`;
+  }).join('');
+  const externals=`<section class="mobile-module-group"><div class="mobile-module-group-head"><span>MORE FROM GREEN SHOE GARAGE</span></div><div class="mobile-module-links"><a href="https://mbparks.com/almanac" target="_blank" rel="noopener noreferrer">ALMANAC <span aria-hidden="true">↗</span></a><a href="https://mbparks.com/almanac2" target="_blank" rel="noopener noreferrer">ALMANAC II <span aria-hidden="true">↗</span></a><a href="https://www.redbubble.com/people/GreenShoeGarage/shop" target="_blank" rel="noopener noreferrer">GET SWAG <span aria-hidden="true">↗</span></a><a href="#/about" data-action="close-overlay">ABOUT <span aria-hidden="true">→</span></a><a href="#/terms" data-action="close-overlay">TERMS &amp; COMMUNITY CONDUCT <span aria-hidden="true">→</span></a></div></section>`;
+  modal({title:'Workshop Modules',eyebrow:'EVERY PART OF THE SHOP · MOBILE ACCESS',size:'lg',body:`<div class="mobile-module-switcher"><p class="mobile-module-intro">Desktop and mobile now use the same module map. Choose a section or jump directly to one of its tools.</p>${groupHtml}${externals}</div>`});
+}
 
 function routeSkeleton(){
   return `<div class="view route-skeleton" aria-label="Loading workshop content"><div class="skeleton-line short"></div><div class="skeleton-line title"></div><div class="skeleton-line copy"></div><div class="skeleton-grid">${Array.from({length:3},()=>'<div class="skeleton-card"><i></i><b></b><span></span><span></span></div>').join('')}</div></div>`;
@@ -1543,9 +1602,52 @@ async function renderPrompt(id){const d=await api(`/api/prompts/${id}`),p=d.item
 function promptForm(){modal({title:'New Workshop Prompt',eyebrow:'NO WINNER · NO RANKING',size:'lg',body:`<form id="prompt-form" class="form-grid"><div class="field full"><label>Prompt</label><input name="title" required placeholder="Make something useful from one piece of scrap"></div><div class="field full"><label>Brief</label><textarea name="brief" required></textarea></div><div class="field full"><label>Constraints</label><textarea name="constraints"></textarea></div><div class="field full"><label>Optional constraints</label><textarea name="optionalConstraints"></textarea></div><div class="field full"><label>Inspiration / framing</label><textarea name="inspiration"></textarea></div><div class="field"><label>Status</label><select name="status"><option>Open</option><option>Upcoming</option><option>Complete</option></select></div><div class="field"><label>Visibility</label><select name="visibility"><option>Public</option><option>Members</option></select></div><div class="field full"><button class="button">PUBLISH PROMPT</button></div></form>`,onOpen:m=>$('#prompt-form',m).addEventListener('submit',async e=>{e.preventDefault();try{const r=await api('/api/prompts',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))});closeOverlay();location.hash=`#/prompt/${r.id}`}catch(err){toast(err.message,'error')}})})}
 async function startPrompt(id){try{const r=await api(`/api/prompts/${id}/start`,{method:'POST',body:'{}'});toast('Your interpretation is on the Bench.');location.hash=`#/projects/${r.projectId}`}catch(err){toast(err.message,'error')}}
 
-// v8.0.0 — Privacy-first Workshop Map
-function mapPoint(lat,lon){const x=(Number(lon)+180)/360*100;const y=(90-Number(lat))/180*100;return {x:Math.max(2,Math.min(98,x)),y:Math.max(3,Math.min(97,y))}}
-async function renderWorkshopMap(){setTitle('Workshop Map');const d=await api('/api/workshop-map');const points=d.crews.map(c=>{const p=mapPoint(c.latitude,c.longitude);return `<a class="workshop-map-pin" style="left:${p.x}%;top:${p.y}%" href="#/crew/${esc(c.id)}" title="${esc(c.code+' · '+c.name)}"><span></span><b>${esc(c.code)}</b></a>`}).join('');view.innerHTML=`<div class="view workshop-map-view">${pageHead('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS','Workshop Map','Find public Maker Crews, field trips, and local gatherings without turning member locations into a tracking surface.')}<section class="workshop-map-panel"><div class="map-graticule" aria-label="Geographic overview of public Maker Crew anchor regions">${points}</div><p>${esc(d.privacy)}</p></section><div class="map-directory"><section><h2>MAKER CREWS</h2>${d.crews.map(c=>`<a href="#/crew/${esc(c.id)}"><strong>${esc(c.code)} · ${esc(c.name)}</strong><span>${esc(c.city_region||c.anchor_postal_code)}</span></a>`).join('')||'<p>No public Crew anchor locations are available yet.</p>'}</section><section><h2>PUBLIC FIELD TRIPS + EVENTS</h2>${d.events.filter(e=>e.event_type==='Field Trip'||e.event_type==='Workshop Tour'||new Date(e.starts_at)>new Date()).slice(0,20).map(e=>`<a href="#/crew/${esc(e.crew_id)}/meetups"><strong>${esc(e.title)}</strong><span>${esc(e.code)} · ${fmtDate(e.starts_at,true)} · ${esc(e.city_region||e.venue_name||'Crew region')}</span></a>`).join('')||'<p>No public events are currently mapped.</p>'}</section></div></div>`}
+// v8.0.4 — Real, privacy-first Workshop Map
+let workshopLeafletMap=null;
+function destroyWorkshopMap(){if(workshopLeafletMap){try{workshopLeafletMap.remove()}catch{}workshopLeafletMap=null}}
+function workshopMapPopup(title,body,href,label='OPEN →'){
+  return `<div class="workshop-map-popup"><strong>${esc(title)}</strong>${body?`<span>${esc(body)}</span>`:''}${href?`<a href="${href}">${esc(label)}</a>`:''}</div>`;
+}
+function initWorkshopMap(d){
+  const host=document.querySelector('#workshop-real-map');
+  if(!host)return;
+  destroyWorkshopMap();
+  if(!window.L){host.innerHTML='<div class="map-load-error"><strong>MAP COULD NOT LOAD</strong><span>The geographic directory below is still available. Check the network connection and try again.</span></div>';return;}
+  const L=window.L;
+  const initial=[39.0,-96.5];
+  const map=L.map(host,{zoomControl:true,scrollWheelZoom:true,minZoom:2,worldCopyJump:true,attributionControl:true}).setView(initial,4);
+  workshopLeafletMap=map;
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>'
+  }).addTo(map);
+  const bounds=[];
+  const eventsByCrew=new Map();
+  for(const e of d.events||[]){if(!eventsByCrew.has(e.crew_id))eventsByCrew.set(e.crew_id,[]);eventsByCrew.get(e.crew_id).push(e)}
+  for(const c of d.crews||[]){
+    const lat=Number(c.latitude),lon=Number(c.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+    bounds.push([lat,lon]);
+    const evs=eventsByCrew.get(c.id)||[];
+    const icon=L.divIcon({className:'workshop-leaflet-marker-wrap',html:`<span class="workshop-leaflet-marker"><b>${esc(c.code)}</b>${evs.length?`<i title="${evs.length} public event${evs.length===1?'':'s'}">${evs.length}</i>`:''}</span>`,iconSize:[44,44],iconAnchor:[22,40],popupAnchor:[0,-36]});
+    L.marker([lat,lon],{icon,title:`${c.code} · ${c.name}`}).addTo(map).bindPopup(workshopMapPopup(`${c.code} · ${c.name}`,c.city_region||c.anchor_postal_code,`#/crew/${encodeURIComponent(c.id)}`,'OPEN CREW →'));
+  }
+  let eventIndex=0;
+  for(const e of d.events||[]){
+    const lat=Number(e.latitude),lon=Number(e.longitude);if(!Number.isFinite(lat)||!Number.isFinite(lon))continue;
+    const dx=((eventIndex%3)-1)*0.00001,dy=((Math.floor(eventIndex/3)%3)-1)*0.00001;eventIndex++;
+    const eventIcon=L.divIcon({className:'workshop-event-marker-wrap',html:'<span class="workshop-event-marker" aria-hidden="true"></span>',iconSize:[22,22],iconAnchor:[-2,11],popupAnchor:[10,-8]});
+    const detail=[e.event_type,fmtDate(e.starts_at,true),e.city_region||e.venue_name||'Crew region'].filter(Boolean).join(' · ');
+    L.marker([lat+dy,lon+dx],{icon:eventIcon,title:e.title}).addTo(map).bindPopup(workshopMapPopup(e.title,`${detail} · Shown at Crew region, not an exact address.`, `#/crew/${encodeURIComponent(e.crew_id)}/meetups`,'VIEW CREW EVENTS →'));
+  }
+  if(bounds.length===1)map.setView(bounds[0],10);else if(bounds.length>1)map.fitBounds(bounds,{padding:[38,38],maxZoom:10});
+  setTimeout(()=>{try{map.invalidateSize()}catch{}},60);
+}
+async function renderWorkshopMap(){
+  setTitle('Workshop Map');
+  const d=await api('/api/workshop-map');
+  view.innerHTML=`<div class="view workshop-map-view">${pageHead('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS','Workshop Map','Find public Maker Crews, field trips, and local gatherings on a real interactive map without turning member locations into a tracking surface.')}<section class="workshop-map-panel"><div class="workshop-map-legend"><span><i class="crew-dot"></i> MAKER CREW</span><span><i class="event-dot"></i> PUBLIC EVENT · CREW REGION</span></div><div id="workshop-real-map" class="workshop-real-map" aria-label="Interactive map of public Maker Crew regions and public Crew events"></div><p>${esc(d.privacy)} Public events are also plotted at the Crew region rather than an exact venue address.</p></section><div class="map-directory"><section><h2>MAKER CREWS</h2>${d.crews.map(c=>`<a href="#/crew/${esc(c.id)}"><strong>${esc(c.code)} · ${esc(c.name)}</strong><span>${esc(c.city_region||c.anchor_postal_code)}</span></a>`).join('')||'<p>No public Crew anchor locations are available yet.</p>'}</section><section><h2>PUBLIC FIELD TRIPS + EVENTS</h2>${d.events.filter(e=>e.event_type==='Field Trip'||e.event_type==='Workshop Tour'||new Date(e.starts_at)>new Date()).slice(0,20).map(e=>`<a href="#/crew/${esc(e.crew_id)}/meetups"><strong>${esc(e.title)}</strong><span>${esc(e.code)} · ${fmtDate(e.starts_at,true)} · ${esc(e.city_region||e.venue_name||'Crew region')}</span></a>`).join('')||'<p>No public events are currently mapped.</p>'}</section></div></div>`;
+  requestAnimationFrame(()=>initWorkshopMap(d));
+}
 
 // v8.0.0 — Physical project labels
 async function projectLabel(id){try{const d=await api(`/api/projects/${id}/label`),p=d.project;modal({title:'Project Label',eyebrow:'DIGITAL HISTORY → PHYSICAL ARTIFACT',size:'md',body:`<div class="project-label-sheet" id="project-label-sheet"><div class="project-label-brand">THE WORKSHOP <span>GREEN SHOE GARAGE</span></div><h2>${esc(p.title)}</h2><dl><dt>Maker</dt><dd>${esc(p.owner)}</dd><dt>Stage</dt><dd>${esc(p.stage)}</dd><dt>Project</dt><dd>${esc(p.id)}</dd></dl>${d.qrUrl?`<img class="project-label-qr" src="${esc(d.qrUrl)}" alt="QR code linking to the public Workshop project">`:`<div class="project-label-noqr">PRIVATE PROJECT<br>NO PUBLIC QR</div>`}<p>${esc(d.projectUrl)}</p><small>${esc(d.qrPrivacy)}</small></div><div class="form-actions"><button class="button-secondary" onclick="window.print()">PRINT LABEL</button><button class="button" data-action="close-overlay">DONE</button></div>`})}catch(err){toast(err.message,'error')}}

@@ -12,7 +12,7 @@ const manifest=JSON.parse(read('public/manifest.webmanifest'));
 const server=read('server.js');
 const sw=read('public/sw.js');
 const checks=[
-  ['version aligned in app',app.includes(`version:'${pkg.version}'`)],
+  ['version aligned in app',app.includes(`state.meta.version||'${pkg.version}'`)&&html.includes(`THE WORKSHOP v${pkg.version}`)],
   ['version aligned in manifest',String(manifest.version||pkg.version).includes(pkg.version)||read('public/sw.js').includes(pkg.version)],
   ['modal uses aria-labelledby',app.includes('aria-labelledby=')],
   ['modal traps focus',app.includes("e.key!=='Tab'")],
@@ -70,7 +70,7 @@ const checks=[
   ,['PWA uses raster any and maskable icons',manifest.icons.some(i=>i.purpose==='any'&&i.src==='/icon-512.png')&&manifest.icons.some(i=>i.purpose==='maskable'&&i.src==='/icon-maskable-512.png')]
   ,['Apple and favicon assets linked',html.includes('apple-touch-icon.png')&&html.includes('favicon.ico')&&html.includes('safari-pinned-tab.svg')]
   ,['Primary shell uses inline SVG icon family',html.includes('class="nav-icon"')&&html.includes('viewBox="0 0 24 24"')&&!html.includes('/ui-icons.svg#')&&!html.includes('<span>⌂</span>')]
-  ,['Mobile navigation retains five destinations',(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/builds')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/workshop')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/bench')]
+  ,['Mobile navigation retains five destinations',(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/builds')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('id="mobile-modules"')&&(html.match(/class="mobile-nav"[\s\S]*?<\/nav>/)||[''])[0].includes('#/bench')]
   ,['Mobile navigation enforces five equal columns',css.includes('repeat(5,minmax(0,1fr))!important')]
   ,['Maker ID uses canonical WORKSHOP mark',app.includes('class="workshop-mark"')&&app.includes('maker-id-mark')]
   ,['Icon assets cached for PWA shell',!sw.includes('/ui-icons.svg')&&sw.includes('/icon-maskable-512.png')&&sw.includes('/apple-touch-icon.png')]
@@ -148,6 +148,17 @@ const checks=[
   ,['Workshop Map uses Crew anchor centroids only',server.includes("pathname==='/api/workshop-map'")&&server.includes('z.is_anchor=1')&&server.includes('never member home locations')&&app.includes('PUBLIC CREW REGIONS · NEVER HOME LOCATIONS')]
   ,['Physical project labels support public QR only',server.includes('/label$/')&&server.includes("p.visibility==='Public'?")&&app.includes('DIGITAL HISTORY → PHYSICAL ARTIFACT')&&app.includes('PRINT LABEL')]
   ,['Workshop Prompts are explicitly noncompetitive',server.includes('CREATE TABLE IF NOT EXISTS workshop_prompts')&&app.includes('NO WINNER · NO RANKING')&&app.includes('AN EXHIBITION, NOT A LEADERBOARD')]
+  ,['Mobile module switcher exposes all route families',app.includes('const NAV_MODULES=')&&['bench','builds','workshop','library','live','people'].every(k=>app.includes(`${k}:{label:`))&&app.includes('Object.entries(NAV_MODULES).map')]
+  ,['Mobile module switcher includes v8 tools',app.includes('WORKSHOP NOTEBOOK')&&app.includes('FAILURE LIBRARY')&&app.includes('PROMPTS')&&app.includes('WORKSHOP MAP')&&app.includes('MAKER CREWS')]
+  ,['Mobile module switcher includes external navigation',app.includes('https://mbparks.com/almanac')&&app.includes('https://mbparks.com/almanac2')&&app.includes('GreenShoeGarage/shop')]
+  ,['Workshop Map uses real Leaflet map',app.includes('L.map(host')&&app.includes('tile.openstreetmap.org/{z}/{x}/{y}.png')&&html.includes('leaflet@1.9.4/dist/leaflet.js')&&html.includes('leaflet@1.9.4/dist/leaflet.css')]
+  ,['Workshop Map preserves region-only event privacy',app.includes('Shown at Crew region, not an exact address.')&&app.includes('Public events are also plotted at the Crew region rather than an exact venue address.')]
+  ,['Workshop Map CSP allows required map origins',server.includes("script-src 'self' https://unpkg.com")&&server.includes("style-src 'self' 'unsafe-inline' https://unpkg.com")&&server.includes('https://tile.openstreetmap.org')]
+  ,['Desktop navigation keeps module tools in context rail',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('href="#/notebook"')&&!lower.includes('href="#/map"')&&!lower.includes('href="#/gearhead"')&&!lower.includes('href="#/saved"')})()]
+  ,['Context navigation uses exact route matching',app.includes('function contextItemActive(item,route){ return item.routes.includes(route); }')&&!app.includes("href.includes('#/'+route)")]
+  ,['Desktop and mobile share context module definitions',app.includes('const NAV_MODULES=')&&app.includes('const module=NAV_MODULES[parent]')&&app.includes('Object.entries(NAV_MODULES).map')]
+  ,['GearHead contribution routes stay in Library navigation',app.includes("href:'#/gearhead-contributions',label:'CONTRIBUTIONS',routes:['gearhead-contributions']")&&app.includes("href:'#/gearhead-projects',label:'CREW PROJECTS',routes:['gearhead-projects']")]
+  ,['Lower desktop rail contains only site-wide destinations',(()=>{const lower=(html.match(/<div class="side-secondary"[\s\S]*?<div class="side-status">/)||[''])[0];return !lower.includes('#/notebook')&&!lower.includes('#/map')&&!lower.includes('#/saved')&&!lower.includes('#/gearhead')&&lower.includes('mbparks.com/almanac')&&lower.includes('mbparks.com/almanac2')&&lower.includes('redbubble.com')&&lower.includes('#/about')&&lower.includes('#/terms')})()]
 ];
 let failed=0;
 for(const [name,ok] of checks){console.log(`${ok?'PASS':'FAIL'}  ${name}`);if(!ok)failed++}

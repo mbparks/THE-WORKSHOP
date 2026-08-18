@@ -395,7 +395,7 @@ The CI workflow checks JavaScript syntax, starts THE WORKSHOP under Node 22, and
 git init
 git branch -M main
 git add .
-git commit -m "Initial THE WORKSHOP v5.8.3 release"
+git commit -m "Initial THE WORKSHOP v8.0.5 release"
 git remote add origin git@github.com:YOUR_ACCOUNT/THE-WORKSHOP.git
 git push -u origin main
 ```
@@ -561,3 +561,8 @@ THE WORKSHOP v8 deepens the path from private thought to shared craft knowledge.
 - **Workshop Map** — public Crew anchor regions and public events only; no member home locations and no private meetup addresses.
 - **Physical Project Labels** — printable labels that connect physical artifacts to their Workshop record. Public Projects can include a QR link; private/member-only Projects deliberately do not send a URL to an external QR service.
 - **Workshop Prompts** — shared making challenges with no winner, score, ranking, streak, or leaderboard. Different interpretations are shown beside one another as an exhibition.
+
+
+### Workshop Map
+
+The v8.0.3 Workshop Map uses Leaflet 1.9.4 and OpenStreetMap standard raster tiles. Crew and event positions remain deliberately approximate: only public Crew anchor ZIP centroids are sent to the browser. Exact member/home/private meetup coordinates are not exposed. The map requires an internet connection for basemap tiles; the directory remains usable without tiles.
