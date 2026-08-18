@@ -189,6 +189,7 @@ const checks=[
   ,['Workshop Atmosphere has user settings control',html.includes('id="atmosphere-toggle"')&&app.includes('function showAtmosphereSettings()')&&app.includes("action==='atmosphere-mode'")]
   ,['Workshop Atmosphere respects reduced motion',css.includes('@media(prefers-reduced-motion:reduce)')&&css.includes('animation:none!important')]
   ,['High contrast suppresses decorative atmosphere',css.includes('html[data-theme="contrast"] .workshop-atmosphere{display:none!important}')]
+  ,['Workshop Atmosphere is visibly exposed through content field',css.includes('main{position:relative;background:color-mix(in srgb,var(--paper) 58%,transparent)}')&&css.includes('.atmo-primary{color:var(--atmo-primary);opacity:.17}')]
 
 ];
 let failed=0;

@@ -1,3 +1,11 @@
+# v8.2.1 — Workshop Atmosphere Visibility Hotfix
+
+- Corrected atmosphere layering that made motifs effectively invisible behind the main content field.
+- Increased motif contrast while keeping artwork subordinate to interface content.
+- Increased transparency of the main content field so circuits, gears, code, drafting marks, and other motifs remain visible in negative space.
+- Strengthened dark-theme grid visibility and tuned mobile atmosphere independently.
+- Preserved opaque cards, reduced-motion behavior, High Contrast suppression, and QUIET / WORKSHOP / OFF preferences.
+
 # v8.2.0 — Workshop Atmosphere
 
 - Adds a persistent theme-aware SVG/CSS background atmosphere behind the routed application.
