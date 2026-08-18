@@ -1,5 +1,12 @@
 # Changelog
 
+## v8.0.10 — GearHead Crew moved to People
+
+- Moved **GEARHEAD CREW** from the Library navigation family to **PEOPLE**.
+- Moved File Vault, Contributions, Crew Projects, Crew Requests, and Archive with it so Crew tools stay together.
+- Library navigation now remains focused on Shop Manual and Saved resources.
+- Preserved all existing GearHead routes and content; this is a navigation/information-architecture change only.
+
 ## 8.0.9 — Combined Prompts + Sessions
 
 - Combined the separate Builds navigation destinations for Prompts and Sessions into one **PROMPTS + SESSIONS** destination.
@@ -473,3 +480,9 @@ THE WORKSHOP uses visible semantic-style version numbers so the deployed UI can 
 ## v0.1.0 — Initial functioning MVP
 
 - Established the Project-centered Workshop foundation, real Node/SQLite persistence, and no-compile frontend.
+## 8.0.11 — GearHead Crew Section
+- Promoted GearHead Crew to its own primary navigation section.
+- Moved Crew Home, File Vault, Contributions, Crew Projects, Crew Requests, and Archive into the GearHead Crew contextual rail.
+- Removed GearHead Crew tools from People; People is again focused on people, Maker Crews, the Workshop Map, Skill Exchange, and Maker ID.
+- Added a dedicated non-member GearHead Crew landing experience with join information and membership benefits.
+- Existing GearHead entitlement enforcement and data remain unchanged.
