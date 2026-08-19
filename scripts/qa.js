@@ -98,7 +98,7 @@ const checks=[
   ,['GET SWAG external navigation exists',html.includes('https://www.redbubble.com/people/GreenShoeGarage/shop')&&html.includes('GET SWAG')&&html.includes('target="_blank"')]
   ,['Discord community link exists site-wide',html.includes('https://discord.gg/J3uaN8ugs')&&app.includes('https://discord.gg/J3uaN8ugs')&&app.includes('OPEN DISCORD ↗')]
   ,['Green Shoe Garage GitHub link exists site-wide',html.includes('https://github.com/greenshoegarage')&&app.includes('https://github.com/greenshoegarage')&&app.includes('OPEN GITHUB ↗')]
-  ,['GearHead home has consolidated crew workspace',app.includes('CONTINUE WHERE YOU LEFT OFF')&&app.includes('CREW WORK →')&&app.includes('VAULT →')&&app.includes('renderGearheadWork')&&app.includes('renderGearheadVaultHub')]
+  ,['GearHead home has consolidated crew workspace',app.includes('CONTINUE WHERE YOU LEFT OFF')&&app.includes('gearhead-access-actions')&&app.includes('CREW WORK')&&app.includes('VAULT')&&app.includes('renderGearheadWork')&&app.includes('renderGearheadVaultHub')]
   ,['GearHead fast publishing exists',app.includes('Post to GearHead Crew')&&app.includes('gearhead-quick-type')]
   ,['Bench Roll ordered media implemented',server.includes('CREATE TABLE IF NOT EXISTS gearhead_media')&&server.includes('/media-upload')&&app.includes('bench-roll-grid')]
   ,['GearHead video metadata implemented',server.includes("ensureColumn('gearhead_entries','poster_url'")&&server.includes("ensureColumn('gearhead_entries','transcript'")&&app.includes('Video chapters')]

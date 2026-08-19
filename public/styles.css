@@ -587,3 +587,22 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 /* v9.2.0 — multidisciplinary maker context */
 .maker-context-fields{display:grid;gap:10px}.maker-context{display:none;border:1px solid var(--rule);padding:14px;background:color-mix(in srgb,var(--panel) 88%,transparent)}.maker-context.is-relevant{display:block}.maker-context-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}.maker-context .field{margin:0}.bench-context-grid-v4>div{min-width:0}.project-detail-grid .detail-card .project-tags{margin-top:8px}
 @media(max-width:700px){.maker-context-grid{grid-template-columns:1fr}}
+
+/* v9.2.3 — GearHead member access card cleanup */
+.gearhead-access-card{align-self:start}
+.gearhead-member-card{display:flex;flex-direction:column;gap:0;min-height:0;padding:24px}
+.gearhead-member-card h2{margin:24px 0 8px;font-size:clamp(28px,3vw,40px);line-height:.98;letter-spacing:-.035em}
+.gearhead-supporting-since{margin:0 0 22px;color:var(--muted);font-size:16px}
+.gearhead-access-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gearhead-access-action{position:relative;display:grid;grid-template-columns:1fr auto;grid-template-areas:"kicker arrow" "title arrow" "detail arrow";align-items:center;gap:4px 14px;min-width:0;padding:16px 15px;border:1px solid var(--rule);background:var(--panel-2);color:var(--text);text-decoration:none;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+.gearhead-access-action:hover,.gearhead-access-action:focus-visible{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel-2));transform:translateY(-1px);outline:none}
+.gearhead-access-action.primary{border-color:color-mix(in srgb,var(--accent) 70%,var(--rule));background:color-mix(in srgb,var(--accent) 14%,var(--panel))}
+.gearhead-action-kicker{grid-area:kicker;font:800 9px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.14em;color:var(--muted)}
+.gearhead-access-action strong{grid-area:title;font:800 13px/1.2 var(--sans,system-ui,sans-serif);letter-spacing:.04em}
+.gearhead-access-action small{grid-area:detail;min-width:0;color:var(--muted);font-size:11px;line-height:1.35}
+.gearhead-action-arrow{grid-area:arrow;font-size:20px;color:var(--accent)}
+.gearhead-access-utilities{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--rule)}
+.gearhead-utility-action{min-height:38px;padding:9px 10px;border:1px solid var(--rule);background:transparent;color:var(--muted);font:800 10px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.gearhead-utility-action:hover,.gearhead-utility-action:focus-visible{color:var(--text);border-color:var(--accent);outline:none}
+@media(max-width:1050px){.gearhead-access-actions{grid-template-columns:1fr}}
+@media(max-width:520px){.gearhead-member-card{padding:18px}.gearhead-access-utilities{grid-template-columns:1fr}}

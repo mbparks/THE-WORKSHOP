@@ -1,3 +1,9 @@
+# THE WORKSHOP v9.2.3 — GearHead Home Controls
+
+- Rebuilt GearHead Crew member actions into a clean primary/utility hierarchy.
+- Fixed access card stretching and excessive empty hero space.
+- Added responsive action layout for narrow screens.
+
 # THE WORKSHOP v9.2.2 — Community Links
 
 - Added Green Shoe Garage Discord to site-wide desktop and mobile navigation.
