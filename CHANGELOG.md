@@ -1,3 +1,10 @@
+# THE WORKSHOP v9.2.2 — Community Links
+
+- Added Green Shoe Garage Discord to site-wide desktop and mobile navigation.
+- Added Green Shoe Garage GitHub organization to site-wide desktop and mobile navigation.
+- Added explicit Discord and GitHub destinations to About.
+- Bumped application/service-worker version to v9.2.2.
+
 # THE WORKSHOP v9.2.1 — Privacy Disclosure
 
 - Added a public Privacy Policy route and repository `PRIVACY.md`.
