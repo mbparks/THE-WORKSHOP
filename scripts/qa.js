@@ -254,6 +254,14 @@ const checks=[
   ,['Saved surfaces practical readiness',app.includes('saved-readiness')&&app.includes('MATERIALS TO CHECK')&&app.includes('fit:x.fit')]
   ,['Community Build derivatives are framed as maker variations',app.includes('Maker Variations')&&server.includes("CASE WHEN p.status='Complete' THEN 0 ELSE 1 END")]
   ,['Finished derivative projects can return their result to the Workshop',app.includes('SHOW WHAT YOU BUILT')&&app.includes('showWhatBuilt')&&app.includes("type:'Result'")]
+  ,['Global identity namespace schema exists',server.includes('CREATE TABLE IF NOT EXISTS identity_addresses')&&server.includes('idx_identity_current_entity')]
+  ,['Person callsigns and Crew handles share one namespace',server.includes("setIdentityAddress('user'")&&server.includes("setIdentityAddress('crew'")&&server.includes("entity_type TEXT NOT NULL CHECK(entity_type IN ('user','crew'))")]
+  ,['Identity addresses recycle after 30-day cooldown',server.includes('IDENTITY_COOLDOWN_DAYS=30')&&server.includes("status='cooldown'")&&server.includes('available_at')]
+  ,['New accounts choose callsigns with live availability',app.includes('<label>Callsign</label>')&&app.includes('wireIdentityAvailability')&&server.includes("pathname==='/api/identity/check'")]
+  ,['Existing members can claim callsigns from My Bench',app.includes('CLAIM YOUR CALLSIGN')&&app.includes('name="callsign"')]
+  ,['Crew Studio manages globally unique handles',app.includes('crew-handle-form')&&server.includes('crewHandle=pathname.match')]
+  ,['Mentions resolve through identity registry',server.includes('function notifyMentions')&&server.includes('identity_addresses WHERE address=?')]
+
 
 ];
 let failed=0;

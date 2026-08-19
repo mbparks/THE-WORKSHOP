@@ -36,6 +36,14 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     check('development Mike login works',loginMike.res.ok&&mike.includes('='));
     r=await json(base,'/api/projects/p_knob',{cookie:mike});check('signed-in member can view Members project',r.res.ok&&r.data.project?.id==='p_knob');
 
+    r=await json(base,'/api/crews/crew_21502',{cookie:mike});check('Existing Maker Crew receives deterministic fallback handle',r.res.ok&&r.data.item?.handle==='mc21502');
+    r=await json(base,'/api/identity/check?address=mc21502');check('Crew handle occupies the shared global namespace',r.res.ok&&r.data.available===false&&r.data.entityType==='crew');
+    r=await json(base,'/api/me/callsign',{method:'PUT',cookie:mike,body:{address:'qa-maker'}});check('Member can claim a callsign',r.res.ok&&r.data.address==='qa-maker'&&r.data.user?.callsign==='qa-maker');
+    r=await json(base,'/api/identity/qa-maker');check('Callsign resolves through the global registry',r.res.ok&&r.data.entityType==='user'&&r.data.entityId==='u_mike');
+    r=await json(base,'/api/crews/crew_21502/handle',{method:'PUT',cookie:mike,body:{address:'qa-maker'}});check('Crew cannot claim a person callsign',r.res.status===409);
+    r=await json(base,'/api/me/callsign',{method:'PUT',cookie:mike,body:{address:'qa-maker-2'}});check('Member can rename callsign',r.res.ok&&r.data.address==='qa-maker-2');
+    r=await json(base,'/api/identity/check?address=qa-maker');check('Retired callsign enters 30-day cooldown before reuse',r.res.ok&&r.data.available===false&&r.data.status==='cooldown'&&Boolean(r.data.availableAt));
+
     const mapCrewCreate=await json(base,'/api/crews',{method:'POST',cookie:mike,body:{code:'QA901',name:'One Click Map QA Crew',anchorPostalCode:'21502',cityRegion:'Cumberland, MD',country:'US',status:'Paused',visibility:'Private'}});
     const mapCrewId=mapCrewCreate.data.id;check('QA Crew can start hidden with no coordinates',mapCrewCreate.res.status===201&&mapCrewId);
     r=await json(base,`/api/crews/${mapCrewId}/map-enable`,{method:'POST',cookie:mike,body:{}});check('One-click Crew map enable succeeds',r.res.ok&&r.data.mapVisible===true&&Number.isFinite(Number(r.data.map?.latitude))&&r.data.item?.status==='Active'&&r.data.item?.visibility==='Public');

@@ -1,4 +1,12 @@
-# THE WORKSHOP v9.2.6 — Direct Amazon Books Link
+# THE WORKSHOP v9.3.0 — Callsigns & Crew Handles
+
+- Added one global @address namespace shared by person callsigns and Maker Crew handles.
+- Added live availability checks, reserved names, database uniqueness, and 30-day rename cooldown/reuse.
+- New members choose a callsign during signup; existing members claim one from My Bench.
+- Existing Crews receive deterministic fallback handles and Crew Studio can change them.
+- Discussion @mentions now resolve through the identity registry.
+
+# THE WORKSHOP v9.3.0 — Direct Amazon Books Link
 
 - Replaced the generic Amazon Books search with the direct Amazon book destination supplied by Green Shoe Garage.
 - Desktop navigation, mobile navigation, and About now use `https://a.co/d/09kRqjO5`.

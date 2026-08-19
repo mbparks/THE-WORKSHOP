@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.2.6**
+Current release: **v9.3.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -481,3 +481,8 @@ Do not add a feature merely because it resembles a conventional social-network f
 ## License and community terms
 
 Review [TERMS.md](TERMS.md) for THE WORKSHOP's community and account terms. Repository licensing should be declared separately before broad public distribution if it is not already governed by a private or organizational agreement.
+
+
+## Callsigns & Crew Handles
+
+People use unique callsigns and Maker Crews use unique handles in one shared global `@address` namespace. Addresses are presentation/routing identifiers only; internal database IDs remain immutable. Retired addresses cool down for 30 days and then return to the available pool.

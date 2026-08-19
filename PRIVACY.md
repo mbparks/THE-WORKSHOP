@@ -23,3 +23,8 @@ THE WORKSHOP does not use first-party advertising, marketing, or behavioral-trac
 You can change content visibility inside THE WORKSHOP, sign out to end the current session, clear local browser storage through your browser, export your account data, or use the available account-removal controls. Clearing local storage may remove unsynchronized drafts, offline work, or local preferences.
 
 Community privacy expectations and acceptable conduct are covered separately in `TERMS.md`.
+
+
+## Public Workshop Addresses
+
+If you claim a callsign or manage a Maker Crew handle, that `@address` is intended to be a public Workshop identifier. It does not expose your email address, legal name, precise location, or private Bench content. Callsigns and handles share one global namespace. Retired addresses are held for 30 days before becoming available for reuse.

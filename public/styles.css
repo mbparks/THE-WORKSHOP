@@ -607,3 +607,10 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .gearhead-utility-action:hover,.gearhead-utility-action:focus-visible{color:var(--text);border-color:var(--accent);outline:none}
 @media(max-width:1050px){.gearhead-access-actions{grid-template-columns:1fr}}
 @media(max-width:520px){.gearhead-member-card{padding:18px}.gearhead-access-utilities{grid-template-columns:1fr}}
+
+/* v9.3.0 — global identity addresses */
+.identity-address{display:block;margin-top:3px;color:var(--accent);font:700 11px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em}
+.address-input{display:flex;align-items:center;border:1px solid var(--rule);border-radius:8px;background:var(--field,#111);overflow:hidden}.address-input>span{padding:0 0 0 11px;color:var(--accent);font-weight:800}.address-input input{border:0!important;background:transparent!important;flex:1}
+.identity-availability.available{color:var(--ok,#8fb49d)}.identity-availability.unavailable{color:var(--danger,#d98f86)}
+.maker-id-address{color:var(--accent);font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;margin:4px 0 7px}
+.crew-handle-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0 8px}.crew-handle-row form{display:flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:8px;padding:3px 5px 3px 10px}.crew-handle-row form>span{color:var(--accent);font-weight:800}.crew-handle-row input{width:180px;border:0!important;background:transparent!important;padding:7px 3px!important}.crew-handle-row small{font-size:9px;color:var(--muted)}

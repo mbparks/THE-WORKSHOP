@@ -200,6 +200,7 @@ async function setHash(cdp,hash){
       await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent.includes('Moderator')&&Boolean(document.querySelector('.modal-body [data-crew-member=\"u_rin\"] [data-role=\"Member\"]'))`,'live Crew role refresh');
       const afterRole=await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent||''`);
       check('Crew role change updates Studio immediately without reopening',beforeRole.includes('Member')&&afterRole.includes('Moderator')&&Boolean(await evaluate(cdp,`document.querySelector('.modal')`)),`${beforeRole} -> ${afterRole}`);
+      check('Crew Studio exposes globally unique handle control',await evaluate(cdp,`Boolean(document.querySelector('#crew-handle-form [name="address"]'))&&document.querySelector('#crew-handle-form [name="address"]')?.value==='mc21502'`));
       await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"] [data-role=\"Member\"]')?.click()`);
       await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent.includes('Member')`,'restore Crew member role');
       await evaluate(cdp,`document.querySelector('[data-action=\"close-overlay\"]')?.click()`);
