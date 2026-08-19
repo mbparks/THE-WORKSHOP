@@ -1,3 +1,10 @@
+# THE WORKSHOP v9.2.4 — Community-First Language
+
+- Reframed Crew Work around helping makers, clients, and users solve problems, share knowledge, and grow together.
+- Removed GearHead copy that positioned Green Shoe Garage itself as the primary beneficiary of membership or Crew participation.
+- Updated GearHead Home, join flows, membership dialog, Maker ID, Crew Projects, Home entryway, locked-content copy, Sessions, Shop Notes, and digest language to emphasize community benefit and shared growth.
+- Preserved Green Shoe Garage where it is attribution, branding, source ownership, or a literal project/resource name.
+
 # THE WORKSHOP v9.2.3 — GearHead Home Controls
 
 - Rebuilt GearHead Crew member actions into a clean primary/utility hierarchy.

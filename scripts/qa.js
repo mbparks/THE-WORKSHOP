@@ -179,6 +179,8 @@ const checks=[
   ,['Live exposes one calendar surface',app.includes("label:'LIVE + CALENDAR'")&&app.includes('Community Build Sessions')]
   ,['Failure records surface as Lessons Learned',app.includes('PROJECT NOTEBOOKS → DURABLE KNOWLEDGE')&&app.includes('Record it once; learn from it everywhere.')]
   ,['GearHead work is consolidated',app.includes("label:'CREW WORK'")&&app.includes('renderGearheadWork')]
+  ,['Crew Work language is community-first',app.includes('Crew Projects, contributions, and requests are ways to help makers, clients, and users solve problems, share knowledge, and grow together.')&&app.includes('HELP PEOPLE MOVE THEIR WORK FORWARD')]
+  ,['Self-serving GearHead mission copy is removed',!['Help keep Green Shoe Garage building.','supports Green Shoe Garage','Supporting Green Shoe Garage','SUPPORT GREEN SHOE GARAGE','helping move Green Shoe Garage work forward','help keep the shop moving','helping keep Green Shoe Garage moving'].some(x=>app.includes(x))]
   ,['GearHead vault includes archive',app.includes("label:'VAULT'")&&app.includes('renderGearheadVaultHub')&&app.includes('ARCHIVE')]
   ,['Start Something is intent based',app.includes('START WITH THE INTENT, NOT THE CONTENT TYPE')&&app.includes('MAKE SOMETHING')&&app.includes('DOCUMENT SOMETHING')&&app.includes('ASK FOR HELP')&&app.includes('JOIN SOMETHING')]
   ,['Home uses consolidated editorial sections',app.includes('YOUR WORKSHOP')&&app.includes('JOIN IN')&&app.includes('SHOP TALK')&&app.includes('NEW FROM THE SHOP')]

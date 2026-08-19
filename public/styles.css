@@ -589,6 +589,7 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 @media(max-width:700px){.maker-context-grid{grid-template-columns:1fr}}
 
 /* v9.2.3 — GearHead member access card cleanup */
+/* v9.2.4 — community-first language pass */
 .gearhead-access-card{align-self:start}
 .gearhead-member-card{display:flex;flex-direction:column;gap:0;min-height:0;padding:24px}
 .gearhead-member-card h2{margin:24px 0 8px;font-size:clamp(28px,3vw,40px);line-height:.98;letter-spacing:-.035em}
