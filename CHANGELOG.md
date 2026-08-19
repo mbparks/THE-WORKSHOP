@@ -1,4 +1,16 @@
-# THE WORKSHOP v9.2.4 — Community-First Language
+# THE WORKSHOP v9.2.6 — Direct Amazon Books Link
+
+- Replaced the generic Amazon Books search with the direct Amazon book destination supplied by Green Shoe Garage.
+- Desktop navigation, mobile navigation, and About now use `https://a.co/d/09kRqjO5`.
+
+# THE WORKSHOP v9.2.5 — Books + Commerce Channels
+
+- Added Amazon book sales as an external revenue and discovery/marketing channel alongside Etsy and RedBubble.
+- Added the active GreenShoeGarage Etsy shop to desktop/mobile external navigation.
+- Renamed the generic GET SWAG link to the clearer REDBUBBLE destination.
+- Added an About-page SUPPORT + DISCOVER section explaining how external commerce can fund continued maker work while helping new clients, users, and makers discover the community.
+
+# THE WORKSHOP v9.2.5 — Community-First Language
 
 - Reframed Crew Work around helping makers, clients, and users solve problems, share knowledge, and grow together.
 - Removed GearHead copy that positioned Green Shoe Garage itself as the primary beneficiary of membership or Crew participation.

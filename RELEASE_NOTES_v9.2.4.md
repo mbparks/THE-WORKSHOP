@@ -1,4 +1,4 @@
-# THE WORKSHOP v9.2.4 — Community-First Language
+# THE WORKSHOP v9.2.5 — Community-First Language
 
 This release performs a community-first language pass across THE WORKSHOP.
 
