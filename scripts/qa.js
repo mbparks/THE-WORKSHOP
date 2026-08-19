@@ -15,7 +15,7 @@ const browserQa=read('scripts/browser-qa.js');
 const integrationQa=read('scripts/integration-qa.js');
 const ci=read('.github/workflows/ci.yml');
 const checks=[
-  ['version aligned in app',html.includes(`THE WORKSHOP v${pkg.version}`)&&app.includes("state.meta.version||'9.1.0'")],
+  ['version aligned in app',html.includes(`THE WORKSHOP v${pkg.version}`)&&app.includes(`state.meta.version||'${pkg.version}'`)],
   ['version aligned in manifest',String(manifest.version||pkg.version).includes(pkg.version)||read('public/sw.js').includes(pkg.version)],
   ['modal uses aria-labelledby',app.includes('aria-labelledby=')],
   ['modal traps focus',app.includes("e.key!=='Tab'")],
@@ -85,6 +85,7 @@ const checks=[
   ,['Signup requires versioned Terms acceptance',app.includes('name="terms"')&&app.includes('Terms &amp; Community Conduct')&&server.includes("if(!terms)return sendJson")&&server.includes('terms_version_accepted')&&server.includes('TERMS_VERSION')]
   ,['Existing accounts receive current Terms gate',app.includes('showTermsAcceptance')&&app.includes('termsCurrentAccepted')&&server.includes("pathname === '/api/account/terms'")]
   ,['Public Terms route exists',app.includes("route==='terms'")&&app.includes('Don’t be an idiot.')&&fs.existsSync(path.join(root,'TERMS.md'))]
+  ,['Public Privacy route explains cookie and local storage',app.includes("route==='privacy'")&&app.includes('Cookies &amp; Local Storage')&&app.includes('workshop_session')&&app.includes('Local browser storage')&&fs.existsSync(path.join(root,'PRIVACY.md'))]
   ,['GearHead Crew entitlement is server enforced',server.includes('function canAccessLevel')&&server.includes('isSupporterUser')&&server.includes('GEARHEAD CREW ONLY')]
   ,['GearHead standalone content schema exists',server.includes('CREATE TABLE IF NOT EXISTS gearhead_entries')&&server.includes('gearhead_tutorial_steps')&&server.includes('gearhead_files')]
   ,['GearHead protected files require entitlement',server.includes("url.pathname.startsWith('/gearhead-files/')")&&server.includes('!isSupporterUser(viewer)&&!canEditEditorial(viewer)')]
@@ -231,7 +232,7 @@ const checks=[
   ,['v9 navigation document replaces the obsolete route map',fs.existsSync(path.join(root,'NAVIGATION.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v8.0.5.md'))&&!fs.existsSync(path.join(root,'NAVIGATION_v9.0.4.md'))]
   ,['Release omits development dedupe snapshots',!fs.existsSync(path.join(root,'public/app.pre-dedupe.js'))&&!fs.existsSync(path.join(root,'public/app.pre-dedupe2.js'))]
   ,['Release omits superseded full-size Craft badge PNGs',['craft-apprentice.png','craft-default-wood.png','craft-journeyman.png','craft-master.png'].every(name=>!fs.existsSync(path.join(root,'public',name)))]
-  ,['Release documentation is current',read('README.md').includes('Current release: **v9.1.0**')&&!read('README.md').includes('Current version: **v5.8.3**')&&read('CHANGELOG.md').startsWith('# THE WORKSHOP v9.1.0')]
+  ,['Release documentation is current',read('README.md').includes(`Current release: **v${pkg.version}**`)&&!read('README.md').includes('Current version: **v5.8.3**')&&read('CHANGELOG.md').startsWith(`# THE WORKSHOP v${pkg.version}`)]
   ,['Local bind address is aligned',server.includes("'127.0.0.1'")&&read('.env.example').includes('HOST=127.0.0.1')&&read('start.sh').includes('127.0.0.1:8787')&&!read('README.md').includes('127.0.2.1')]
   ,['Zero-dependency CI does not require an npm cache lockfile',!ci.includes('cache: npm')]
 

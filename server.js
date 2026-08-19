@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.1.0';
+const APP_VERSION = '9.2.1';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -153,7 +153,7 @@ function craftProgressFor(userId,includeEvidence=false){
 function safeUser(u) {
   if (!u) return null;
   const craft=craftProgressFor(u.id,false);
-  return { id: u.id, email: u.email, displayName: u.display_name, bio: u.bio, cityRegion: u.city_region, role: u.role, avatarSeed: u.avatar_seed, skills:json(u.skills), tools:json(u.tools), canHelp:json(u.can_help), wantLearn:json(u.want_learn), profileVisibility:u.profile_visibility||'Members', locationVisibility:u.location_visibility||'Members', toolCabinetVisibility:u.tool_cabinet_visibility||'Members', emailVerified:Boolean(u.email_verified), forcePasswordReset:Boolean(u.force_password_reset), age18ConfirmedAt:u.age_18_confirmed_at||'', termsVersionAccepted:u.terms_version_accepted||'', termsAcceptedAt:u.terms_accepted_at||'', termsCurrentAccepted:(u.terms_version_accepted||'')===TERMS_VERSION, anonymizedAt:u.anonymized_at||'', membership:membershipFor(u.id), supporter:isSupporterUser(u), gearhead:gearheadState(u), craftPath:{currentLevel:craft.currentLevel,currentLabel:craft.currentLabel,metal:craft.metal} };
+  return { id: u.id, email: u.email, displayName: u.display_name, bio: u.bio, cityRegion: u.city_region, role: u.role, avatarSeed: u.avatar_seed, skills:json(u.skills), tools:json(u.tools), platforms:json(u.platforms), canHelp:json(u.can_help), wantLearn:json(u.want_learn), profileVisibility:u.profile_visibility||'Members', locationVisibility:u.location_visibility||'Members', toolCabinetVisibility:u.tool_cabinet_visibility||'Members', emailVerified:Boolean(u.email_verified), forcePasswordReset:Boolean(u.force_password_reset), age18ConfirmedAt:u.age_18_confirmed_at||'', termsVersionAccepted:u.terms_version_accepted||'', termsAcceptedAt:u.terms_accepted_at||'', termsCurrentAccepted:(u.terms_version_accepted||'')===TERMS_VERSION, anonymizedAt:u.anonymized_at||'', membership:membershipFor(u.id), supporter:isSupporterUser(u), gearhead:gearheadState(u), craftPath:{currentLevel:craft.currentLevel,currentLabel:craft.currentLabel,metal:craft.metal} };
 }
 function encodeResponse(res, body, type, cacheControl='no-store', headers={}) {
   const raw=Buffer.isBuffer(body)?body:Buffer.from(String(body));
@@ -237,24 +237,29 @@ function capabilityMatch(needle,haystack){
 }
 function workFit(requirements,user){
   if(!user)return null;
-  const tools=capabilityList(user.tools),skills=capabilityList(user.skills),wantLearn=capabilityList(user.want_learn);
-  const requiredTools=capabilityList(requirements.tools),requiredSkills=capabilityList(requirements.skills||requirements.disciplines),topics=[...requiredSkills,...capabilityList(requirements.tags)];
+  const tools=capabilityList(user.tools),skills=capabilityList(user.skills),platforms=capabilityList(user.platforms),wantLearn=capabilityList(user.want_learn);
+  const requiredTools=capabilityList(requirements.tools),requiredSkills=capabilityList(requirements.skills||requirements.disciplines),requiredPlatforms=capabilityList(requirements.platforms),requiredSoftware=[...capabilityList(requirements.softwareLanguages),...capabilityList(requirements.softwareFrameworks),...capabilityList(requirements.dependencies)],topics=[...requiredSkills,...requiredPlatforms,...requiredSoftware,...capabilityList(requirements.tags)];
   const haveTools=requiredTools.filter(x=>capabilityMatch(x,tools)),missingTools=requiredTools.filter(x=>!capabilityMatch(x,tools));
+  const havePlatforms=requiredPlatforms.filter(x=>capabilityMatch(x,platforms)||capabilityMatch(x,tools)),missingPlatforms=requiredPlatforms.filter(x=>!capabilityMatch(x,platforms)&&!capabilityMatch(x,tools));
+  const haveSoftware=requiredSoftware.filter(x=>capabilityMatch(x,platforms)||capabilityMatch(x,skills)||capabilityMatch(x,tools)),missingSoftware=requiredSoftware.filter(x=>!capabilityMatch(x,platforms)&&!capabilityMatch(x,skills)&&!capabilityMatch(x,tools));
   const matchingSkills=requiredSkills.filter(x=>capabilityMatch(x,skills));
   const learningMatches=topics.filter(x=>capabilityMatch(x,wantLearn));
-  const toolRatio=requiredTools.length?haveTools.length/requiredTools.length:1;
+  const readinessNeeded=requiredTools.length+requiredPlatforms.length+requiredSoftware.length,readinessHave=haveTools.length+havePlatforms.length+haveSoftware.length;
+  const readinessRatio=readinessNeeded?readinessHave/readinessNeeded:1;
   const skillRatio=requiredSkills.length?matchingSkills.length/requiredSkills.length:.5;
   const learningBoost=learningMatches.length?1:0;
-  const score=Math.max(0,Math.min(100,Math.round(toolRatio*60+skillRatio*25+learningBoost*15)));
+  const score=Math.max(0,Math.min(100,Math.round(readinessRatio*60+skillRatio*25+learningBoost*15)));
+  const missing=[...missingTools,...missingPlatforms,...missingSoftware];
   let status='GOOD FIT';
-  if(learningMatches.length&&missingTools.length<=1)status='STRETCH BUILD';
-  else if(!missingTools.length)status=requiredTools.length?'READY NOW':'GOOD FIT';
-  else status='NEED TOOL';
-  return {status,score,haveTools,missingTools,matchingSkills,learningMatches,requiredTools,requiredSkills};
+  if(learningMatches.length&&missing.length<=1)status='STRETCH BUILD';
+  else if(!missing.length)status=readinessNeeded?'READY NOW':'GOOD FIT';
+  else if(missingTools.length)status='NEED TOOL';
+  else if(missingPlatforms.length||missingSoftware.length)status='NEED PLATFORM';
+  return {status,score,haveTools,missingTools,havePlatforms,missingPlatforms,haveSoftware,missingSoftware,matchingSkills,learningMatches,requiredTools,requiredSkills,requiredPlatforms,requiredSoftware};
 }
 function projectFit(row,user){
   if(!row||!user)return null;
-  return workFit({tools:row.tools,skills:row.disciplines,tags:row.tags},user);
+  return workFit({tools:row.tools,skills:row.disciplines,tags:row.tags,platforms:row.platforms,softwareLanguages:row.software_languages,softwareFrameworks:row.software_frameworks,dependencies:row.dependencies},user);
 }
 function projectRow(r,viewer=null) {
   if (!r) return null;
@@ -262,7 +267,7 @@ function projectRow(r,viewer=null) {
     id:r.id, ownerId:r.owner_id, owner:r.owner_name, title:r.title, slug:r.slug, description:r.description,
     stage:r.stage, status:r.status, disciplines:json(r.disciplines), tags:json(r.tags), coverEmoji:r.cover_emoji,
     visibility:r.visibility, license:r.license, estimatedCost:r.estimated_cost, difficulty:r.difficulty, tools:json(r.tools),
-    materials:json(r.materials), website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
+    materials:json(r.materials), platforms:json(r.platforms), softwareLanguages:json(r.software_languages), softwareFrameworks:json(r.software_frameworks), dependencies:json(r.dependencies), electronicsHardware:json(r.electronics_hardware), interfaces:json(r.interfaces), powerRequirements:r.power_requirements||'', website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
     parentType:r.parent_type, parentId:r.parent_id, crewId:r.crew_id||'', crewCode:r.crew_code||'', crewName:r.crew_name||'', createdAt:r.created_at, updatedAt:r.updated_at,
     saved:Boolean(r.saved), logCount:Number(r.log_count || 0), commentCount:Number(r.comment_count || 0), fit:viewer?projectFit(r,viewer):null
   };
@@ -716,6 +721,10 @@ function seedDemo() {
   for (const u of users) iu.run(...u, ts);
 
   const projects = [
+    ['p_code','u_mike','Tiny Workshop Status App','A small browser app for tracking one recurring shop task without accounts, telemetry, or unnecessary machinery.','Testing','Active',['software','creative coding'],['web','javascript','local-first'],'{ }','Public','MIT','$0','Approachable',['VS Code','web browser'],null,null],
+    ['p_synth','u_lee','Pocket MIDI Controller','A hand-sized USB MIDI controller with open firmware, tactile controls, and a repairable enclosure.','Prototyping','Active',['electronics','embedded systems','software','audio & music'],['midi','usb','firmware'],'♫','Public','MIT','$32','Intermediate',['soldering equipment','multimeter','KiCad'],null,null],
+    ['p_stitch','u_morgan','Visible-Mend Field Bag','A worn canvas field bag repaired with deliberately visible stitching, patches, and a record of each repair.','Complete','Complete',['textiles & fiber','sewing','repair & restoration'],['mending','textile','repair'],'✚','Public','CC BY-SA','$9','Approachable',['needle','sewing machine'],null,null],
+    ['p_glaze','u_ada','Small-Batch Glaze Test Tiles','A documented set of ceramic glaze tests exploring subtle color shifts across firing conditions.','Testing','Active',['ceramics','data & visualization'],['ceramics','glaze','test-series'],'◒','Public','CC BY','$24','Intermediate',['kiln','scale','notebook'],null,null],
     ['p_flip','u_mike','Mechanical Flip Clock','A quiet desk clock built from printed carriers, brass pivots, and an aggressively simple escapement.','Testing','Active',['mechanical','fabrication'],['clock','mechanism','3d-printing'],'◫','Public','CERN Open Hardware','$85','Intermediate',['3D printer','hand tools'],null,null],
     ['p_lora','u_lee','LoRa Environmental Sensor','Weatherproof solar node for slow environmental sensing with an intentionally repairable enclosure.','Prototyping','Active',['electronics','embedded systems'],['lora','sensor','solar'],'⌁','Public','MIT','$45','Intermediate',['soldering equipment','multimeter'],null,null],
     ['p_notebook','u_morgan','Hand-Bound Field Notebook','A pocket field notebook with replaceable signatures and a cloth hinge that can survive shop use.','Complete','Complete',['bookbinding','printmaking'],['paper','binding','field-notes'],'▤','Public','CC BY-SA','$18','Approachable',['hand tools'],null,null],
@@ -799,9 +808,9 @@ function seedBatch34Demo() {
   const profiles = [
     ['u_mike',['mechanical design','electronics','embedded systems','fabrication','repair'],['3D printer','CNC router','oscilloscope','soldering equipment'],['embedded systems','design review','repair','prototyping'],['bookbinding','casting','traditional crafts']],
     ['u_morgan',['bookbinding','printmaking','woodworking'],['scroll saw','bookbinding tools','hand tools'],['bookbinding','paper','printmaking'],['electronics','small mechanisms']],
-    ['u_lee',['electronics','repair','embedded systems'],['oscilloscope','multimeter','soldering equipment'],['electronics troubleshooting','repair','soldering'],['machining','industrial design']],
+    ['u_lee',['electronics','repair','embedded systems','software'],['oscilloscope','multimeter','soldering equipment','KiCad','VS Code'],['electronics troubleshooting','repair','soldering'],['machining','industrial design']],
     ['u_rin',['mechanical design','machining','CAD'],['lathe','mill','3D printer'],['machining','CAD','mechanical design'],['electronics','photography']],
-    ['u_ada',['photography','illustration','woodworking'],['camera','laser cutter','hand tools'],['optics','photography','visual design'],['embedded systems','bookbinding']]
+    ['u_ada',['photography','illustration','creative coding','ceramics'],['camera','Procreate','Blender','kiln'],['optics','photography','visual design'],['embedded systems','bookbinding']]
   ];
   const up=db.prepare('UPDATE users SET skills=?,tools=?,can_help=?,want_learn=? WHERE id=?');
   for(const [uid,skills,tools,help,learn] of profiles){
@@ -919,6 +928,15 @@ ensureColumn('users','skills',"TEXT DEFAULT '[]'");
 ensureColumn('users','tools',"TEXT DEFAULT '[]'");
 ensureColumn('users','can_help',"TEXT DEFAULT '[]'");
 ensureColumn('users','want_learn',"TEXT DEFAULT '[]'");
+ensureColumn('users','platforms',"TEXT DEFAULT '[]'");
+ensureColumn('projects','platforms',"TEXT DEFAULT '[]'");
+ensureColumn('projects','software_languages',"TEXT DEFAULT '[]'");
+ensureColumn('projects','software_frameworks',"TEXT DEFAULT '[]'");
+ensureColumn('projects','dependencies',"TEXT DEFAULT '[]'");
+ensureColumn('projects','electronics_hardware',"TEXT DEFAULT '[]'");
+ensureColumn('projects','interfaces',"TEXT DEFAULT '[]'");
+ensureColumn('projects','power_requirements',"TEXT DEFAULT ''");
+
 ensureColumn('users','profile_visibility',"TEXT DEFAULT 'Members'");
 ensureColumn('users','location_visibility',"TEXT DEFAULT 'Members'");
 ensureColumn('users','tool_cabinet_visibility',"TEXT DEFAULT 'Members'");
@@ -1209,7 +1227,7 @@ function renderBenchEmbed(req,res,url,token){
   const row=db.prepare('SELECT * FROM bench_embeds WHERE token=?').get(token);if(!row)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');const viewer=currentUser(req);if(!Number(row.enabled)&&viewer?.id!==row.user_id)return sendBenchEmbedHtml(res,410,'Bench widget unavailable','This Bench widget has been disabled or replaced.');
   const data=benchEmbedPayload(row.user_id,json(row.settings));if(!data)return sendBenchEmbedHtml(res,404,'Bench unavailable','This Workshop member is no longer available.');
   const q=url.searchParams,override={};for(const k of ['theme','layout'])if(q.has(k))override[k]=q.get(k);const settings=benchEmbedSettings({...data.settings,...override});data.settings=settings;
-  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.1.0':rank==='journeyman'?'/craft-journeyman.webp?v=9.1.0':rank==='apprentice'?'/craft-apprentice.webp?v=9.1.0':'/craft-default-wood.webp?v=9.1.0';
+  const base=benchEmbedBase(req),rank=data.craft?.currentLevel||'',badge=rank==='master'?'/craft-master.webp?v=9.2.1':rank==='journeyman'?'/craft-journeyman.webp?v=9.2.1':rank==='apprentice'?'/craft-apprentice.webp?v=9.2.1':'/craft-default-wood.webp?v=9.2.1';
   const profileHref=data.user.profilePublic?`${base}/#/bench/${encodeURIComponent(data.user.id)}`:'';
   const themeCss=settings.theme==='dark'?':root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}':settings.theme==='light'?':root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}':'@media(prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#111510;--panel:#171c16;--ink:#f2efe5;--muted:#aaa99f;--rule:#394238;--accent:#8fb49d}}@media(prefers-color-scheme:light){:root{color-scheme:light;--bg:#f3f0e8;--panel:#fbf9f2;--ink:#171a15;--muted:#66685f;--rule:#c9c7bd;--accent:#4f7f64}}';
   const projectHtml=data.projects.length?`<div class="projects">${data.projects.map(p=>`<a href="${base}/#/projects/${encodeURIComponent(p.id)}" target="_blank" rel="noopener"><span>${htmlEscape(p.stage)}</span><strong>${htmlEscape(p.title)}</strong></a>`).join('')}</div>`:'';
@@ -1625,6 +1643,8 @@ function routeApi(req, res, url) {
     const visibleProjectRows=filterVisibleProjects(projectRows,me);
     const projects = visibleProjectRows.slice(0,8).map(r=>projectRow(r,me));
     const recommendedProjects=me?visibleProjectRows.filter(r=>r.owner_id!==me.id).map(r=>projectRow(r,me)).filter(p=>p.fit).sort((a,b)=>(b.fit?.score||0)-(a.fit?.score||0)).slice(0,3):[];
+    const myPractice=me?capabilityList(me.skills):[];
+    const outsideLaneProject=me?visibleProjectRows.filter(r=>r.owner_id!==me.id).map(r=>projectRow(r,me)).find(p=>(p.disciplines||[]).length&&!(p.disciplines||[]).some(x=>capabilityMatch(x,myPractice)))||null:null;
     let continueProject=null;
     if(me){
       const candidates=db.prepare(projectSelect(uid)+` WHERE p.status='Active' AND (p.owner_id=? OR EXISTS(SELECT 1 FROM project_collaborators pc WHERE pc.project_id=p.id AND pc.user_id=?)) ORDER BY p.updated_at DESC LIMIT 12`).all(uid,me.id,me.id);
@@ -1639,7 +1659,7 @@ function routeApi(req, res, url) {
     const liveEvent = db.prepare(`SELECT e.*,p.title project_title FROM live_events e LEFT JOIN projects p ON p.id=e.project_id WHERE e.status IN ('Live','Scheduled') ORDER BY CASE e.status WHEN 'Live' THEN 0 ELSE 1 END,e.starts_at ASC`).all().find(e=>canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me)));
     const wallExhibition=db.prepare("SELECT * FROM wall_exhibitions WHERE status='Published' AND visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
     const activeSession=db.prepare("SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status IN ('Active','Upcoming') ORDER BY CASE s.status WHEN 'Active' THEN 0 ELSE 1 END,s.starts_at").all().find(x=>canSeeSession(x,me));
-    return sendJson(res,200,{projects,recommendedProjects,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null});
+    return sendJson(res,200,{projects,recommendedProjects,outsideLaneProject,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null});
   }
 
   if (pathname === '/api/projects' && method === 'GET') {
@@ -1657,8 +1677,8 @@ function routeApi(req, res, url) {
       const title = String(body.title || '').trim();
       if (!title) return sendJson(res,400,{error:'Give the project a name.'});
       const pid=id('p'), ts=now();
-      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(pid,u.id,title,slugify(title),String(body.description||''),String(body.stage||'Idea'),String(body.status||'Active'),JSON.stringify(parseList(body.disciplines)),JSON.stringify(parseList(body.tags)),String(body.coverEmoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(body.license||'Unspecified'),String(body.estimatedCost||''),String(body.difficulty||'Approachable'),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.materials)),String(body.website||''),normalizeGitHubRepo(body.githubRepo)?.url||'',String(body.coverUrl||''),String(body.projectType||'Project'),body.parentType||null,body.parentId||null,ts,ts);
+      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,platforms,software_languages,software_frameworks,dependencies,electronics_hardware,interfaces,power_requirements,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(pid,u.id,title,slugify(title),String(body.description||''),String(body.stage||'Idea'),String(body.status||'Active'),JSON.stringify(parseList(body.disciplines)),JSON.stringify(parseList(body.tags)),String(body.coverEmoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(body.license||'Unspecified'),String(body.estimatedCost||''),String(body.difficulty||'Approachable'),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.materials)),JSON.stringify(parseList(body.platforms)),JSON.stringify(parseList(body.softwareLanguages)),JSON.stringify(parseList(body.softwareFrameworks)),JSON.stringify(parseList(body.dependencies)),JSON.stringify(parseList(body.electronicsHardware)),JSON.stringify(parseList(body.interfaces)),String(body.powerRequirements||''),String(body.website||''),normalizeGitHubRepo(body.githubRepo)?.url||'',String(body.coverUrl||''),String(body.projectType||'Project'),body.parentType||null,body.parentId||null,ts,ts);
       if (String(body.firstEntry || '').trim()) db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,String(body.entryType||'Idea'),'First note',String(body.firstEntry).trim(),ts,ts);
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,pid);
       sendJson(res,201,{project:projectRow(row,u)});
@@ -1673,8 +1693,8 @@ function routeApi(req, res, url) {
     return readBody(req).then(body=>{
       const title=String(body.title||`${source.title} — My Build`).trim();if(!title)return sendJson(res,400,{error:'Give your version a name.'});
       const pid=id('p'),ts=now(),adaptation=String(body.adaptation||'').trim();
-      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(pid,u.id,title,slugify(title),String(body.description??source.description),String(body.stage||'Idea'),'Active',source.disciplines,source.tags,String(source.cover_emoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(source.license||'Unspecified'),String(body.estimatedCost??source.estimated_cost),String(body.difficulty||source.difficulty||'Approachable'),source.tools,source.materials,'','',String(source.cover_url||''),String(source.project_type||'Project'),'Project',source.id,ts,ts);
+      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,platforms,software_languages,software_frameworks,dependencies,electronics_hardware,interfaces,power_requirements,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .run(pid,u.id,title,slugify(title),String(body.description??source.description),String(body.stage||'Idea'),'Active',source.disciplines,source.tags,String(source.cover_emoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(source.license||'Unspecified'),String(body.estimatedCost??source.estimated_cost),String(body.difficulty||source.difficulty||'Approachable'),source.tools,source.materials,source.platforms||'[]',source.software_languages||'[]',source.software_frameworks||'[]',source.dependencies||'[]',source.electronics_hardware||'[]',source.interfaces||'[]',source.power_requirements||'','','',String(source.cover_url||''),String(source.project_type||'Project'),'Project',source.id,ts,ts);
       const note=[`Started from “${source.title}” by ${source.owner_name}.`,adaptation?`What I plan to change: ${adaptation}`:'I will adapt the reference to my own tools, materials, constraints, and goals.'].join('\n\n');
       db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,'Idea','Make It Yours',note,ts,ts);
       audit(u.id,'project.clone','project',pid,{sourceProjectId:source.id});
@@ -1709,11 +1729,11 @@ function routeApi(req, res, url) {
     return readBody(req).then(body=>{
       const title=String(body.title||p.title).trim(); if(!title)return sendJson(res,400,{error:'Give the project a name.'});
       const ts=now();
-      db.prepare(`UPDATE projects SET title=?,slug=?,description=?,stage=?,status=?,disciplines=?,tags=?,cover_emoji=?,visibility=?,license=?,estimated_cost=?,difficulty=?,tools=?,materials=?,website=?,github_repo=?,cover_url=?,project_type=?,updated_at=? WHERE id=?`)
+      db.prepare(`UPDATE projects SET title=?,slug=?,description=?,stage=?,status=?,disciplines=?,tags=?,cover_emoji=?,visibility=?,license=?,estimated_cost=?,difficulty=?,tools=?,materials=?,platforms=?,software_languages=?,software_frameworks=?,dependencies=?,electronics_hardware=?,interfaces=?,power_requirements=?,website=?,github_repo=?,cover_url=?,project_type=?,updated_at=? WHERE id=?`)
       .run(title,slugify(title),String(body.description??p.description),String(body.stage||p.stage),String(body.status||p.status),
         JSON.stringify(parseList(body.disciplines ?? json(p.disciplines))),JSON.stringify(parseList(body.tags ?? json(p.tags))),String(body.coverEmoji||p.cover_emoji),
         canonicalVisibility(body.visibility,p.visibility||'Members'),String(body.license||p.license),String(body.estimatedCost??p.estimated_cost),String(body.difficulty||p.difficulty),
-        JSON.stringify(parseList(body.tools ?? json(p.tools))),JSON.stringify(parseList(body.materials ?? json(p.materials))),String((body.website??p.website)||''),
+        JSON.stringify(parseList(body.tools ?? json(p.tools))),JSON.stringify(parseList(body.materials ?? json(p.materials))),JSON.stringify(parseList(body.platforms ?? json(p.platforms))),JSON.stringify(parseList(body.softwareLanguages ?? json(p.software_languages))),JSON.stringify(parseList(body.softwareFrameworks ?? json(p.software_frameworks))),JSON.stringify(parseList(body.dependencies ?? json(p.dependencies))),JSON.stringify(parseList(body.electronicsHardware ?? json(p.electronics_hardware))),JSON.stringify(parseList(body.interfaces ?? json(p.interfaces))),String(body.powerRequirements??p.power_requirements??''),String((body.website??p.website)||''),
         body.githubRepo===undefined?String(p.github_repo||''):(normalizeGitHubRepo(body.githubRepo)?.url||''),String((body.coverUrl??p.cover_url)||''),String(body.projectType||p.project_type||'Project'),ts,p.id);
       if(body.githubRepo!==undefined)db.prepare('DELETE FROM github_cache WHERE project_id=?').run(p.id);
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,p.id);
@@ -1890,8 +1910,8 @@ function routeApi(req, res, url) {
   if(pathname==='/api/profile' && method==='PUT'){
     const u=requireUser(req,res); if(!u)return;
     return readBody(req).then(body=>{
-      db.prepare(`UPDATE users SET display_name=?,bio=?,city_region=?,skills=?,tools=?,can_help=?,want_learn=?,profile_visibility=?,location_visibility=?,tool_cabinet_visibility=? WHERE id=?`).run(
-        String(body.displayName||u.display_name).trim()||u.display_name,String(body.bio??u.bio),String(body.cityRegion??u.city_region),JSON.stringify(parseList(body.skills)),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.canHelp)),JSON.stringify(parseList(body.wantLearn)),String(body.profileVisibility||u.profile_visibility||'Members'),String(body.locationVisibility||u.location_visibility||'Members'),String(body.toolCabinetVisibility||u.tool_cabinet_visibility||'Members'),u.id);
+      db.prepare(`UPDATE users SET display_name=?,bio=?,city_region=?,skills=?,tools=?,platforms=?,can_help=?,want_learn=?,profile_visibility=?,location_visibility=?,tool_cabinet_visibility=? WHERE id=?`).run(
+        String(body.displayName||u.display_name).trim()||u.display_name,String(body.bio??u.bio),String(body.cityRegion??u.city_region),JSON.stringify(parseList(body.skills)),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.platforms)),JSON.stringify(parseList(body.canHelp)),JSON.stringify(parseList(body.wantLearn)),String(body.profileVisibility||u.profile_visibility||'Members'),String(body.locationVisibility||u.location_visibility||'Members'),String(body.toolCabinetVisibility||u.tool_cabinet_visibility||'Members'),u.id);
       const fresh=db.prepare('SELECT * FROM users WHERE id=?').get(u.id); return sendJson(res,200,{user:safeUser(fresh)});
     }).catch(e=>sendJson(res,400,{error:e.message}));
   }
@@ -1992,7 +2012,7 @@ function routeApi(req, res, url) {
 
   if(pathname==='/api/skill-exchange' && method==='GET'){
     const viewer=me,uid=viewer?.id||'',q=String(url.searchParams.get('q')||'').trim().toLowerCase();
-    const people=db.prepare(`SELECT u.id,u.display_name,u.bio,u.city_region,u.role,u.avatar_seed,u.skills,u.tools,u.can_help,u.want_learn,u.profile_visibility,u.location_visibility,(SELECT COUNT(*) FROM projects p WHERE p.owner_id=u.id) project_count FROM users u WHERE u.account_status='Active' AND (u.profile_visibility='Public' OR (?<>'' AND u.profile_visibility='Members') OR u.id=?) ORDER BY u.display_name`).all(uid,uid).map(p=>({...p,skills:json(p.skills),tools:json(p.tools),can_help:json(p.can_help),want_learn:json(p.want_learn),city_region:(p.location_visibility==='Public'||(p.location_visibility==='Members'&&viewer)||p.id===viewer?.id)?p.city_region:''})).filter(p=>!q||[p.display_name,p.bio,...p.skills,...p.can_help,...p.want_learn].join(' ').toLowerCase().includes(q));
+    const people=db.prepare(`SELECT u.id,u.display_name,u.bio,u.city_region,u.role,u.avatar_seed,u.skills,u.tools,u.platforms,u.can_help,u.want_learn,u.profile_visibility,u.location_visibility,(SELECT COUNT(*) FROM projects p WHERE p.owner_id=u.id) project_count FROM users u WHERE u.account_status='Active' AND (u.profile_visibility='Public' OR (?<>'' AND u.profile_visibility='Members') OR u.id=?) ORDER BY u.display_name`).all(uid,uid).map(p=>({...p,skills:json(p.skills),tools:json(p.tools),platforms:json(p.platforms),can_help:json(p.can_help),want_learn:json(p.want_learn),city_region:(p.location_visibility==='Public'||(p.location_visibility==='Members'&&viewer)||p.id===viewer?.id)?p.city_region:''})).filter(p=>!q||[p.display_name,p.bio,...p.skills,...p.can_help,...p.want_learn].join(' ').toLowerCase().includes(q));
     const matches=viewer?people.filter(p=>p.id!==viewer.id).map(p=>{const give=json(viewer.want_learn).filter(x=>(p.can_help||[]).some(y=>y.toLowerCase().includes(String(x).toLowerCase())||String(x).toLowerCase().includes(y.toLowerCase())));const receive=json(viewer.can_help).filter(x=>(p.want_learn||[]).some(y=>y.toLowerCase().includes(String(x).toLowerCase())||String(x).toLowerCase().includes(y.toLowerCase())));return {...p,matchGive:give,matchReceive:receive,matchScore:give.length+receive.length}}).filter(x=>x.matchScore>0).sort((a,b)=>b.matchScore-a.matchScore):[];
     return sendJson(res,200,{people,matches});
   }
@@ -2022,9 +2042,9 @@ function routeApi(req, res, url) {
     const u=requireUser(req,res); if(!u)return; return readBody(req).then(body=>{const itemType=String(body.itemType||'').trim(),itemId=String(body.itemId||'').trim(),reason=String(body.reason||'').trim(); if(!itemType||!itemId||!reason)return sendJson(res,400,{error:'Choose a reason for the report.'}); const rid=id('report'); db.prepare('INSERT INTO content_reports (id,reporter_id,item_type,item_id,reason,status,created_at) VALUES (?,?,?,?,?,?,?)').run(rid,u.id,itemType,itemId,reason,'Open',now());notifyAdmins('moderation',`New moderation report from ${u.display_name}: ${reason}`,'#/admin',`THE WORKSHOP moderation report — ${reason}`,`Reporter: ${u.display_name} (${u.email})\nContent: ${itemType} / ${itemId}\nReason: ${reason}`,'emailModerationReports'); sendJson(res,201,{id:rid});}).catch(e=>sendJson(res,400,{error:e.message}));
   }
   if(pathname==='/api/people' && method==='GET'){
-    const people=db.prepare(`SELECT u.id,u.display_name,u.bio,u.city_region,u.role,u.avatar_seed,u.skills,u.tools,u.can_help,u.want_learn,u.profile_visibility,u.location_visibility,
+    const people=db.prepare(`SELECT u.id,u.display_name,u.bio,u.city_region,u.role,u.avatar_seed,u.skills,u.tools,u.platforms,u.can_help,u.want_learn,u.profile_visibility,u.location_visibility,
       (SELECT COUNT(*) FROM projects p WHERE p.owner_id=u.id) project_count
-      FROM users u WHERE u.profile_visibility='Public' OR (?<>'' AND u.profile_visibility='Members') OR u.id=? ORDER BY u.display_name`).all(me?.id||'',me?.id||'').map(p=>({...p,skills:json(p.skills),tools:json(p.tools),can_help:json(p.can_help),want_learn:json(p.want_learn),city_region:(p.location_visibility==='Public'||(p.location_visibility==='Members'&&me)||p.id===me?.id)?p.city_region:''})); return sendJson(res,200,{people});
+      FROM users u WHERE u.profile_visibility='Public' OR (?<>'' AND u.profile_visibility='Members') OR u.id=? ORDER BY u.display_name`).all(me?.id||'',me?.id||'').map(p=>({...p,skills:json(p.skills),tools:json(p.tools),platforms:json(p.platforms),can_help:json(p.can_help),want_learn:json(p.want_learn),city_region:(p.location_visibility==='Public'||(p.location_visibility==='Members'&&me)||p.id===me?.id)?p.city_region:''})); return sendJson(res,200,{people});
   }
   const uploadMatch=pathname.match(/^\/api\/projects\/([^/]+)\/files$/);
   if(uploadMatch && method==='POST'){

@@ -583,3 +583,7 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .make-it-yours{border-color:color-mix(in srgb,var(--accent-2) 62%,var(--rule));color:var(--accent-2)}
 @media(max-width:900px){.guided-build-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.stretch-build-card,.show-built-callout{grid-template-columns:1fr}.project-help-strip{align-items:flex-start;flex-direction:column}.provenance-grid{grid-template-columns:1fr}.provenance-grid>div{border-right:0}}
 @media(max-width:620px){.guided-build-grid{grid-template-columns:1fr}.show-built-callout .button{width:100%}.stretch-build-card .button-secondary{width:100%}}
+
+/* v9.2.0 — multidisciplinary maker context */
+.maker-context-fields{display:grid;gap:10px}.maker-context{display:none;border:1px solid var(--rule);padding:14px;background:color-mix(in srgb,var(--panel) 88%,transparent)}.maker-context.is-relevant{display:block}.maker-context-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}.maker-context .field{margin:0}.bench-context-grid-v4>div{min-width:0}.project-detail-grid .detail-card .project-tags{margin-top:8px}
+@media(max-width:700px){.maker-context-grid{grid-template-columns:1fr}}

@@ -5,6 +5,7 @@ const fs=require('fs');
 const os=require('os');
 const path=require('path');
 const net=require('net');
+const pkg=require('../package.json');
 
 function freePort(){return new Promise((resolve,reject)=>{const s=net.createServer();s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(()=>resolve(p));});s.on('error',reject);});}
 function cookieFrom(res){const raw=res.headers.get('set-cookie')||'';return raw.split(';')[0];}
@@ -23,7 +24,7 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
   const base=`http://127.0.0.1:${port}`;
   try{
     await waitFor(base+'/api/meta');
-    let r=await json(base,'/api/meta');check('meta reports v9.1.0',r.res.ok&&r.data.version==='9.1.0');
+    let r=await json(base,'/api/meta');check(`meta reports v${pkg.version}`,r.res.ok&&r.data.version===pkg.version);
 
     r=await json(base,'/api/projects');
     check('anonymous project list hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob'));
@@ -64,7 +65,7 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
       r=await json(base,url,{cookie:mike});check(`${name} responds`,r.res.ok&&Array.isArray(r.data[key]));
     }
     const ics=await fetch(base+'/api/calendar.ics',{headers:{cookie:mike}});const icsText=await ics.text();check('Calendar ICS export responds',ics.ok&&icsText.includes('BEGIN:VCALENDAR'));
-    r=await json(base,'/api/version-diagnostics',{cookie:mike});check('Version diagnostics aligns',r.res.ok&&r.data.serverVersion==='9.1.0');
+    r=await json(base,'/api/version-diagnostics',{cookie:mike});check('Version diagnostics aligns',r.res.ok&&r.data.serverVersion===pkg.version);
     r=await json(base,'/api/instruments',{cookie:mike});check('Retired Field Instrument Lab API is not routable',r.res.status===404);
 
     r=await json(base,'/api/blocks/u_lee',{method:'POST',cookie:mike,body:{kind:'Mute'}});check('Mute relation can be created',r.res.status===201&&r.data.kind==='Mute');

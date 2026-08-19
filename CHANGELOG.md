@@ -1,3 +1,15 @@
+# THE WORKSHOP v9.2.1 — Privacy Disclosure
+
+- Added a public Privacy Policy route and repository `PRIVACY.md`.
+- Added a concise **Cookies & Local Storage** disclosure covering the essential `workshop_session` cookie and local browser storage used for preferences, drafts, Guided Build progress, offline caches, and queued work.
+- Added Privacy links to desktop/mobile site-wide navigation and cross-linked the policy from Terms & Community Conduct.
+
+# THE WORKSHOP v9.2.0 — All Makers Pass
+
+- Broadened maker identity, metadata, Build Fit, and visual language across physical, digital, arts, crafts, repair, and DIY practices.
+- Added software/electronics conditional project context and Bench platforms/software.
+- Expanded atmosphere motifs beyond fabrication.
+
 # THE WORKSHOP v9.1.0
 
 ## Build discovery and personalization inside existing modules

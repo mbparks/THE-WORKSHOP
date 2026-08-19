@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 'use strict';
+const pkg=require('../package.json');
 
 const {spawn,spawnSync}=require('node:child_process');
 const fs=require('node:fs');
@@ -117,8 +118,8 @@ async function setHash(cdp,hash){
     if(appEval.exceptionDetails)throw new Error(appEval.exceptionDetails.exception?.description||appEval.exceptionDetails.text||'App script failed to execute');
     await waitForCondition(cdp,`document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'initial Home render',20000);
 
-    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v9.1.0')`,'v9 shell version');
-    check('Browser shell loads v9.1.0',true);
+    await waitForCondition(cdp,`document.querySelector('#version-label')?.textContent.includes('v${pkg.version}')`,'v9 shell version');
+    check(`Browser shell loads v${pkg.version}`,true);
     await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.includes('WHAT ARE YOU')`,'Home hero');
     check('Home renders the Workshop hero',true);
     await waitForCondition(cdp,`document.querySelector('#workshop-atmosphere')?.dataset.module==='home'&&document.querySelectorAll('#atmo-foreground .atmo-sprite').length>=6`,'initial Home atmosphere');
