@@ -614,3 +614,27 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .identity-availability.available{color:var(--ok,#8fb49d)}.identity-availability.unavailable{color:var(--danger,#d98f86)}
 .maker-id-address{color:var(--accent);font:800 13px/1.2 ui-monospace,SFMono-Regular,Menlo,monospace;margin:4px 0 7px}
 .crew-handle-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:5px 0 8px}.crew-handle-row form{display:flex;align-items:center;gap:4px;border:1px solid var(--rule);border-radius:8px;padding:3px 5px 3px 10px}.crew-handle-row form>span{color:var(--accent);font-weight:800}.crew-handle-row input{width:180px;border:0!important;background:transparent!important;padding:7px 3px!important}.crew-handle-row small{font-size:9px;color:var(--muted)}
+\n/* v9.4.0 — artifact-centered interaction layer */\n.project-follow.active{border-color:var(--accent);color:var(--accent)}\n.comment-v4{align-items:flex-start}.comment-v4 .comment-content{min-width:0;flex:1}.comment-author{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}.comment-author span{font-size:11px;color:var(--muted)}\n.comment-reply{margin:12px 0 0 18px;padding-left:14px;border-left:2px solid color-mix(in srgb,var(--accent) 30%,transparent);background:color-mix(in srgb,var(--panel) 82%,transparent)}\n.comment-v4 .text-button{margin-top:6px}.maker-id-actions{display:flex;gap:8px;flex-wrap:wrap}\n@media(max-width:700px){.comment-reply{margin-left:6px;padding-left:10px}.project-hero-actions .project-follow{order:3}}\n
+
+/* v9.5 — Phase 2 collaboration */
+.community-build-main{display:block;color:inherit;text-decoration:none}.community-team-actions{display:flex;gap:12px;justify-content:space-between;align-items:center;padding-top:10px;margin-top:10px;border-top:1px solid var(--rule)}
+.skill-match-section{margin-top:28px}.skill-match-card{border:1px solid var(--rule);border-radius:12px;background:var(--panel);padding:16px;display:grid;gap:8px}.skill-match-card p{margin:0;color:var(--muted)}
+.help-match-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;padding-top:8px;border-top:1px dashed var(--rule)}.help-match-row>span{font-size:10px;letter-spacing:.08em;color:var(--muted)}
+.community-team-list{display:grid;gap:12px}.community-team-card{border:1px solid var(--rule);border-radius:12px;background:var(--panel-2);padding:15px}.community-team-card p{color:var(--muted)}.team-mini-members{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.team-mini-members span{border:1px solid var(--rule);border-radius:999px;padding:5px 8px;font-size:11px}.identity-address{font-family:var(--mono,monospace);font-size:.86em;color:var(--accent)}
+@media(max-width:700px){.community-team-actions{align-items:flex-start;flex-direction:column;gap:6px}.help-match-row{align-items:flex-start;flex-direction:column}}
+
+/* v9.6.0 — Activity & Belonging */
+.working-on-badge{margin-top:14px;display:inline-grid;gap:3px;padding:10px 12px;border:1px solid color-mix(in srgb,var(--accent) 42%,var(--rule));border-radius:10px;background:color-mix(in srgb,var(--panel) 84%,transparent);max-width:520px}
+.working-on-badge span,.person-working-on span,.crew-working-on span{font:700 9px/1 var(--mono);letter-spacing:.12em;color:var(--accent)}
+.working-on-badge strong{font-size:13px}.working-on-badge small{color:var(--muted);font-size:10px}
+.person-working-on,.crew-working-on{margin:10px 0;padding:9px 10px;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--panel-2) 76%,transparent);display:grid;gap:4px}
+.person-working-on strong,.crew-working-on p{margin:0;font-size:12px;line-height:1.35}
+.workshop-activity-list{display:grid;border-top:1px solid var(--rule)}
+.workshop-activity-row{display:grid;grid-template-columns:120px 1fr auto;gap:16px;align-items:center;padding:14px 2px;border-bottom:1px solid var(--rule);color:var(--text);text-decoration:none}
+.workshop-activity-row:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.activity-kind{font:700 9px/1 var(--mono);letter-spacing:.1em;color:var(--accent)}
+.workshop-activity-row div{font-size:13px;line-height:1.4}.workshop-activity-row div small{display:block;color:var(--muted);margin-top:3px}.workshop-activity-row>span:last-child{color:var(--accent)}
+.live-attendance{border-top:1px solid var(--rule)}
+.attendance-strip{display:flex;gap:10px;overflow:auto;padding-bottom:4px}.attendance-person{min-width:118px;display:grid;grid-template-columns:34px 1fr;gap:3px 8px;align-items:center;border:1px solid var(--rule);border-radius:10px;padding:9px;color:var(--text);text-decoration:none;background:var(--panel)}.attendance-person>span{grid-row:1/4;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--panel-2);font-weight:800}.attendance-person strong{font-size:11px}.attendance-person small{font-size:9px;color:var(--muted)}.attendance-person em{font:700 8px/1 var(--mono);color:var(--accent);font-style:normal;letter-spacing:.08em}
+.maker-variations-showcase{margin-top:36px;border-top:1px solid var(--rule);padding-top:28px}
+@media(max-width:700px){.workshop-activity-row{grid-template-columns:1fr auto}.activity-kind{grid-column:1/-1}.working-on-badge{max-width:100%}}

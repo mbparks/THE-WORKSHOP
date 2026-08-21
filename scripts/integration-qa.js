@@ -59,14 +59,46 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     const privateCreate=await json(base,'/api/projects',{method:'POST',cookie:mike,body:{title:'Integration Private Project',visibility:'Private',status:'Active'}});
     const privateId=privateCreate.data.project?.id;check('owner can create Private project',privateCreate.res.status===201&&privateId);
     const loginLee=await json(base,'/api/auth/dev-login',{method:'POST',body:{userId:'u_lee'}});const lee=cookieFrom(loginLee.res);
+    const leeCallsign=await json(base,'/api/me/callsign',{method:'PUT',cookie:lee,body:{address:'qa-lee'}});check('Second member can claim callsign for collaboration QA',leeCallsign.res.ok&&leeCallsign.data.address==='qa-lee');
     r=await json(base,`/api/projects/${privateId}`,{cookie:lee});check('Private project hidden from another member',r.res.status===404);
     r=await json(base,`/api/projects/${privateId}`,{cookie:mike});check('Private project visible to owner',r.res.ok&&r.data.project?.id===privateId);
     r=await json(base,'/api/bench/u_mike',{cookie:lee});check('Member Bench hides another maker’s Private project',r.res.ok&&!r.data.projects.some(p=>p.id===privateId));
+    const collabInvite=await json(base,`/api/projects/${privateId}/collaboration-invites`,{method:'POST',cookie:mike,body:{callsign:'@qa-lee',role:'Reviewer',message:'Please review this build.'}});check('Project owner can invite collaborator by callsign',collabInvite.res.status===201&&collabInvite.data.id);
+    r=await json(base,`/api/collaboration-invites/${collabInvite.data.id}`,{method:'PUT',cookie:lee,body:{status:'Accepted'}});check('Callsign collaboration invitation can be accepted',r.res.ok&&r.data.status==='Accepted');
+    r=await json(base,`/api/projects/${privateId}`,{cookie:mike});check('Accepted collaborator is visibly credited with role and callsign',r.res.ok&&r.data.collaborators.some(c=>c.user_id==='u_lee'&&c.role==='Reviewer'&&c.callsign==='qa-lee'));
+    r=await json(base,'/api/skill-exchange',{cookie:mike});check('Skill Exchange returns explicit reciprocal matches',r.res.ok&&Array.isArray(r.data.matches)&&r.data.matches.some(x=>Number(x.matchScore)>0));
+
+    r=await json(base,'/api/projects/p_lora/follow',{method:'POST',cookie:mike,body:{}});check('Member can follow a visible Project',r.res.ok&&r.data.following===true&&r.data.followerCount>=1);
+    r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Project payload reports active follow state',r.res.ok&&r.data.project?.following===true&&r.data.project?.followerCount>=1);
+    const followLog=await json(base,'/api/projects/p_lora/logs',{method:'POST',cookie:lee,body:{type:'Test',title:'Follower notification QA',body:'A meaningful test update for project followers.'}});check('Project owner can add followed-project update',followLog.res.status===201);
+    r=await json(base,'/api/notifications',{cookie:mike});check('Project follower receives restrained update notification',r.res.ok&&r.data.items.some(n=>n.kind==='project'&&String(n.body).includes('LoRa Environmental Sensor')));
+    const rootComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:mike,body:{body:'Could we document the power budget tradeoff here?'}});const rootCommentId=rootComment.data.comment?.id;check('Project comment can be created',rootComment.res.status===201&&rootCommentId);
+    const replyComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:lee,body:{body:'Yes — I will add the measured numbers.',parentId:rootCommentId}});check('Project comment supports one-level reply',replyComment.res.status===201&&replyComment.data.comment?.parent_id===rootCommentId);
+    r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Project reply is returned in the comment thread',r.res.ok&&r.data.comments.some(c=>c.id===replyComment.data.comment?.id&&c.parent_id===rootCommentId));
+    r=await json(base,`/api/projects/p_lora/comments/${rootCommentId}`,{method:'PUT',cookie:mike,body:{body:'Edited project comment for QA'}});check('Member can edit own project comment',r.res.ok);
+    r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Edited project comment is returned immediately',r.res.ok&&r.data.comments.some(c=>c.id===rootCommentId&&c.body==='Edited project comment for QA'));
+    const deleteComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:mike,body:{body:'Temporary removable comment'}});const deleteCommentId=deleteComment.data.comment?.id;
+    r=await json(base,`/api/projects/p_lora/comments/${deleteCommentId}`,{method:'DELETE',cookie:mike});check('Member can delete own project comment',r.res.ok);
+    r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Deleted project comment disappears immediately',r.res.ok&&!r.data.comments.some(c=>c.id===deleteCommentId));
+    const mentionComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:lee,body:{body:'@qa-maker-2 could you look at the enclosure note?'}});check('Project comment accepts global callsign mention',mentionComment.res.status===201);
+    r=await json(base,'/api/notifications',{cookie:mike});check('Global callsign mention creates notification',r.res.ok&&r.data.items.some(n=>n.kind==='mention'&&String(n.body).includes('@qa-maker-2')));
 
     r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Build Fit is returned for visible projects',r.res.ok&&r.data.project?.fit&&typeof r.data.project.fit.score==='number');
     const clone=await json(base,'/api/projects/p_lora/clone',{method:'POST',cookie:mike,body:{title:'My LoRa Variation',adaptation:'Use the tools already on my Bench.',visibility:'Members'}});
     check('Make It Yours creates a linked personal variation',clone.res.status===201&&clone.data.project?.parentType==='Project'&&clone.data.project?.parentId==='p_lora'&&clone.data.project?.ownerId==='u_mike');
     if(clone.data.project?.id){r=await json(base,`/api/projects/${clone.data.project.id}`,{cookie:mike});check('Personalized project keeps source and starter Notebook entry',r.res.ok&&r.data.project?.parentId==='p_lora'&&r.data.logs?.some(x=>x.title==='Make It Yours'));}
+
+    const teamCreate=await json(base,'/api/community-build-teams',{method:'POST',cookie:mike,body:{sourceType:'BUILD ALONG',sourceId:'ba1',title:'Integration Build Team',lookingFor:'electronics, documentation, testing'}});check('Member can form a Community Build team',teamCreate.res.status===201&&teamCreate.data.id);
+    r=await json(base,`/api/community-build-teams/${teamCreate.data.id}/join`,{method:'POST',cookie:lee,body:{}});check('Another member can join a Community Build team',r.res.ok);
+    r=await json(base,'/api/community-build-teams?sourceType=BUILD%20ALONG&sourceId=ba1',{cookie:mike});check('Community Build team exposes members and callsigns',r.res.ok&&r.data.teams.some(x=>x.id===teamCreate.data.id&&x.member_count===2&&x.members.some(m=>m.callsign==='qa-lee')));
+    r=await json(base,'/api/community-builds',{cookie:mike});check('Community Build aggregate reports team count and membership',r.res.ok&&r.data.items.some(x=>x.type==='BUILD ALONG'&&x.id==='ba1'&&x.teamCount>=1&&x.myTeam===true));
+
+    r=await json(base,'/api/profile',{method:'PUT',cookie:mike,body:{workingOn:'Testing a Phase 3 community build',workingOnDays:7}});check('Working On status can be set from My Bench',r.res.ok&&r.data.user?.workingOn==='Testing a Phase 3 community build'&&Boolean(r.data.user?.workingOnExpiresAt));
+    r=await json(base,'/api/bench/u_mike',{cookie:lee});check('Active Working On status is visible on a member Bench',r.res.ok&&r.data.user?.workingOn==='Testing a Phase 3 community build');
+    r=await json(base,'/api/home',{cookie:mike});check('Home returns Around the Workshop activity',r.res.ok&&Array.isArray(r.data.aroundWorkshop)&&r.data.aroundWorkshop.length>0);
+    r=await json(base,'/api/community-builds',{cookie:mike});check('Community Builds return recent Maker Variations',r.res.ok&&Array.isArray(r.data.recentVariations));
+    const liveList=await json(base,'/api/live',{cookie:mike});const liveForAttendance=liveList.data.items?.find(x=>x.event_type!=='After Hours');
+    if(liveForAttendance){r=await json(base,`/api/live/${liveForAttendance.id}/attendance`,{method:'POST',cookie:mike,body:{status:'Going'}});check('Member can mark I’m Going on a Live event',r.res.ok&&r.data.status==='Going');r=await json(base,`/api/live/${liveForAttendance.id}`,{cookie:mike});check('Live event exposes visible attendance',r.res.ok&&r.data.myAttendance==='Going'&&r.data.attendance.some(a=>a.user_id==='u_mike'&&a.status==='Going'));}else check('Live event attendance fixture exists',false);
 
     for(const [name,url,key] of [
       ['Community Builds aggregate','/api/community-builds','items'],['Help aggregate','/api/help','items'],['Calendar aggregate','/api/calendar','items']]){

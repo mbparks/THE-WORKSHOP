@@ -177,13 +177,38 @@ async function setHash(cdp,hash){
     check('Shared media picker is available in the project editor',await evaluate(cdp,`Boolean(document.querySelector('#project-form .media-picker'))`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]').click()`);
 
+    await setHash(cdp,'#/people');
+    check('People surfaces possible reciprocal Skill Exchange matches',await evaluate(cdp,`Boolean(document.querySelector('.skill-match-section'))`));
+    await setHash(cdp,'#/community-builds');
+    check('Community Builds expose team formation without a new module',await evaluate(cdp,`Boolean(document.querySelector('[data-action="form-community-team"]'))&&Boolean(document.querySelector('[data-action="community-teams"]'))`));
+    await setHash(cdp,'#/projects/p_flip');
+    check('Collaborative Projects show visible MADE BY / WITH credits',await evaluate(cdp,`document.querySelector('.project-byline')?.textContent.includes('MADE BY')&&document.querySelector('.project-byline')?.textContent.includes('WITH')`));
+
     await setHash(cdp,'#/projects/p_knob');
     check('Project page exposes local object navigation',await evaluate(cdp,`document.querySelectorAll('.project-section-nav a').length>=5`));
     check('Project page provides a share action',await evaluate(cdp,`Boolean(document.querySelector('[data-action="share-current"]'))`));
+    check('Owned Project exposes callsign collaborator invitation',await evaluate(cdp,`Boolean(document.querySelector('[data-action="invite-collaborator"]'))`));
+    await evaluate(cdp,`document.querySelector('[data-action="invite-collaborator"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#invite-form [name="callsign"]')`,'Callsign collaborator invite');
+    check('Collaborator invitation uses global callsign address',await evaluate(cdp,`document.querySelector('#invite-form [name="callsign"]')?.placeholder==='@paperpilot'`));
+    await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
     check('Project page exposes Guided Build',await evaluate(cdp,`Boolean(document.querySelector('#project-guide .guided-build-grid'))`));
     check('Project can ask Workshop with project context',await evaluate(cdp,`Boolean(document.querySelector('[data-action="project-help"]'))`));
     await setHash(cdp,'#/projects/p_lora');
     check('Public project can be personalized with Make It Yours',await evaluate(cdp,`Boolean(document.querySelector('[data-action="make-it-yours"]'))`));
+    check('Visible Project exposes follow control',await evaluate(cdp,`Boolean(document.querySelector('[data-action="follow-project"]'))`));
+    await evaluate(cdp,`document.querySelector('[data-action="follow-project"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('[data-action="follow-project"]')?.textContent.includes('FOLLOWING')`,'Project follow state');
+    check('Project follow updates in place',true);
+    check('Project Talk advertises callsign mentions',await evaluate(cdp,`document.querySelector('#comment-body')?.getAttribute('placeholder')?.includes('@callsign')`));
+    await evaluate(cdp,`(()=>{const t=document.querySelector('#comment-body');t.value='Browser QA project comment';document.querySelector('#comment-form').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));return true})()`);
+    await waitForCondition(cdp,`[...document.querySelectorAll('.comment-v4 p')].some(x=>x.textContent.includes('Browser QA project comment'))`,'Project comment render');
+    check('Project comments render without leaving the Project',true);
+    await evaluate(cdp,`[...document.querySelectorAll('.comment-v4')].find(x=>x.textContent.includes('Browser QA project comment'))?.querySelector('[data-action="reply-project-comment"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#project-comment-reply')`,'Project reply editor');
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#project-comment-reply');f.querySelector('textarea').value='Browser QA reply';f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));return true})()`);
+    await waitForCondition(cdp,`[...document.querySelectorAll('.comment-reply p')].some(x=>x.textContent.includes('Browser QA reply'))`,'Project reply render');
+    check('Project one-level reply renders in place',true);
     await evaluate(cdp,`document.querySelector('[data-action="make-it-yours"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#make-it-yours-form')`,'Make It Yours editor');
     check('Make It Yours keeps source adaptation context explicit',await evaluate(cdp,`document.querySelector('#make-it-yours-form')?.textContent.includes('What will you change?')`));
@@ -223,8 +248,17 @@ async function setHash(cdp,hash){
       }else check('Crew Studio exposes one-click map visibility',false,'Could not create Browser QA Crew.');
     }else check('Maker Crew page exposes local object navigation',false,'No seeded Crew was available.');
 
+    await setHash(cdp,'#/home');
+    check('Home surfaces Around the Workshop activity without becoming a feed',await evaluate(cdp,`document.querySelector('.around-workshop')?.textContent.includes('AROUND THE WORKSHOP')`));
+    await evaluate(cdp,`fetch('/api/profile',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({workingOn:'Browser QA is making something',workingOnDays:7})}).then(r=>r.json())`);
+    await setHash(cdp,'#/bench');
+    check('My Bench surfaces temporary Working On status',await evaluate(cdp,`document.querySelector('.working-on-badge')?.textContent.includes('Browser QA is making something')`));
+    if(crewId){await setHash(cdp,`#/crew/${encodeURIComponent(crewId)}`);check('Maker Crew local navigation exposes Crew Board',await evaluate(cdp,`[...document.querySelectorAll('.crew-local-nav a')].some(a=>a.textContent.includes('CREW BOARD'))`));}
+
     await setHash(cdp,'#/live');
     check('Live page exposes calendar export',await evaluate(cdp,`Boolean(document.querySelector('a[href="/api/calendar.ics"]'))`));
+    const liveHref=await evaluate(cdp,`document.querySelector('.calendar-card[href^="#/live/"]')?.getAttribute('href')||''`);
+    if(liveHref){await setHash(cdp,liveHref);check('Live event exposes Interested and I’m Going attendance controls',await evaluate(cdp,`Boolean(document.querySelector('[data-action="live-attendance"][data-status="Interested"]'))&&Boolean(document.querySelector('[data-action="live-attendance"][data-status="Going"]'))`));}
 
     await setHash(cdp,'#/search/gear/all');
     check('Global search follows consolidated IA',await evaluate(cdp,`(()=>{const t=document.querySelector('#route-view')?.textContent||'';return t.includes('Community Builds')&&t.includes('Help + Critique')})()`));

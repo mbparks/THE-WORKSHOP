@@ -1,3 +1,27 @@
+# THE WORKSHOP v9.6.0 — Activity & Belonging
+
+## v9.6.0 — Activity & Belonging
+
+- Added Around the Workshop activity on Home.
+- Added expiring Working On member status.
+- Promoted Crew bulletin into Crew Board.
+- Added Live attendance and attendee visibility.
+- Emphasized completed Maker Variations in Community Builds.
+
+- Callsign-based project collaboration invitations and visible collaboration credits.
+- Possible Skill Matches in People from explicit reciprocal help/learning fields.
+- Can You Help routing in Help + Critique.
+- Community Build teams with form/join/leave flows.
+- No new social module; collaboration stays attached to work.
+
+# THE WORKSHOP v9.4.0 — Interaction Layer
+
+- Project comments now support one-level replies and callsign-aware attribution.
+- Project following creates restrained activity notifications for meaningful project updates.
+- @callsign mentions notify addressed makers across project talk, Notebook entries, Help + Critique, Live, weekly prompts, and Crew bulletin posts.
+- Maker ID and public Benches now expose Ask This Maker, routed through the existing Help + Critique workflow.
+- Added project follow data to member data export.
+
 # THE WORKSHOP v9.3.0 — Callsigns & Crew Handles
 
 - Added one global @address namespace shared by person callsigns and Maker Crew handles.

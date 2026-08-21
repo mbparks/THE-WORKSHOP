@@ -46,7 +46,7 @@ const checks=[
   ['Crew roles stay local',server.includes('isCrewOrganizer')&&server.includes('Crew organizer access required')],
   ['Meetup exact-address privacy exists',server.includes('address_visibility')&&server.includes("showAddress=e.address_visibility==='Public'")],
   ['Local tools do not expose storage location',server.includes('local_availability')&&app.includes('never publishes where this tool is stored')],
-  ['Crew bulletin board implemented',server.includes('maker_crew_bulletin_posts')&&app.includes('CREW BULLETIN BOARD')],
+  ['Crew bulletin board implemented',server.includes('maker_crew_bulletin_posts')&&app.includes('CREW BOARD')],
   ['Crew Sessions reuse Session system',server.includes('canManageWorkshopSession')&&app.includes('crewSessionForm')],
   ['Crew request approval implemented',server.includes('crew.request.review')&&app.includes('crew-request-review')],
   ['Crew participation included in export',server.includes('crewMemberships')&&server.includes('crewAttendance')],
@@ -261,6 +261,22 @@ const checks=[
   ,['Existing members can claim callsigns from My Bench',app.includes('CLAIM YOUR CALLSIGN')&&app.includes('name="callsign"')]
   ,['Crew Studio manages globally unique handles',app.includes('crew-handle-form')&&server.includes('crewHandle=pathname.match')]
   ,['Mentions resolve through identity registry',server.includes('function notifyMentions')&&server.includes('identity_addresses WHERE address=?')]
+  ,['Project comments support one-level replies',server.includes("ensureColumn('comments','parent_id'")&&app.includes('reply-project-comment')&&app.includes('projectCommentThreads')]
+  ,['Project comments support owner edit delete and member reporting',server.includes('projectCommentDetail')&&app.includes('edit-project-comment')&&app.includes('delete-project-comment')&&app.includes('data-item-type=\"project_comment\"')]
+  ,['Project following is artifact centered',server.includes('CREATE TABLE IF NOT EXISTS project_follows')&&server.includes('/follow$/')&&app.includes('follow-project')&&app.includes('Projects I own or follow')]
+  ,['Project followers get meaningful update notifications',server.includes('function notifyProjectFollowers')&&app.includes('Following project activity.')]
+  ,['Callsign mentions extend beyond discussions',server.includes('notifyMentions(text,u.id,`#/projects/')&&server.includes('notifyMentions(text,u.id,`#/live/')&&server.includes('maker_crew_bulletin_posts')]
+  ,['Ask This Maker routes through existing Help workflow',app.includes('function askThisMaker')&&app.includes('ASK @${esc(m.callsign)}')&&app.includes("questionForm('',null,{id:userId,callsign,name})")]
+  ,['Phase 2 collaboration uses callsign project invites',app.includes('SHARED PROJECT · USE A CALLSIGN')&&server.includes('requestedAddress=normalizeIdentityAddress(body.callsign')]
+  ,['Project collaboration credits are visible',app.includes('MADE BY <strong>')&&app.includes('ownerCallsign')&&server.includes('owner_callsign')]
+  ,['People surfaces reciprocal Skill Exchange matches',app.includes('Possible Skill Matches')&&server.includes("pathname==='/api/skill-exchange'")&&server.includes('matchGive')&&server.includes('matchReceive')]
+  ,['Help routing exposes possible makers who can help',app.includes('CAN YOU HELP? POSSIBLE MATCHES')&&server.includes('helperCandidates')]
+  ,['Community Builds support small teams',server.includes('community_build_teams')&&server.includes('/api/community-build-teams')&&app.includes('FORM A TEAM')&&app.includes('join-community-team')]
+  ,['Phase 3 Home surfaces Around the Workshop activity',server.includes('aroundWorkshop')&&app.includes('AROUND THE WORKSHOP')]
+  ,['Phase 3 Bench supports expiring Working On status',server.includes('working_on_expires_at')&&app.includes('WORKING ON')]
+  ,['Phase 3 Crew Board uses existing Crew bulletin data',app.includes('CREW BOARD')&&server.includes('maker_crew_bulletin_posts')]
+  ,['Phase 3 Live supports attendance without new module',server.includes('live_event_attendance')&&app.includes('I’M GOING')]
+  ,['Phase 3 emphasizes Maker Variations',server.includes('recentVariations')&&app.includes('Recent Maker Variations')]
 
 
 ];
