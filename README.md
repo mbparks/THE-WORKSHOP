@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.6.0**
+Current release: **v9.6.1**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -493,6 +493,16 @@ People use unique callsigns and Maker Crews use unique handles in one shared glo
 Phase 1 community interaction adds one-level Project replies, Project following, global `@callsign` mentions, lightweight notifications, and Ask This Maker through the existing Help + Critique workflow. Interaction stays centered on work rather than a generic social feed.
 
 
-## v9.6.0 — Collaboration Layer
+## v9.5.0 — Collaboration Layer
 
 Phase 2 keeps collaboration inside existing Workshop objects. Project owners invite collaborators by callsign and publish visible role credits. People surfaces practical two-way Skill Exchange matches based only on explicit Can Help With / Want to Learn fields. Help + Critique surfaces possible helpers without ranking them. Community Builds can form small teams around prompts, briefs, sessions, teardowns, and shared questions.
+
+
+## v9.6.0 — Activity & Belonging
+
+Phase 3 adds Around the Workshop, temporary Working On status, Crew Board visibility, Live attendance, and stronger Maker Variations while keeping interaction tied to making.
+
+
+## v9.6.1 — Reddit Navigation
+
+Adds the Green Shoe Workshop subreddit to the shared desktop and mobile external/community navigation.

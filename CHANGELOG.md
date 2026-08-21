@@ -1,3 +1,12 @@
+# THE WORKSHOP v9.6.1 — Reddit Navigation
+
+## v9.6.1 — Reddit Navigation
+
+- Added **Reddit** to the desktop left-side `MORE` navigation.
+- Added the same Reddit destination to the mobile Modules sheet.
+- Reddit opens the Green Shoe Workshop subreddit in a new tab with `noopener noreferrer`.
+- Updated app/server/service-worker version markers to v9.6.1.
+
 # THE WORKSHOP v9.6.0 — Activity & Belonging
 
 ## v9.6.0 — Activity & Belonging

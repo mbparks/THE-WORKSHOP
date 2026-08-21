@@ -162,3 +162,8 @@ Detail URLs continue to resolve directly so old project, prompt, session, critiq
 5. Detail routes highlight the correct parent destination.
 6. Retired modules should redirect during migration and then have obsolete client code removed.
 7. Protected destinations may be visible as invitations, but protected content remains server-authorized.
+
+
+## External community links
+
+The shared MORE navigation includes Discord, Reddit (`https://www.reddit.com/r/GreenShoeWorkshop/`), GitHub, and the existing commerce/reference destinations.
