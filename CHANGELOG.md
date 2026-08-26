@@ -1,3 +1,12 @@
+# THE WORKSHOP v9.6.3 — Repair Clinic Navigation
+
+## v9.6.2 — Parts Library Navigation
+
+- Added **PARTS LIBRARY** directly below **ALMANAC II** in the left-side external navigation.
+- Added the same Parts Library link to the mobile Modules sheet.
+- Links to `https://greenshoegarage.com/parts/` and opens safely in a new tab.
+- Updated app/server/service-worker version markers to v9.6.2.
+
 # THE WORKSHOP v9.6.1 — Reddit Navigation
 
 ## v9.6.1 — Reddit Navigation
@@ -748,3 +757,9 @@ THE WORKSHOP uses visible semantic-style version numbers so the deployed UI can 
 - Removed GearHead Crew tools from People; People is again focused on people, Maker Crews, the Workshop Map, Skill Exchange, and Maker ID.
 - Added a dedicated non-member GearHead Crew landing experience with join information and membership benefits.
 - Existing GearHead entitlement enforcement and data remain unchanged.
+
+## v9.6.3 — Repair Clinic Navigation
+
+- Added **REPAIR CLINIC** directly below **PARTS LIBRARY** in the desktop left-side navigation.
+- Added the matching **REPAIR CLINIC** link to the mobile Modules navigation.
+- Destination: `https://greenshoegarage.com/repairclinic/`.
