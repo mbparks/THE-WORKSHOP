@@ -1,3 +1,9 @@
+# THE WORKSHOP v9.6.4 — Sideband Radio Navigation
+
+- Added **Sideband Radio** directly below **REPAIR CLINIC** in desktop external navigation.
+- Added the matching Sideband Radio link to mobile Modules navigation.
+- Bumped the service-worker/application cache version to v9.6.4.
+
 # THE WORKSHOP v9.6.3 — Repair Clinic Navigation
 
 ## v9.6.2 — Parts Library Navigation
