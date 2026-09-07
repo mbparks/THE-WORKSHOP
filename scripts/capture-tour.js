@@ -61,8 +61,8 @@ async function shot(cdp,name,{scroll=null,selector=null,full=false}={}){
     await evalx(cdp,`(()=>{const nodes=[...document.querySelectorAll('h2,h3,[data-section-title]')];const target=nodes.find(node=>/AROUND THE WORKSHOP/i.test(node.textContent||''));if(target)target.scrollIntoView({block:'start',behavior:'instant'});else window.scrollTo(0,Math.max(560,innerHeight*.7));return true})()`);
     await sleep(450);await shot(cdp,'01-home-activity');
     await route(cdp,'#/bench');await shot(cdp,'02-bench');
-    await route(cdp,'#/projects/p_lora');await shot(cdp,'03-project');
-    await shot(cdp,'04-project-talk',{selector:'#project-discussion'});
+    await route(cdp,'#/projects');await shot(cdp,'03-project');
+    await route(cdp,'#/projects/p_lora');await shot(cdp,'04-project-talk',{selector:'#project-discussion'});
     await route(cdp,'#/community-builds');await shot(cdp,'05-community-builds');
     await route(cdp,'#/help');await shot(cdp,'06-help-critique');
     await route(cdp,'#/people');await shot(cdp,'07-people');
