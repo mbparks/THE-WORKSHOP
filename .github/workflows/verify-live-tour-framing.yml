@@ -1,0 +1,151 @@
+name: Verify live Workshop tour framing
+
+on:
+  push:
+    branches:
+      - tour-live-visual-verify
+
+permissions:
+  contents: read
+
+jobs:
+  verify-live-tour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tour-live-visual-verify
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Locate Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              echo "CHROMIUM_PATH=$(command -v "$candidate")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          echo "CHROMIUM_PATH=$(command -v chromium-browser || command -v chromium)" >> "$GITHUB_ENV"
+
+      - name: Verify deployed files and rendered geometry
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/live-tour-check
+          base='https://workshop.greenshoegarage.com'
+          for n in $(seq 1 60); do
+            if curl -fsSL --max-time 20 "$base/tour?verify=$n" -o /tmp/live-tour-check/tour.html \
+              && grep -q '/tour/screens/01-home-activity.webp' /tmp/live-tour-check/tour.html; then
+              break
+            fi
+            sleep 2
+          done
+          grep -q '/tour/screens/01-home.webp' /tmp/live-tour-check/tour.html
+          grep -q '/tour/screens/01-home-activity.webp' /tmp/live-tour-check/tour.html
+          grep -q 'THE WORKSHOP Projects index showing active work' /tmp/live-tour-check/tour.html
+          curl -fsSL --max-time 20 "$base/tour/tour.css?verify=$(date +%s)" -o /tmp/live-tour-check/tour.css
+          grep -q 'TOUR FRAMING REFINEMENT v2' /tmp/live-tour-check/tour.css
+          grep -q 'object-fit:contain!important' /tmp/live-tour-check/tour.css
+          curl -fsSL --max-time 20 "$base/tour/screens/01-home.webp?verify=$(date +%s)" -o /tmp/live-tour-check/01-home.webp
+          curl -fsSL --max-time 20 "$base/tour/screens/01-home-activity.webp?verify=$(date +%s)" -o /tmp/live-tour-check/01-home-activity.webp
+          curl -fsSL --max-time 20 "$base/tour/screens/02-bench.webp?verify=$(date +%s)" -o /tmp/live-tour-check/02-bench.webp
+          curl -fsSL --max-time 20 "$base/tour/screens/03-project.webp?verify=$(date +%s)" -o /tmp/live-tour-check/03-project.webp
+          test "$(stat -c%s /tmp/live-tour-check/01-home.webp)" -gt 20000
+          test "$(stat -c%s /tmp/live-tour-check/01-home-activity.webp)" -gt 20000
+          test "$(stat -c%s /tmp/live-tour-check/02-bench.webp)" -gt 20000
+          test "$(stat -c%s /tmp/live-tour-check/03-project.webp)" -gt 20000
+          cmp -s /tmp/live-tour-check/01-home.webp /tmp/live-tour-check/01-home-activity.webp && exit 1 || true
+
+          cat > /tmp/verify-live-tour.js <<'NODE'
+          'use strict';
+          const {spawn}=require('node:child_process');
+          const fs=require('node:fs');
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          class CDP{
+            constructor(url){this.url=url;this.ws=null;this.id=1;this.pending=new Map();this.listeners=new Map();}
+            async connect(){await new Promise((resolve,reject)=>{const ws=this.ws=new WebSocket(this.url);const timer=setTimeout(()=>reject(new Error('CDP connection timeout')),10000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',event=>{clearTimeout(timer);reject(event.error||new Error('CDP error'));},{once:true});ws.addEventListener('message',event=>this.onMessage(event.data));});}
+            onMessage(raw){const message=JSON.parse(String(raw));if(message.id){const pending=this.pending.get(message.id);if(!pending)return;this.pending.delete(message.id);message.error?pending.reject(new Error(message.error.message)):pending.resolve(message.result||{});return;}if(message.method)for(const listener of this.listeners.get(message.method)||[])listener(message.params||{});}
+            on(method,listener){const list=this.listeners.get(method)||[];list.push(listener);this.listeners.set(method,list);}
+            send(method,params={}){return new Promise((resolve,reject)=>{const id=this.id++;this.pending.set(id,{resolve,reject});this.ws.send(JSON.stringify({id,method,params}));});}
+            close(){try{this.ws?.close();}catch{}}
+          }
+          async function waitFor(url,tries=120){for(let i=0;i<tries;i++){try{const response=await fetch(url);if(response.ok)return response;}catch{}await sleep(100);}throw new Error(`Timed out waiting for ${url}`);}
+          async function evaluate(cdp,expression){const result=await cdp.send('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(result.exceptionDetails)throw new Error(result.exceptionDetails.exception?.description||result.exceptionDetails.text||'Evaluation failed');return result.result?.value;}
+          async function waitCondition(cdp,expression,label,timeout=20000){const start=Date.now();while(Date.now()-start<timeout){try{if(await evaluate(cdp,`Boolean(${expression})`))return;}catch{}await sleep(120);}throw new Error(`Timed out: ${label}`);}
+          async function screenshot(cdp,name){const result=await cdp.send('Page.captureScreenshot',{format:'png',fromSurface:true});fs.writeFileSync(`/tmp/live-tour-check/${name}.png`,Buffer.from(result.data,'base64'));}
+          (async()=>{
+            const chromePath=process.env.CHROMIUM_PATH;
+            const port=9337;
+            const chrome=spawn(chromePath,[`--remote-debugging-port=${port}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--hide-scrollbars','--no-first-run','--no-default-browser-check','--window-size=1440,1000','--user-data-dir=/tmp/live-tour-chrome','about:blank'],{stdio:'ignore'});
+            let cdp;
+            try{
+              await waitFor(`http://127.0.0.1:${port}/json/version`);
+              const target=await (await fetch(`http://127.0.0.1:${port}/json/new?about:blank`,{method:'PUT'})).json();
+              cdp=new CDP(target.webSocketDebuggerUrl);await cdp.connect();
+              await Promise.all([cdp.send('Page.enable'),cdp.send('Runtime.enable'),cdp.send('Network.enable')]);
+              await cdp.send('Page.navigate',{url:`https://workshop.greenshoegarage.com/tour?render=${Date.now()}`});
+              await waitCondition(cdp,`document.readyState==='complete'`,'document ready');
+              await waitCondition(cdp,`[...document.images].every(image=>image.complete&&image.naturalWidth>0)`,'images loaded',30000);
+              await sleep(1000);
+              const metrics=await evaluate(cdp,`(()=>{
+                const hero=document.querySelector('.hero-shot img');
+                const overview=document.querySelector('#overview .screen-card img');
+                const desktop=[...document.querySelectorAll('.screen-card img')].filter(img=>!img.closest('.mobile-card'));
+                const rect=element=>{const r=element.getBoundingClientRect();return {width:r.width,height:r.height,ratio:r.width/r.height};};
+                return {
+                  title:document.title,
+                  heroSrc:new URL(hero.src).pathname,
+                  overviewSrc:new URL(overview.src).pathname,
+                  heroNatural:[hero.naturalWidth,hero.naturalHeight],
+                  overviewNatural:[overview.naturalWidth,overview.naturalHeight],
+                  heroRect:rect(hero),
+                  overviewRect:rect(overview),
+                  heroFit:getComputedStyle(hero).objectFit,
+                  overviewFit:getComputedStyle(overview).objectFit,
+                  desktopFits:desktop.map(img=>getComputedStyle(img).objectFit),
+                  desktopRatios:desktop.map(img=>rect(img).ratio),
+                  horizontalOverflow:document.documentElement.scrollWidth-innerWidth,
+                  projectAlt:document.querySelector('#projects img')?.alt||'',
+                  projectCaption:document.querySelector('#projects figcaption')?.textContent.trim()||''
+                };
+              })()`);
+              const near=(value,target,tolerance=.035)=>Math.abs(value-target)<=tolerance;
+              if(!metrics.title.includes('Tour THE WORKSHOP'))throw new Error('Wrong live document title.');
+              if(metrics.heroSrc===metrics.overviewSrc)throw new Error('Hero and first section still use the same screenshot.');
+              if(metrics.heroSrc!=='/tour/screens/01-home.webp')throw new Error(`Unexpected hero image: ${metrics.heroSrc}`);
+              if(metrics.overviewSrc!=='/tour/screens/01-home-activity.webp')throw new Error(`Unexpected overview image: ${metrics.overviewSrc}`);
+              if(metrics.heroNatural.join('x')!=='1600x1000')throw new Error(`Unexpected hero natural size: ${metrics.heroNatural}`);
+              if(metrics.overviewNatural.join('x')!=='1600x1000')throw new Error(`Unexpected overview natural size: ${metrics.overviewNatural}`);
+              if(metrics.heroFit!=='contain'||metrics.overviewFit!=='contain'||metrics.desktopFits.some(value=>value!=='contain'))throw new Error('Tour screenshots are not using contain framing.');
+              if(!near(metrics.heroRect.ratio,1.6)||!near(metrics.overviewRect.ratio,1.6)||metrics.desktopRatios.some(value=>!near(value,1.6)))throw new Error(`Unexpected screenshot display ratio: ${JSON.stringify(metrics)}`);
+              if(metrics.horizontalOverflow>2)throw new Error(`Horizontal overflow detected: ${metrics.horizontalOverflow}px`);
+              if(!metrics.projectAlt.includes('Projects index'))throw new Error('Projects tour image was not updated.');
+              if(!metrics.projectCaption.includes('PROJECTS'))throw new Error('Projects caption was not updated.');
+              fs.writeFileSync('/tmp/live-tour-check/metrics.json',JSON.stringify(metrics,null,2));
+              await screenshot(cdp,'live-top');
+              for(const [id,name] of [['overview','live-overview'],['bench','live-bench'],['projects','live-projects']]){
+                await evaluate(cdp,`document.querySelector('#${id}')?.scrollIntoView({block:'start',behavior:'instant'});true`);
+                await sleep(650);
+                await screenshot(cdp,name);
+              }
+            }finally{try{cdp?.close();}catch{}try{chrome.kill('SIGKILL');}catch{}}
+          })().catch(error=>{console.error(error);process.exit(1);});
+          NODE
+          node /tmp/verify-live-tour.js
+          cat /tmp/live-tour-check/metrics.json
+
+      - name: Upload live visual verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-workshop-tour-verification
+          path: /tmp/live-tour-check
+          if-no-files-found: error
+          retention-days: 3
