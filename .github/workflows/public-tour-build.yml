@@ -45,7 +45,7 @@ jobs:
       - name: Generate fictional demo screenshots
         run: node scripts/capture-tour.js
 
-      - name: Add public route and safe navigation entry
+      - name: Add public route and align navigation
         shell: bash
         run: |
           python - <<'PY'
@@ -89,6 +89,23 @@ jobs:
               raise SystemExit('Tour navigation entry must appear exactly once.')
           if html.index(tour_url) > html.index('https://forge.greenshoegarage.com'):
               raise SystemExit('TAKE THE TOUR must appear before THE FORGE.')
+
+          old_reddit = 'https://www.reddit.com/r/GreenShoeWorkshop/'
+          new_reddit = 'https://www.reddit.com/r/greenshoegarage/'
+          for filename in ['public/app.js', 'scripts/qa.js', 'NAVIGATION.md']:
+              path = Path(filename)
+              value = path.read_text(encoding='utf-8')
+              if old_reddit in value:
+                  value = value.replace(old_reddit, new_reddit)
+                  path.write_text(value, encoding='utf-8')
+              if new_reddit not in value:
+                  raise SystemExit(f'Current Reddit destination missing from {filename}.')
+              if old_reddit in value:
+                  raise SystemExit(f'Old Reddit destination remains in {filename}.')
+
+          legacy_nav = Path('NAVIGATION_v8.0.5.md')
+          if legacy_nav.exists():
+              legacy_nav.unlink()
           PY
 
       - name: Verify files and syntax
@@ -97,6 +114,7 @@ jobs:
           set -euo pipefail
           node --check scripts/capture-tour.js
           node --check public/tour/tour.js
+          node --check public/app.js
           test -f public/tour/index.html
           test -f public/tour/tour.css
           test -f public/tour/tour.js
@@ -105,6 +123,11 @@ jobs:
           grep -q "u.pathname.startsWith('/tour')" public/sw.js
           grep -q 'href="/tour"' public/index.html
           grep -q 'See the whole Workshop before you join' public/tour/index.html
+          grep -q 'https://www.reddit.com/r/greenshoegarage/' public/index.html
+          grep -q 'https://www.reddit.com/r/greenshoegarage/' public/app.js
+          grep -q 'https://www.reddit.com/r/greenshoegarage/' NAVIGATION.md
+          ! grep -R -q 'https://www.reddit.com/r/GreenShoeWorkshop/' public/index.html public/app.js scripts/qa.js NAVIGATION.md
+          test ! -e NAVIGATION_v8.0.5.md
           git diff --check
 
       - name: Run complete application QA
@@ -134,7 +157,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git rm .github/workflows/public-tour-build.yml
-          git add public/tour public/index.html public/sw.js server.js scripts/capture-tour.js
+          git add .env.example .github/workflows/ci.yml NAVIGATION.md public/index.html public/sw.js public/app.js public/tour server.js scripts/capture-tour.js scripts/qa.js
+          git add -u NAVIGATION_v8.0.5.md
           git diff --cached --check
           git commit -m "Add public Workshop tour"
           git push origin HEAD:public-workshop-tour
