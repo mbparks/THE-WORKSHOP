@@ -39,11 +39,11 @@ async function shot(cdp,name,{scroll=null,selector=null,full=false}={}){
   let chrome,cdp;
   try{
     const base=`http://127.0.0.1:${appPort}`;await waitForHttp(`${base}/api/meta`);
-    chrome=spawn(chromium(),[`--remote-debugging-port=${debugPort}`,`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--hide-scrollbars','--window-size=1440,960','about:blank'],{stdio:['ignore','pipe','pipe']});
+    chrome=spawn(chromium(),[`--remote-debugging-port=${debugPort}`,`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--hide-scrollbars','--window-size=1600,1000','about:blank'],{stdio:['ignore','pipe','pipe']});
     chrome.stdout.on('data',d=>logs.push(String(d)));chrome.stderr.on('data',d=>logs.push(String(d)));
     await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`);
     const target=await (await fetch(`http://127.0.0.1:${debugPort}/json/new?about:blank`,{method:'PUT'})).json();cdp=new CDP(target.webSocketDebuggerUrl);await cdp.connect();
-    await Promise.all([cdp.send('Page.enable'),cdp.send('Runtime.enable'),cdp.send('Network.enable'),cdp.send('Runtime.addBinding',{name:'__qaFetchBridge'}),cdp.send('Emulation.setDeviceMetricsOverride',{width:1440,height:960,deviceScaleFactor:1,mobile:false})]);
+    await Promise.all([cdp.send('Page.enable'),cdp.send('Runtime.enable'),cdp.send('Network.enable'),cdp.send('Runtime.addBinding',{name:'__qaFetchBridge'}),cdp.send('Emulation.setDeviceMetricsOverride',{width:1600,height:1000,deviceScaleFactor:1,mobile:false})]);
     let cookie='';
     cdp.on('Runtime.bindingCalled',async p=>{if(p.name!=='__qaFetchBridge')return;let request;try{request=JSON.parse(p.payload)}catch{return;}try{let pathname=String(request.url||'/');if(pathname.startsWith(base))pathname=pathname.slice(base.length)||'/';else if(/^https?:/i.test(pathname)){const u=new URL(pathname);pathname=u.pathname+u.search;}if(!pathname.startsWith('/'))pathname='/'+pathname;const headers={...(request.headers||{})};if(cookie)headers.cookie=cookie;const response=await fetch(base+pathname,{method:request.method||'GET',headers,body:request.body||undefined,redirect:'manual'});const sc=response.headers.get('set-cookie');if(sc)cookie=sc.split(';')[0];const payload={status:response.status,statusText:response.statusText,headers:Object.fromEntries(response.headers),body:await response.text()};await cdp.send('Runtime.evaluate',{expression:`window.__qaFetchResolve(${JSON.stringify(request.id)},${JSON.stringify(JSON.stringify(payload))})`});}catch(err){await cdp.send('Runtime.evaluate',{expression:`window.__qaFetchReject(${JSON.stringify(request.id)},${JSON.stringify(String(err.message||err))})`}).catch(()=>{});}});
 
@@ -58,6 +58,8 @@ async function shot(cdp,name,{scroll=null,selector=null,full=false}={}){
     await wait(cdp,`document.querySelector('#user-name')?.textContent==='Rowan Vale'`,'profile update');
 
     await route(cdp,'#/home');await shot(cdp,'01-home');
+    await evalx(cdp,`(()=>{const nodes=[...document.querySelectorAll('h2,h3,[data-section-title]')];const target=nodes.find(node=>/AROUND THE WORKSHOP/i.test(node.textContent||''));if(target)target.scrollIntoView({block:'start',behavior:'instant'});else window.scrollTo(0,Math.max(560,innerHeight*.7));return true})()`);
+    await sleep(450);await shot(cdp,'01-home-activity');
     await route(cdp,'#/bench');await shot(cdp,'02-bench');
     await route(cdp,'#/projects/p_lora');await shot(cdp,'03-project');
     await shot(cdp,'04-project-talk',{selector:'#project-discussion'});
