@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Show browser runtime
+        run: |
+          which google-chrome || which google-chrome-stable || which chromium || which chromium-browser
+          node --version
+      - name: Run static, integration, and Chromium route QA
+        env:
+          CI: '1'
+        run: npm run qa
