@@ -47,6 +47,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          import base64
 
           capture = Path('scripts/capture-tour.js')
           text = capture.read_text(encoding='utf-8')
@@ -60,10 +61,7 @@ jobs:
               text = text.replace(old, new, 1)
 
           old_sequence = "    await route(cdp,'#/home');await shot(cdp,'01-home');\n    await route(cdp,'#/bench');await shot(cdp,'02-bench');"
-          new_sequence = """    await route(cdp,'#/home');await shot(cdp,'01-home');
-    await evalx(cdp,`(()=>{const nodes=[...document.querySelectorAll('h2,h3,[data-section-title]')];const target=nodes.find(node=>/AROUND THE WORKSHOP/i.test(node.textContent||''));if(target)target.scrollIntoView({block:'start',behavior:'instant'});else window.scrollTo(0,Math.max(560,innerHeight*.7));return true})()`);
-    await sleep(450);await shot(cdp,'01-home-activity');
-    await route(cdp,'#/bench');await shot(cdp,'02-bench');"""
+          new_sequence = "    await route(cdp,'#/home');await shot(cdp,'01-home');\n    await evalx(cdp,`(()=>{const nodes=[...document.querySelectorAll('h2,h3,[data-section-title]')];const target=nodes.find(node=>/AROUND THE WORKSHOP/i.test(node.textContent||''));if(target)target.scrollIntoView({block:'start',behavior:'instant'});else window.scrollTo(0,Math.max(560,innerHeight*.7));return true})()`);\n    await sleep(450);await shot(cdp,'01-home-activity');\n    await route(cdp,'#/bench');await shot(cdp,'02-bench');"
           if old_sequence not in text:
               raise SystemExit('Could not find screenshot sequence.')
           text = text.replace(old_sequence, new_sequence, 1)
@@ -94,65 +92,8 @@ jobs:
           marker = '/* TOUR FRAMING REFINEMENT v2 */'
           if marker in css:
               css = css[:css.index(marker)].rstrip() + '\n'
-          css += r'''
-
-/* TOUR FRAMING REFINEMENT v2 */
-main{overflow:clip}
-.hero{
-  grid-template-columns:minmax(310px,.82fr) minmax(0,1.18fr);
-  gap:clamp(2rem,4vw,4.75rem);
-  min-height:auto;
-  padding-top:clamp(3.5rem,6vw,6rem);
-  padding-bottom:clamp(3.5rem,6vw,6rem)
-}
-.hero h1{max-width:11ch;font-size:clamp(3.15rem,6vw,6.65rem);line-height:.92}
-.hero-shot{width:100%;max-width:960px;justify-self:end;transform:none;background:#090c09}
-.hero-shot img{
-  display:block;
-  width:100%;
-  height:auto!important;
-  aspect-ratio:8/5;
-  object-fit:contain!important;
-  object-position:center!important;
-  background:#090c09
-}
-.tour-section,.tour-section.reverse{
-  grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);
-  gap:clamp(2.5rem,5vw,6rem);
-  min-height:auto;
-  padding-top:clamp(4.5rem,7vw,7rem);
-  padding-bottom:clamp(4.5rem,7vw,7rem)
-}
-.tour-section.reverse{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr)}
-.section-copy h2,.feature-index h2,.closing h2{font-size:clamp(2.45rem,4.25vw,4.75rem);line-height:.96}
-.screen-card{width:100%;max-width:1040px;justify-self:center;background:#090c09}
-.screen-card button{display:block;width:100%;line-height:0;background:#090c09}
-.screen-card img{
-  display:block;
-  width:100%;
-  height:auto!important;
-  aspect-ratio:8/5;
-  object-fit:contain!important;
-  object-position:center!important;
-  background:#090c09
-}
-.mobile-card{max-width:310px}
-.mobile-card img{width:100%;height:auto!important;aspect-ratio:390/844!important;object-fit:contain!important}
-.shot-dialog>img{display:block;width:100%;height:auto!important;object-fit:contain;background:#090c09}
-@media(max-width:1050px){
-  .hero,.tour-section,.tour-section.reverse{grid-template-columns:1fr;min-height:0}
-  .hero-shot{max-width:900px;justify-self:center}
-  .screen-card{max-width:900px}
-  .tour-section.reverse .section-copy,.tour-section.reverse .screen-card,.tour-section.reverse .screen-pair{order:initial}
-}
-@media(max-width:720px){
-  .hero{padding-top:3.5rem;padding-bottom:3.5rem}
-  .hero h1{font-size:clamp(3rem,14vw,5rem)}
-  .tour-section,.tour-section.reverse{padding-top:4.5rem;padding-bottom:4.5rem}
-  .section-copy h2,.feature-index h2,.closing h2{font-size:clamp(2.45rem,11vw,4rem)}
-}
-'''
-          css_path.write_text(css, encoding='utf-8')
+          override = base64.b64decode('LyogVE9VUiBGUkFNSU5HIFJFRklORU1FTlQgdjIgKi8KbWFpbntvdmVyZmxvdzpjbGlwfQouaGVyb3sKICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6bWlubWF4KDMxMHB4LC44MmZyKSBtaW5tYXgoMCwxLjE4ZnIpOwogIGdhcDpjbGFtcCgycmVtLDR2dyw0Ljc1cmVtKTsKICBtaW4taGVpZ2h0OmF1dG87CiAgcGFkZGluZy10b3A6Y2xhbXAoMy41cmVtLDZ2dyw2cmVtKTsKICBwYWRkaW5nLWJvdHRvbTpjbGFtcCgzLjVyZW0sNnZ3LDZyZW0pCn0KLmhlcm8gaDF7bWF4LXdpZHRoOjExY2g7Zm9udC1zaXplOmNsYW1wKDMuMTVyZW0sNnZ3LDYuNjVyZW0pO2xpbmUtaGVpZ2h0Oi45Mn0KLmhlcm8tc2hvdHt3aWR0aDoxMDAlO21heC13aWR0aDo5NjBweDtqdXN0aWZ5LXNlbGY6ZW5kO3RyYW5zZm9ybTpub25lO2JhY2tncm91bmQ6IzA5MGMwOX0KLmhlcm8tc2hvdCBpbWd7CiAgZGlzcGxheTpibG9jazsKICB3aWR0aDoxMDAlOwogIGhlaWdodDphdXRvIWltcG9ydGFudDsKICBhc3BlY3QtcmF0aW86OC81OwogIG9iamVjdC1maXQ6Y29udGFpbiFpbXBvcnRhbnQ7CiAgb2JqZWN0LXBvc2l0aW9uOmNlbnRlciFpbXBvcnRhbnQ7CiAgYmFja2dyb3VuZDojMDkwYzA5Cn0KLnRvdXItc2VjdGlvbiwudG91ci1zZWN0aW9uLnJldmVyc2V7CiAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOm1pbm1heCgzMDBweCwuOGZyKSBtaW5tYXgoMCwxLjJmcik7CiAgZ2FwOmNsYW1wKDIuNXJlbSw1dncsNnJlbSk7CiAgbWluLWhlaWdodDphdXRvOwogIHBhZGRpbmctdG9wOmNsYW1wKDQuNXJlbSw3dncsN3JlbSk7CiAgcGFkZGluZy1ib3R0b206Y2xhbXAoNC41cmVtLDd2dyw3cmVtKQp9Ci50b3VyLXNlY3Rpb24ucmV2ZXJzZXtncmlkLXRlbXBsYXRlLWNvbHVtbnM6bWlubWF4KDAsMS4yZnIpIG1pbm1heCgzMDBweCwuOGZyKX0KLnNlY3Rpb24tY29weSBoMiwuZmVhdHVyZS1pbmRleCBoMiwuY2xvc2luZyBoMntmb250LXNpemU6Y2xhbXAoMi40NXJlbSw0LjI1dncsNC43NXJlbSk7bGluZS1oZWlnaHQ6Ljk2fQouc2NyZWVuLWNhcmR7d2lkdGg6MTAwJTttYXgtd2lkdGg6MTA0MHB4O2p1c3RpZnktc2VsZjpjZW50ZXI7YmFja2dyb3VuZDojMDkwYzA5fQouc2NyZWVuLWNhcmQgYnV0dG9ue2Rpc3BsYXk6YmxvY2s7d2lkdGg6MTAwJTtsaW5lLWhlaWdodDowO2JhY2tncm91bmQ6IzA5MGMwOX0KLnNjcmVlbi1jYXJkIGltZ3sKICBkaXNwbGF5OmJsb2NrOwogIHdpZHRoOjEwMCU7CiAgaGVpZ2h0OmF1dG8haW1wb3J0YW50OwogIGFzcGVjdC1yYXRpbzo4LzU7CiAgb2JqZWN0LWZpdDpjb250YWluIWltcG9ydGFudDsKICBvYmplY3QtcG9zaXRpb246Y2VudGVyIWltcG9ydGFudDsKICBiYWNrZ3JvdW5kOiMwOTBjMDkKfQoubW9iaWxlLWNhcmR7bWF4LXdpZHRoOjMxMHB4fQoubW9iaWxlLWNhcmQgaW1ne3dpZHRoOjEwMCU7aGVpZ2h0OmF1dG8haW1wb3J0YW50O2FzcGVjdC1yYXRpbzozOTAvODQ0IWltcG9ydGFudDtvYmplY3QtZml0OmNvbnRhaW4haW1wb3J0YW50fQouc2hvdC1kaWFsb2c+aW1ne2Rpc3BsYXk6YmxvY2s7d2lkdGg6MTAwJTtoZWlnaHQ6YXV0byFpbXBvcnRhbnQ7b2JqZWN0LWZpdDpjb250YWluO2JhY2tncm91bmQ6IzA5MGMwOX0KQG1lZGlhKG1heC13aWR0aDoxMDUwcHgpewogIC5oZXJvLC50b3VyLXNlY3Rpb24sLnRvdXItc2VjdGlvbi5yZXZlcnNle2dyaWQtdGVtcGxhdGUtY29sdW1uczoxZnI7bWluLWhlaWdodDowfQogIC5oZXJvLXNob3R7bWF4LXdpZHRoOjkwMHB4O2p1c3RpZnktc2VsZjpjZW50ZXJ9CiAgLnNjcmVlbi1jYXJke21heC13aWR0aDo5MDBweH0KICAudG91ci1zZWN0aW9uLnJldmVyc2UgLnNlY3Rpb24tY29weSwudG91ci1zZWN0aW9uLnJldmVyc2UgLnNjcmVlbi1jYXJkLC50b3VyLXNlY3Rpb24ucmV2ZXJzZSAuc2NyZWVuLXBhaXJ7b3JkZXI6aW5pdGlhbH0KfQpAbWVkaWEobWF4LXdpZHRoOjcyMHB4KXsKICAuaGVyb3twYWRkaW5nLXRvcDozLjVyZW07cGFkZGluZy1ib3R0b206My41cmVtfQogIC5oZXJvIGgxe2ZvbnQtc2l6ZTpjbGFtcCgzcmVtLDE0dncsNXJlbSl9CiAgLnRvdXItc2VjdGlvbiwudG91ci1zZWN0aW9uLnJldmVyc2V7cGFkZGluZy10b3A6NC41cmVtO3BhZGRpbmctYm90dG9tOjQuNXJlbX0KICAuc2VjdGlvbi1jb3B5IGgyLC5mZWF0dXJlLWluZGV4IGgyLC5jbG9zaW5nIGgye2ZvbnQtc2l6ZTpjbGFtcCgyLjQ1cmVtLDExdncsNHJlbSl9Cn0K').decode('utf-8')
+          css_path.write_text(css.rstrip() + '\n\n' + override, encoding='utf-8')
           PY
 
       - name: Regenerate real demo screenshots
