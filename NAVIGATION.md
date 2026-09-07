@@ -166,4 +166,4 @@ Detail URLs continue to resolve directly so old project, prompt, session, critiq
 
 ## External community links
 
-The shared MORE navigation includes Discord, Reddit (`https://www.reddit.com/r/GreenShoeWorkshop/`), GitHub, and the existing commerce/reference destinations.
+The shared MORE navigation includes Discord, Reddit (`https://www.reddit.com/r/greenshoegarage/`), GitHub, and the existing commerce/reference destinations.
