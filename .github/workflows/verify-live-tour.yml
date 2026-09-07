@@ -11,9 +11,9 @@ permissions:
 jobs:
   verify-live:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Verify deployed Workshop and tour
+      - name: Verify deployed Workshop and tour assets
         shell: bash
         run: |
           set -euo pipefail
@@ -33,3 +33,13 @@ jobs:
           file /tmp/home.webp | grep -qi webp
           curl -fsSL --max-time 20 "$base/api/health" -o /tmp/health.json
           grep -q 'ok' /tmp/health.json
+
+      - name: Verify the live Workshop still renders in Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          chrome="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          "$chrome" --headless=new --no-sandbox --disable-gpu --disable-dev-shm-usage --hide-scrollbars --virtual-time-budget=12000 --dump-dom 'https://workshop.greenshoegarage.com/#/home' > /tmp/workshop-dom.html
+          grep -q 'id="route-view"' /tmp/workshop-dom.html
+          grep -q 'WHAT ARE YOU' /tmp/workshop-dom.html
+          ! grep -q 'THE WORKSHOP could not finish starting' /tmp/workshop-dom.html
