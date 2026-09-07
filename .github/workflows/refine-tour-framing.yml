@@ -1,0 +1,222 @@
+name: Refine and verify Workshop tour framing
+
+on:
+  push:
+    branches:
+      - tour-framing-fix
+
+permissions:
+  contents: write
+
+jobs:
+  refine-tour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out refinement branch
+        uses: actions/checkout@v4
+        with:
+          ref: tour-framing-fix
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Locate Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              echo "CHROMIUM_PATH=$(command -v "$candidate")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          if command -v chromium-browser >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v chromium-browser)" >> "$GITHUB_ENV"
+          else
+            echo "CHROMIUM_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Refine screenshot framing and remove duplicate opening image
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          capture = Path('scripts/capture-tour.js')
+          text = capture.read_text(encoding='utf-8')
+          replacements = {
+              "'--window-size=1440,960'": "'--window-size=1600,1000'",
+              "width:1440,height:960,deviceScaleFactor:1,mobile:false": "width:1600,height:1000,deviceScaleFactor:1,mobile:false",
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'Missing capture marker: {old}')
+              text = text.replace(old, new, 1)
+
+          old_sequence = "    await route(cdp,'#/home');await shot(cdp,'01-home');\n    await route(cdp,'#/bench');await shot(cdp,'02-bench');"
+          new_sequence = """    await route(cdp,'#/home');await shot(cdp,'01-home');
+    await evalx(cdp,`(()=>{const nodes=[...document.querySelectorAll('h2,h3,[data-section-title]')];const target=nodes.find(node=>/AROUND THE WORKSHOP/i.test(node.textContent||''));if(target)target.scrollIntoView({block:'start',behavior:'instant'});else window.scrollTo(0,Math.max(560,innerHeight*.7));return true})()`);
+    await sleep(450);await shot(cdp,'01-home-activity');
+    await route(cdp,'#/bench');await shot(cdp,'02-bench');"""
+          if old_sequence not in text:
+              raise SystemExit('Could not find screenshot sequence.')
+          text = text.replace(old_sequence, new_sequence, 1)
+          capture.write_text(text, encoding='utf-8')
+
+          html_path = Path('public/tour/index.html')
+          html = html_path.read_text(encoding='utf-8')
+          overview_start = html.index('<section id="overview"')
+          overview_end = html.index('</section>', overview_start)
+          overview = html[overview_start:overview_end]
+          if overview.count('/tour/screens/01-home.webp') != 2:
+              raise SystemExit('Expected two Home screenshot references in overview section.')
+          overview = overview.replace('/tour/screens/01-home.webp', '/tour/screens/01-home-activity.webp')
+          overview = overview.replace(
+              'Home keeps the focus on work, community activity, and useful next steps.',
+              'Around the Workshop shows meaningful project, Crew, and Live activity without becoming an endless feed.'
+          )
+          overview = overview.replace(
+              'alt="THE WORKSHOP Home screen"',
+              'alt="THE WORKSHOP Home screen scrolled to Around the Workshop activity and useful next steps"'
+          )
+          html = html[:overview_start] + overview + html[overview_end:]
+          html = html.replace('width="1440" height="960"', 'width="1600" height="1000"')
+          html_path.write_text(html, encoding='utf-8')
+
+          css_path = Path('public/tour/tour.css')
+          css = css_path.read_text(encoding='utf-8')
+          marker = '/* TOUR FRAMING REFINEMENT v2 */'
+          if marker in css:
+              css = css[:css.index(marker)].rstrip() + '\n'
+          css += r'''
+
+/* TOUR FRAMING REFINEMENT v2 */
+main{overflow:clip}
+.hero{
+  grid-template-columns:minmax(310px,.82fr) minmax(0,1.18fr);
+  gap:clamp(2rem,4vw,4.75rem);
+  min-height:auto;
+  padding-top:clamp(3.5rem,6vw,6rem);
+  padding-bottom:clamp(3.5rem,6vw,6rem)
+}
+.hero h1{max-width:11ch;font-size:clamp(3.15rem,6vw,6.65rem);line-height:.92}
+.hero-shot{width:100%;max-width:960px;justify-self:end;transform:none;background:#090c09}
+.hero-shot img{
+  display:block;
+  width:100%;
+  height:auto!important;
+  aspect-ratio:8/5;
+  object-fit:contain!important;
+  object-position:center!important;
+  background:#090c09
+}
+.tour-section,.tour-section.reverse{
+  grid-template-columns:minmax(300px,.8fr) minmax(0,1.2fr);
+  gap:clamp(2.5rem,5vw,6rem);
+  min-height:auto;
+  padding-top:clamp(4.5rem,7vw,7rem);
+  padding-bottom:clamp(4.5rem,7vw,7rem)
+}
+.tour-section.reverse{grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr)}
+.section-copy h2,.feature-index h2,.closing h2{font-size:clamp(2.45rem,4.25vw,4.75rem);line-height:.96}
+.screen-card{width:100%;max-width:1040px;justify-self:center;background:#090c09}
+.screen-card button{display:block;width:100%;line-height:0;background:#090c09}
+.screen-card img{
+  display:block;
+  width:100%;
+  height:auto!important;
+  aspect-ratio:8/5;
+  object-fit:contain!important;
+  object-position:center!important;
+  background:#090c09
+}
+.mobile-card{max-width:310px}
+.mobile-card img{width:100%;height:auto!important;aspect-ratio:390/844!important;object-fit:contain!important}
+.shot-dialog>img{display:block;width:100%;height:auto!important;object-fit:contain;background:#090c09}
+@media(max-width:1050px){
+  .hero,.tour-section,.tour-section.reverse{grid-template-columns:1fr;min-height:0}
+  .hero-shot{max-width:900px;justify-self:center}
+  .screen-card{max-width:900px}
+  .tour-section.reverse .section-copy,.tour-section.reverse .screen-card,.tour-section.reverse .screen-pair{order:initial}
+}
+@media(max-width:720px){
+  .hero{padding-top:3.5rem;padding-bottom:3.5rem}
+  .hero h1{font-size:clamp(3rem,14vw,5rem)}
+  .tour-section,.tour-section.reverse{padding-top:4.5rem;padding-bottom:4.5rem}
+  .section-copy h2,.feature-index h2,.closing h2{font-size:clamp(2.45rem,11vw,4rem)}
+}
+'''
+          css_path.write_text(css, encoding='utf-8')
+          PY
+
+      - name: Regenerate real demo screenshots
+        run: node scripts/capture-tour.js
+
+      - name: Verify source and screenshot outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/capture-tour.js
+          node --check public/tour/tour.js
+          test -f public/tour/screens/01-home-activity.webp
+          test "$(find public/tour/screens -maxdepth 1 -type f -name '*.webp' | wc -l | tr -d ' ')" = "14"
+          test "$(stat -c%s public/tour/screens/01-home-activity.webp)" -gt 20000
+          grep -q 'TOUR FRAMING REFINEMENT v2' public/tour/tour.css
+          grep -q 'height:auto!important' public/tour/tour.css
+          grep -q '/tour/screens/01-home-activity.webp' public/tour/index.html
+          test "$(grep -o '/tour/screens/01-home-activity.webp' public/tour/index.html | wc -l | tr -d ' ')" = "2"
+          git diff --check
+
+      - name: Run complete application QA
+        run: npm test
+
+      - name: Create visual review captures
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=49177 HOST=127.0.0.1 WORKSHOP_DATA_DIR=/tmp/workshop-tour-preview-data WORKSHOP_DEV_AUTH=1 WORKSHOP_SEED_DEMO=1 NODE_ENV=development node server.js >/tmp/tour-preview-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill $server_pid 2>/dev/null || true' EXIT
+          for n in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:49177/tour >/dev/null; then break; fi
+            sleep .1
+          done
+          mkdir -p /tmp/tour-preview
+          for target in top overview bench projects; do
+            anchor=''
+            case "$target" in
+              overview) anchor='#overview' ;;
+              bench) anchor='#bench' ;;
+              projects) anchor='#projects' ;;
+            esac
+            "$CHROMIUM_PATH" --headless=new --no-sandbox --disable-dev-shm-usage --disable-gpu --hide-scrollbars --virtual-time-budget=2500 --window-size=1440,1000 --user-data-dir="/tmp/chrome-$target" --screenshot="/tmp/tour-preview/$target.png" "http://127.0.0.1:49177/tour$anchor"
+          done
+          cp public/tour/screens/01-home.webp /tmp/tour-preview/
+          cp public/tour/screens/01-home-activity.webp /tmp/tour-preview/
+          cp public/tour/screens/02-bench.webp /tmp/tour-preview/
+          cp public/tour/screens/03-project.webp /tmp/tour-preview/
+
+      - name: Upload visual review artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: workshop-tour-framing-preview
+          path: /tmp/tour-preview
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Commit verified refinement and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/refine-tour-framing.yml
+          git add scripts/capture-tour.js public/tour/index.html public/tour/tour.css public/tour/screens
+          git commit -m "Improve public tour screenshot framing"
+          git push origin HEAD:tour-framing-fix
