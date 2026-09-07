@@ -2606,7 +2606,8 @@ function serveStatic(req,res,url){
   if(url.pathname.startsWith('/uploads/')){const name=decodeURIComponent(url.pathname.slice(9));const file=path.normalize(path.join(UPLOADS,name));if(!file.startsWith(UPLOADS))return sendText(res,403,'Forbidden');const row=db.prepare(`SELECT f.mime_type,f.access_level,p.visibility,p.owner_id,p.id project_id FROM project_files f JOIN projects p ON p.id=f.project_id WHERE f.stored_name=?`).get(name);if(!row)return sendText(res,404,'Not found');const viewer=currentUser(req);const projectAllowed=canViewProject({id:row.project_id,visibility:row.visibility,owner_id:row.owner_id},viewer);const fileAllowed=row.access_level==='Inherit'||canAccessLevel(row.access_level,viewer,row.owner_id);if(!projectAllowed||!fileAllowed)return sendText(res,403,row.access_level==='GearHead'?'GEARHEAD CREW ONLY':'This project file is not visible to you.');if(row.access_level==='GearHead')recordGearheadEvent(viewer?.id||'','download','project_file',name,{projectId:row.project_id});return serveUpload(req,res,file,row);}
 
   let rel = decodeURIComponent(url.pathname);
-  if(rel==='/' || !path.extname(rel)) rel='/index.html';
+  if(rel==='/tour' || rel==='/tour/') rel='/tour/index.html';
+  else if(rel==='/' || !path.extname(rel)) rel='/index.html';
   const file=path.normalize(path.join(PUBLIC,rel));
   if(!file.startsWith(PUBLIC)) return sendText(res,403,'Forbidden');
   let hit;try{hit=cachedStatic(file)}catch{return sendText(res,404,'Not found')}
