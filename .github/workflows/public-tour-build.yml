@@ -1,0 +1,140 @@
+name: Build and verify public Workshop tour
+
+on:
+  push:
+    branches:
+      - public-workshop-tour
+
+permissions:
+  contents: write
+
+jobs:
+  build-tour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the tour branch
+        uses: actions/checkout@v4
+        with:
+          ref: public-workshop-tour
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Locate Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              echo "CHROMIUM_PATH=$(command -v "$candidate")" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser || sudo apt-get install -y chromium
+          if command -v chromium-browser >/dev/null 2>&1; then
+            echo "CHROMIUM_PATH=$(command -v chromium-browser)" >> "$GITHUB_ENV"
+          else
+            echo "CHROMIUM_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          fi
+
+      - name: Generate fictional demo screenshots
+        run: node scripts/capture-tour.js
+
+      - name: Add public route and safe navigation entry
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          server = Path('server.js')
+          text = server.read_text(encoding='utf-8')
+          old = "  if(rel==='/' || !path.extname(rel)) rel='/index.html';"
+          new = "  if(rel==='/tour' || rel==='/tour/') rel='/tour/index.html';\n  else if(rel==='/' || !path.extname(rel)) rel='/index.html';"
+          if old in text:
+              if text.count(old) != 1:
+                  raise SystemExit('Expected one static fallback line in server.js.')
+              text = text.replace(old, new, 1)
+              server.write_text(text, encoding='utf-8')
+          elif new not in text:
+              raise SystemExit('Could not find the static fallback line in server.js.')
+
+          sw = Path('public/sw.js')
+          text = sw.read_text(encoding='utf-8')
+          old = "  if(u.origin!==location.origin||u.pathname.startsWith('/api/')||u.pathname.startsWith('/uploads/')||u.pathname.startsWith('/gearhead-files/')||u.pathname.startsWith('/gearhead-media/'))return;"
+          new = "  if(u.origin!==location.origin||u.pathname.startsWith('/tour')||u.pathname.startsWith('/api/')||u.pathname.startsWith('/uploads/')||u.pathname.startsWith('/gearhead-files/')||u.pathname.startsWith('/gearhead-media/'))return;"
+          if old in text:
+              if text.count(old) != 1:
+                  raise SystemExit('Expected one service-worker bypass line.')
+              text = text.replace(old, new, 1)
+              sw.write_text(text, encoding='utf-8')
+          elif new not in text:
+              raise SystemExit('Could not find the service-worker bypass line.')
+
+          index = Path('public/index.html')
+          html = index.read_text(encoding='utf-8')
+          marker = '          <div class="side-secondary-label">MORE</div>\n'
+          tour_url = 'href="/tour"'
+          link = '          <a class="external-nav-link" href="/tour"><span class="nav-icon" aria-hidden="true"><svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/><path d="m16 13 2 2-2 2"/></svg></span>TAKE THE TOUR <span class="external-mark" aria-hidden="true">→</span></a>\n'
+          if tour_url not in html:
+              if html.count(marker) != 1:
+                  raise SystemExit('Expected one MORE marker in public/index.html.')
+              html = html.replace(marker, marker + link, 1)
+              index.write_text(html, encoding='utf-8')
+          if html.count(tour_url) != 1:
+              raise SystemExit('Tour navigation entry must appear exactly once.')
+          if html.index(tour_url) > html.index('https://forge.greenshoegarage.com'):
+              raise SystemExit('TAKE THE TOUR must appear before THE FORGE.')
+          PY
+
+      - name: Verify files and syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/capture-tour.js
+          node --check public/tour/tour.js
+          test -f public/tour/index.html
+          test -f public/tour/tour.css
+          test -f public/tour/tour.js
+          test "$(find public/tour/screens -maxdepth 1 -type f -name '*.webp' | wc -l | tr -d ' ')" = "13"
+          grep -q "rel==='/tour' || rel==='/tour/'" server.js
+          grep -q "u.pathname.startsWith('/tour')" public/sw.js
+          grep -q 'href="/tour"' public/index.html
+          grep -q 'See the whole Workshop before you join' public/tour/index.html
+          git diff --check
+
+      - name: Run complete application QA
+        run: npm test
+
+      - name: Smoke-test the public route
+        shell: bash
+        run: |
+          set -euo pipefail
+          DATA_DIR="$RUNNER_TEMP/workshop-tour-smoke"
+          mkdir -p "$DATA_DIR"
+          HOST=127.0.0.1 PORT=37654 WORKSHOP_DATA_DIR="$DATA_DIR" WORKSHOP_RATE_LIMIT=0 NODE_ENV=development node server.js >"$RUNNER_TEMP/tour-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for n in $(seq 1 100); do
+            if curl -fsS http://127.0.0.1:37654/tour >"$RUNNER_TEMP/tour.html"; then break; fi
+            sleep .1
+          done
+          grep -q '<title>Tour THE WORKSHOP' "$RUNNER_TEMP/tour.html"
+          curl -fsS -I http://127.0.0.1:37654/tour/tour.css | grep -qi 'content-type: text/css'
+          curl -fsS -I http://127.0.0.1:37654/tour/tour.js | grep -qi 'content-type: text/javascript\|content-type: application/javascript'
+
+      - name: Commit verified tour and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/public-tour-build.yml
+          git add public/tour public/index.html public/sw.js server.js scripts/capture-tour.js
+          git diff --cached --check
+          git commit -m "Add public Workshop tour"
+          git push origin HEAD:public-workshop-tour
