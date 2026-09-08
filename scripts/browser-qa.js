@@ -59,6 +59,10 @@ async function setHash(cdp,hash,readyExpression='true'){
   await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.trim().length>40`,'route content');
   await waitForCondition(cdp,readyExpression,'route-specific content');
 }
+async function openMakeTogether(cdp){
+  await evaluate(cdp,`(async()=>{history.replaceState(null,'','#/make-together');await renderMakeTogether();updateAtmosphereModule('builds');document.querySelector('#route-view')?.setAttribute('aria-busy','false')})()`);
+  await waitForCondition(cdp,`Boolean(document.querySelector('.make-together-view'))`,'Make Together content');
+}
 
 (async()=>{
   const root=path.resolve(__dirname,'..');
@@ -232,7 +236,7 @@ async function setHash(cdp,hash,readyExpression='true'){
     await waitForCondition(cdp,`[...document.querySelectorAll('.bench-handshake>p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Bench Handshake attached to project');
     check('Open Bench response becomes a project-attached Handshake',await evaluate(cdp,`document.querySelector('.bench-handshake-status')?.textContent.includes('HAND EXTENDED')`));
     check('Offering maker can withdraw an active Handshake',await evaluate(cdp,`Boolean(document.querySelector('[data-action="withdraw-bench-handshake"]'))`));
-    await setHash(cdp,'#/make-together',`Boolean(document.querySelector('.make-together-view'))`);
+    await openMakeTogether(cdp);
     check('Make Together presents the full participation path',await evaluate(cdp,`document.querySelectorAll('.make-together-path>div').length===4&&document.querySelector('.make-together-path')?.textContent.includes('LEAVE A TRACE')`));
     check('Make Together collects the maker’s private pending work',await evaluate(cdp,`document.querySelector('.make-together-my-work')?.textContent.includes('PENDING')&&document.querySelector('.make-together-my-work')?.textContent.includes('Browser QA knob test hour')&&!document.querySelector('.make-together-private')`));
     check('Make Together exposes bounded participation filters',await evaluate(cdp,`document.querySelectorAll('[data-together-filter]').length===8`));
@@ -256,7 +260,7 @@ async function setHash(cdp,hash,readyExpression='true'){
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
     await waitForCondition(cdp,`document.querySelector('.bench-hour-private')?.textContent.includes('private Browser QA room')`,'accepted Open Bench Hour details');
     check('Accepted maker receives private connection details',true);
-    await setHash(cdp,'#/make-together',`Boolean(document.querySelector('.make-together-view'))`);
+    await openMakeTogether(cdp);
     check('Accepted-only details carry into the private Make Together queue',await evaluate(cdp,`document.querySelector('.make-together-action-state')?.textContent.includes('CONFIRMED')&&document.querySelector('.make-together-private')?.textContent.includes('private Browser QA room')`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/projects/p_lora');
