@@ -214,9 +214,13 @@ async function setHash(cdp,hash){
     await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="open-bench-respond"]'))`,'Open Bench response control');
     await evaluate(cdp,`document.querySelector('[data-action="open-bench-respond"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#open-bench-response-form')`,'Open Bench response editor');
-    await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-response-form');f.querySelector('[name="body"]').value='I can test the grip with work gloves this week.';f.requestSubmit()})()`);
-    await waitForCondition(cdp,`[...document.querySelectorAll('.comment-v4 p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Open Bench response attached to project');
-    check('Open Bench response remains in Project Talk',true);
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-response-form');f.querySelector('[name="message"]').value='I can test the grip with work gloves this week.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`[...document.querySelectorAll('.bench-handshake>p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Bench Handshake attached to project');
+    check('Open Bench response becomes a project-attached Handshake',await evaluate(cdp,`document.querySelector('.bench-handshake-status')?.textContent.includes('HAND EXTENDED')`));
+    check('Offering maker can withdraw an active Handshake',await evaluate(cdp,`Boolean(document.querySelector('[data-action="withdraw-bench-handshake"]'))`));
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="review-bench-handshake"]'))`,'Bench Handshake owner controls');
+    check('Project owner can review the Handshake in place',true);
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/projects/p_lora');
     check('Public project can be personalized with Make It Yours',await evaluate(cdp,`Boolean(document.querySelector('[data-action="make-it-yours"]'))`));

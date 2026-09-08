@@ -1,3 +1,13 @@
+# THE WORKSHOP v9.9.0 — Bench Handshakes
+
+- Replaced unstructured Open Bench responses with project-attached Bench Handshakes.
+- Signed-in makers can offer one concrete kind of help against an active Open Bench invitation.
+- Project owners can acknowledge, complete, or decline an offer with an optional closing note.
+- Offering makers can withdraw active offers, while completed and closed history remains with the Project.
+- Added restrained notifications for new offers and owner status changes only.
+- Preserved project visibility, chronological presentation, and the absence of public response totals, rankings, streaks, or a new feed.
+- Bumped the service-worker/application cache version to v9.9.0.
+
 # THE WORKSHOP v9.8.0 — Open Bench Signals
 
 - Added six bounded, project-centered invitations: feedback, practical help, testing, collaboration, tools/materials, and maker variations.

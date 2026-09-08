@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.8.0';
+const APP_VERSION = '9.9.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -276,6 +276,7 @@ function parseList(v) {
   return String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 }
 const OPEN_BENCH_SIGNALS=new Set(['feedback','hand','tester','collaborator','materials','variation']);
+const OPEN_BENCH_LABELS={feedback:'Feedback Welcome',hand:'Need a Hand',tester:'Looking for Tester',collaborator:'Open to Collaborator',materials:'Need a Tool or Material',variation:'Make a Variation'};
 function normalizeOpenSignals(value){return [...new Set(parseList(value).map(x=>String(x).trim().toLowerCase()).filter(x=>OPEN_BENCH_SIGNALS.has(x)))];}
 
 function ensureColumn(table, name, definition) {
@@ -385,6 +386,10 @@ function initSchema() {
     );
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id), body TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS open_bench_handshakes (
+      id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      signal TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'Offered', owner_note TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS questions (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), title TEXT NOT NULL, trying TEXT NOT NULL, tried TEXT DEFAULT '', happened TEXT DEFAULT '',
@@ -758,6 +763,7 @@ function initSchema() {
 
     CREATE INDEX IF NOT EXISTS idx_projects_updated ON projects(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_logs_project ON build_log_entries(project_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_open_bench_handshakes_project ON open_bench_handshakes(project_id,status,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_questions_updated ON questions(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_discussions_updated ON discussion_topics(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_discussion_replies_topic ON discussion_replies(topic_id, created_at ASC);
@@ -1854,6 +1860,7 @@ function routeApi(req, res, url) {
     if (!row || !canViewProject(row,me)) return sendJson(res,404,{error:'Project not found.'});
     const logs=db.prepare(`SELECT l.*,u.display_name author FROM build_log_entries l JOIN users u ON u.id=l.user_id WHERE l.project_id=? ORDER BY l.created_at DESC`).all(pid);
     const comments=db.prepare(`SELECT c.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM comments c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.created_at ASC`).all(pid);
+    const handshakes=db.prepare(`SELECT h.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM open_bench_handshakes h JOIN users u ON u.id=h.user_id WHERE h.project_id=? ORDER BY CASE h.status WHEN 'Offered' THEN 0 WHEN 'Acknowledged' THEN 1 ELSE 2 END,h.updated_at DESC`).all(pid);
     const files=db.prepare(`SELECT f.*,u.display_name uploader FROM project_files f JOIN users u ON u.id=f.uploader_id WHERE f.project_id=? ORDER BY f.logical_name,f.version DESC`).all(pid).map(f=>({...f,locked:!canAccessLevel(f.access_level||'Inherit',me,row.owner_id),url:canAccessLevel(f.access_level||'Inherit',me,row.owner_id)?`/uploads/${encodeURIComponent(f.stored_name)}`:''}));
     const releases=db.prepare(`SELECT r.*,u.display_name creator FROM project_releases r JOIN users u ON u.id=r.created_by WHERE r.project_id=? ORDER BY r.created_at DESC`).all(pid).map(r=>({...r,files:db.prepare(`SELECT f.*,u.display_name uploader FROM project_release_files rf JOIN project_files f ON f.id=rf.file_id JOIN users u ON u.id=f.uploader_id WHERE rf.release_id=? ORDER BY f.logical_name`).all(r.id)}));
     const critiques=db.prepare(`SELECT c.*,u.display_name author,(SELECT COUNT(*) FROM critique_responses r WHERE r.critique_id=c.id) response_count FROM critiques c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.updated_at DESC`).all(pid).map(c=>({...c,feedback_types:json(c.feedback_types)}));
@@ -1863,7 +1870,7 @@ function routeApi(req, res, url) {
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
-    return sendJson(res,200,{project:projectRow(row,me),logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -1929,6 +1936,52 @@ function routeApi(req, res, url) {
     const exists=db.prepare('SELECT 1 FROM project_follows WHERE user_id=? AND project_id=?').get(u.id,project.id);
     if(exists)db.prepare('DELETE FROM project_follows WHERE user_id=? AND project_id=?').run(u.id,project.id);else db.prepare('INSERT INTO project_follows (user_id,project_id,created_at) VALUES (?,?,?)').run(u.id,project.id,now());
     return sendJson(res,200,{following:!exists,followerCount:Number(db.prepare('SELECT COUNT(*) n FROM project_follows WHERE project_id=?').get(project.id).n||0)});
+  }
+
+  const handshakeMatch=pathname.match(/^\/api\/projects\/([^/]+)\/handshakes$/);
+  if(handshakeMatch && method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    const project=db.prepare('SELECT * FROM projects WHERE id=?').get(handshakeMatch[1]);
+    if(!project||!canViewProject(project,u))return sendJson(res,404,{error:'Project not found.'});
+    if(project.owner_id===u.id)return sendJson(res,403,{error:'Project owners manage the invitation; another maker extends the handshake.'});
+    return readBody(req).then(body=>{
+      const signal=String(body.signal||'').trim().toLowerCase(),message=String(body.message||'').trim();
+      if(!normalizeOpenSignals(json(project.open_signals)).includes(signal))return sendJson(res,400,{error:'That Open Bench invitation is no longer active.'});
+      if(!message)return sendJson(res,400,{error:'Say what you can offer.'});
+      if(message.length>600)return sendJson(res,400,{error:'Keep the offer to 600 characters or fewer.'});
+      const existing=db.prepare(`SELECT id FROM open_bench_handshakes WHERE project_id=? AND user_id=? AND signal=? AND status IN ('Offered','Acknowledged') LIMIT 1`).get(project.id,u.id,signal);
+      if(existing)return sendJson(res,409,{error:'You already have an active offer for this invitation.'});
+      const hid=id('hand'),ts=now();
+      db.prepare(`INSERT INTO open_bench_handshakes (id,project_id,user_id,signal,message,status,owner_note,created_at,updated_at) VALUES (?,?,?,?,?,'Offered','',?,?)`).run(hid,project.id,u.id,signal,message,ts,ts);
+      notifyUser(project.owner_id,'collaboration',`${u.display_name} extended a Bench Handshake for “${OPEN_BENCH_LABELS[signal]}” on ${project.title}.`,`#/projects/${project.id}`,u.id);
+      audit(u.id,'open_bench.handshake.offer','project',project.id,{handshakeId:hid,signal});
+      return sendJson(res,201,{handshake:{id:hid,project_id:project.id,user_id:u.id,author:u.display_name,callsign:currentIdentityAddress('user',u.id),signal,message,status:'Offered',owner_note:'',created_at:ts,updated_at:ts}});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const handshakeDetail=pathname.match(/^\/api\/projects\/([^/]+)\/handshakes\/([^/]+)$/);
+  if(handshakeDetail && method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;
+    const project=db.prepare('SELECT * FROM projects WHERE id=?').get(handshakeDetail[1]);
+    if(!project||!canViewProject(project,u))return sendJson(res,404,{error:'Project not found.'});
+    const handshake=db.prepare('SELECT * FROM open_bench_handshakes WHERE id=? AND project_id=?').get(handshakeDetail[2],project.id);
+    if(!handshake)return sendJson(res,404,{error:'Bench Handshake not found.'});
+    return readBody(req).then(body=>{
+      const requested=String(body.status||'').trim(),ownerNote=String(body.ownerNote??handshake.owner_note??'').trim();
+      if(ownerNote.length>600)return sendJson(res,400,{error:'Keep the owner note to 600 characters or fewer.'});
+      if(project.owner_id===u.id){
+        if(!['Acknowledged','Completed','Declined'].includes(requested))return sendJson(res,400,{error:'Choose Acknowledged, Completed, or Declined.'});
+        if(handshake.status==='Withdrawn')return sendJson(res,409,{error:'This offer was withdrawn by its maker.'});
+      }else{
+        if(handshake.user_id!==u.id)return sendJson(res,403,{error:'Only the project owner or the maker who offered can change this handshake.'});
+        if(requested!=='Withdrawn'||!['Offered','Acknowledged'].includes(handshake.status))return sendJson(res,400,{error:'You can withdraw only an active offer.'});
+      }
+      const ts=now();
+      db.prepare('UPDATE open_bench_handshakes SET status=?,owner_note=?,updated_at=? WHERE id=?').run(requested,project.owner_id===u.id?ownerNote:handshake.owner_note,ts,handshake.id);
+      if(project.owner_id===u.id)notifyUser(handshake.user_id,'collaboration',`${project.title}: your Bench Handshake is now ${requested.toLowerCase()}.`,`#/projects/${project.id}`,u.id);
+      audit(u.id,'open_bench.handshake.update','open_bench_handshake',handshake.id,{projectId:project.id,status:requested});
+      return sendJson(res,200,{handshake:{...handshake,status:requested,owner_note:project.owner_id===u.id?ownerNote:handshake.owner_note,updated_at:ts}});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
   }
 
   const commentMatch=pathname.match(/^\/api\/projects\/([^/]+)\/comments$/);
