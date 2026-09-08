@@ -1,4 +1,4 @@
-# THE WORKSHOP v9.0.2 — Navigation and Information Architecture
+# THE WORKSHOP v10.0.0 — Navigation and Information Architecture
 
 THE WORKSHOP exposes a small number of durable destinations. Specialized content types remain available inside those destinations rather than each becoming a global module.
 
@@ -14,6 +14,7 @@ MY BENCH
 
 BUILDS
   Projects
+  Make Together
   Community Builds
   The Wall
 
@@ -59,6 +60,7 @@ Desktop contextual navigation and the mobile **MODULES** switcher share the same
 ### Builds
 
 - `#/builds`
+- `#/make-together`
 - `#/community-builds`
 - `#/wall`
 - `#/projects/:projectId`
@@ -71,6 +73,8 @@ Desktop contextual navigation and the mobile **MODULES** switcher share the same
 - `#/weekly/:weeklyPromptId`
 
 Project detail pages use local navigation for Overview, Notebook, Files, Collaboration, and Help rather than adding global routes.
+
+**Make Together** is a Builds tool rather than another primary module. It aggregates Open Bench invitations, private participation state for the current member, upcoming Bench Hours, and documented outcomes while keeping every action attached to its Project.
 
 ### Workshop
 

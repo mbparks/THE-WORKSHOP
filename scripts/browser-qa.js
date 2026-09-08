@@ -146,7 +146,7 @@ async function setHash(cdp,hash){
     await waitForCondition(cdp,`document.querySelector('#user-name')?.textContent==='Mike'&&document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'signed-in user shell',20000);
 
     const routes=[
-      ['#/home','home'],['#/bench','bench'],['#/builds','builds'],['#/workshop','workshop'],['#/library','library'],['#/live','live'],['#/people','people'],['#/gearhead','gearhead']
+      ['#/home','home'],['#/bench','bench'],['#/builds','builds'],['#/make-together','make together'],['#/workshop','workshop'],['#/library','library'],['#/live','live'],['#/people','people'],['#/gearhead','gearhead']
     ];
     const compositions=[];
     for(const [hash,module] of routes){
@@ -230,6 +230,12 @@ async function setHash(cdp,hash){
     await waitForCondition(cdp,`[...document.querySelectorAll('.bench-handshake>p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Bench Handshake attached to project');
     check('Open Bench response becomes a project-attached Handshake',await evaluate(cdp,`document.querySelector('.bench-handshake-status')?.textContent.includes('HAND EXTENDED')`));
     check('Offering maker can withdraw an active Handshake',await evaluate(cdp,`Boolean(document.querySelector('[data-action="withdraw-bench-handshake"]'))`));
+    await setHash(cdp,'#/make-together');
+    check('Make Together presents the full participation path',await evaluate(cdp,`document.querySelectorAll('.make-together-path>div').length===4&&document.querySelector('.make-together-path')?.textContent.includes('LEAVE A TRACE')`));
+    check('Make Together collects the maker’s private pending work',await evaluate(cdp,`document.querySelector('.make-together-my-work')?.textContent.includes('PENDING')&&document.querySelector('.make-together-my-work')?.textContent.includes('Browser QA knob test hour')&&!document.querySelector('.make-together-private')`));
+    check('Make Together exposes bounded participation filters',await evaluate(cdp,`document.querySelectorAll('[data-together-filter]').length===8`));
+    await evaluate(cdp,`document.querySelector('[data-together-filter="tester"]')?.click()`);
+    check('Make Together filters Project invitations without ranking them',await evaluate(cdp,`[...document.querySelectorAll('[data-together-kind="project"]:not([hidden])')].every(x=>x.dataset.togetherSignals.split(' ').includes('tester'))&&document.querySelector('[data-together-section="time"]').hidden`));
     await setHash(cdp,'#/home');
     check('Signed-in Home explains a transparent Way In',await evaluate(cdp,`document.querySelector('.ways-in-home')?.textContent.includes('WHERE I COULD HELP')&&document.querySelector('.way-in-reasons')?.textContent.includes('WHY THIS MAY BE A WAY IN')`));
     check('Home surfaces upcoming Open Bench Hours without a new module',await evaluate(cdp,`document.querySelector('.home-bench-hours')?.textContent.includes('Browser QA knob test hour')&&document.querySelector('.home-bench-hours')?.textContent.includes('Soonest first, never ranked')&&!document.querySelector('.home-bench-hours .bench-hour-private')`));
@@ -248,6 +254,8 @@ async function setHash(cdp,hash){
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
     await waitForCondition(cdp,`document.querySelector('.bench-hour-private')?.textContent.includes('private Browser QA room')`,'accepted Open Bench Hour details');
     check('Accepted maker receives private connection details',true);
+    await setHash(cdp,'#/make-together');
+    check('Accepted-only details carry into the private Make Together queue',await evaluate(cdp,`document.querySelector('.make-together-action-state')?.textContent.includes('CONFIRMED')&&document.querySelector('.make-together-private')?.textContent.includes('private Browser QA room')`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/projects/p_lora');
     check('Public project can be personalized with Make It Yours',await evaluate(cdp,`Boolean(document.querySelector('[data-action="make-it-yours"]'))`));

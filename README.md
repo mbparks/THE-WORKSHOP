@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.12.0**
+Current release: **v10.0.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -15,20 +15,20 @@ That is the product test for every feature.
 
 ---
 
-## What changed in v9.12.0
+## What changed in v10.0.0
 
-### Open Bench Hours
+### Make Together
 
-- Makers can schedule bounded working windows directly on an active Open Bench Project.
-- Each hour names the work, start time, duration, timezone, format, public preparation note, and private connection details.
-- Another maker can request a place privately; the host can accept or decline without publishing attendance counts.
+- One project-centered hub now connects Open Bench invitations, Bench Handshakes, Open Bench Hours, and the practical results of shared work.
+- Members receive a private **My Shared Work** queue for requests that need a reply, pending offers, confirmed Bench Hours, and accepted-only connection details.
+- Visitors can explore every public way in before creating an account.
 
-### Private coordination, existing calendar
+### Find a way in and see what changed
 
-- Connection details remain hidden until the host accepts a request.
-- Capacity prevents overbooking but is never displayed as a popularity signal.
-- Accepted and hosted Bench Hours appear in the existing Live + Calendar view and ICS export.
-- Past windows end automatically, and hosts can cancel with one restrained notification to accepted makers.
+- Makers can filter participation by Bench Hour, feedback, practical help, testing, collaboration, tools/materials, or Maker Variation.
+- Open Projects remain ordered by recent updates, Bench Hours remain soonest-first, and documented outcomes remain chronological.
+- Completed Maker Variations and Useful Responses close the loop without public response counts, attendance totals, scores, or rankings.
+- Make Together is available through Builds, Home, and Start Something without replacing the canonical Project workflow.
 
 ---
 
