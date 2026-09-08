@@ -244,10 +244,28 @@ async function setHash(cdp,hash){
     await evaluate(cdp,`(()=>{const f=document.querySelector('#project-comment-reply');f.querySelector('textarea').value='Browser QA reply';f.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}));return true})()`);
     await waitForCondition(cdp,`[...document.querySelectorAll('.comment-reply p')].some(x=>x.textContent.includes('Browser QA reply'))`,'Project reply render');
     check('Project one-level reply renders in place',true);
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_lora')})()`);
+    await waitForCondition(cdp,`[...document.querySelectorAll('.comment-v4')].some(x=>x.textContent.includes('Browser QA project comment')&&Boolean(x.querySelector('[data-action="mark-project-response"]')))`,'Useful Response owner control');
+    await evaluate(cdp,`[...document.querySelectorAll('.comment-v4')].find(x=>x.textContent.includes('Browser QA project comment'))?.querySelector('[data-action="mark-project-response"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#useful-response-form')`,'Useful Response form');
+    check('Useful Response form explains outcome over popularity',await evaluate(cdp,`document.querySelector('#useful-response-form')?.textContent.includes('does not create points, totals, or a ranking')&&document.querySelectorAll('#useful-response-form [name="mark"]').length===3`));
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#useful-response-form');f.querySelector('[value="Changed the Build"]').checked=true;f.querySelector('[name="note"]').value='This changed the enclosure power-budget decision.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.useful-response-marker')?.textContent.includes('Changed the Build')`,'Useful Response marker');
+    check('Useful Response remains attached to Project Talk',await evaluate(cdp,`document.querySelector('.useful-response-marker')?.textContent.includes('power-budget decision')`));
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_lora')})()`);
     await evaluate(cdp,`document.querySelector('[data-action="make-it-yours"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#make-it-yours-form')`,'Make It Yours editor');
     check('Make It Yours keeps source adaptation context explicit',await evaluate(cdp,`document.querySelector('#make-it-yours-form')?.textContent.includes('What will you change?')`));
-    await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#make-it-yours-form');f.querySelector('[name="title"]').value='Browser QA LoRa Variation';f.querySelector('[name="adaptation"]').value='Use a slower sampling interval and a smaller battery.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.variation-origin-callout')?.textContent.includes('LoRa Environmental Sensor')`,'Variation source context');
+    check('New Maker Variation preserves visible source and intent',await evaluate(cdp,`document.querySelector('.variation-origin-callout')?.textContent.includes('slower sampling interval')&&Boolean(document.querySelector('[data-action="show-what-built"]'))`));
+    await evaluate(cdp,`document.querySelector('[data-action="show-what-built"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#show-built-form [name="variationOutcome"]')`,'Maker Variation result form');
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#show-built-form');f.querySelector('[name="variationOutcome"]').value='The slower interval cut idle draw without losing useful readings.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.technical-index')?.textContent.includes('Complete')||document.querySelector('.project-hero-v4')?.textContent.includes('Complete')`,'completed Maker Variation');
+    await setHash(cdp,'#/projects/p_lora');
+    await waitForCondition(cdp,`document.querySelector('.maker-variation-card')?.textContent.includes('Browser QA LoRa Variation')`,'source Project Maker Variations');
+    check('Source Project receives the completed variation outcome',await evaluate(cdp,`document.querySelector('.maker-variation-card')?.textContent.includes('cut idle draw')&&document.querySelector('.project-variations')?.textContent.includes('NEVER RANKED')`));
 
     const crewId=await evaluate(cdp,`(async()=>{const d=await fetch('/api/crews').then(r=>r.json());return d.crews?.[0]?.id||d.items?.[0]?.id||''})()`);
     if(crewId){

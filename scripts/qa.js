@@ -299,6 +299,12 @@ const checks=[
   ,['Ways In remains visibility gated chronological and owner excluding',server.includes("pathname === '/api/ways-in'")&&server.includes('p.owner_id<>?')&&server.includes("orderedBy:'recent project updates'")&&server.includes('filterVisibleProjects(rows,u)')]
   ,['Open Bench discovery filters use the bounded signal vocabulary',app.includes('id="open-bench-filters"')&&app.includes('data-open-filter')&&app.includes('MATCHES MY BENCH')]
   ,['Unified search exposes Open Benches Notes and Logs',app.includes("['open','Open Benches']")&&app.includes("['notes','Notes & Logs']")&&server.includes('openBenches:[]')&&server.includes("if(want('notes'))out.buildLogs")]
+  ,['Useful Responses use bounded outcome language without counters',server.includes("USEFUL_RESPONSE_MARKS=new Set(['Changed the Build','Prevented a Problem','Useful Direction'])")&&app.includes('RECOGNIZE THE EFFECT · NOT THE POPULARITY')&&!app.includes('usefulness_count')]
+  ,['Only Project owners can mark another maker response useful',server.includes('Only the project owner can mark a useful response.')&&server.includes('Useful Response marks are for another maker’s contribution.')&&server.includes('/useful$/')]
+  ,['Maker Variations preserve structured intent and outcome',server.includes("ensureColumn('projects','variation_intent'")&&server.includes("ensureColumn('projects','variation_outcome'")&&app.includes('What changed, worked, or surprised you?')]
+  ,['Source Projects collect visibility-gated Maker Variations',server.includes("childProjects('Project',pid,uid)")&&app.includes('COMPLETED FIRST · NEVER RANKED')&&app.includes('makerVariationCard')]
+  ,['Variation Handshakes can lead into a linked Project',server.includes("signal='variation'")&&server.includes('variation_project_id')&&app.includes('START MY VARIATION →')]
+  ,['v9.11 capability flags are published',server.includes('usefulResponses:true')&&server.includes('makerVariations:true')]
 
 
 ];
