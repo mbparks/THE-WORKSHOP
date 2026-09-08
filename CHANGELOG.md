@@ -1,3 +1,13 @@
+# THE WORKSHOP v9.7.0 — First Visit and Discovery
+
+- Added an account-free **Find Your First Thing** path with local-only interest choices.
+- Visitors receive three public projects, one Community Build, and one relevant maker or Maker Crew.
+- Added four clear logged-out homepage entryways: Tour, First Thing, Benches, and Maker Crews.
+- The public tour now hands visitors into discovery instead of ending at sign-in.
+- Public project pages include a **Start Here** guide and links to related discovery and the tour.
+- Explained what members do and when an account becomes necessary without blocking public browsing.
+- Bumped the service-worker/application cache version to v9.7.0.
+
 # THE WORKSHOP v9.6.4 — Sideband Radio Navigation
 
 - Added **Sideband Radio** directly below **REPAIR CLINIC** in desktop external navigation.

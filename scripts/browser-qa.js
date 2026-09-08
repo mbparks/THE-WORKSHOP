@@ -122,8 +122,17 @@ async function setHash(cdp,hash){
     check(`Browser shell loads v${pkg.version}`,true);
     await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.includes('WHAT ARE YOU')`,'Home hero');
     check('Home renders the Workshop hero',true);
+    check('Logged-out Home presents four public entryways',await evaluate(cdp,`document.querySelectorAll('.public-entry-links a').length===4&&document.querySelector('.public-tour-callout')?.textContent.includes('TAKE THE TOUR')`));
     await waitForCondition(cdp,`document.querySelector('#workshop-atmosphere')?.dataset.module==='home'&&document.querySelectorAll('#atmo-foreground .atmo-sprite').length>=6`,'initial Home atmosphere');
     check('Home atmosphere is visibly populated',true);
+
+    await setHash(cdp,'#/start-here');
+    check('First Visit renders five public starting points',await evaluate(cdp,`document.querySelectorAll('.start-here-project').length===3&&document.querySelectorAll('.start-here-community').length===1&&document.querySelectorAll('.start-here-connection').length===1`));
+    await evaluate(cdp,`document.querySelector('[data-start-interest="repair"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('[data-start-interest="repair"]')?.getAttribute('aria-pressed')==='true'`,'First Visit interest selection');
+    check('First Visit persists interests locally',await evaluate(cdp,`JSON.parse(localStorage.getItem('workshop-start-here-interests')||'[]').includes('repair')`));
+    await setHash(cdp,'#/projects/p_lora');
+    check('Public project gives visitors a Start Here guide',await evaluate(cdp,`Boolean(document.querySelector('#project-start-here'))&&Boolean(document.querySelector('a[href="#/start-here"]'))`));
 
     await setHash(cdp,'#/gearhead');
     check('Non-member GearHead join landing renders',await evaluate(cdp,`document.querySelector('#route-view')?.textContent.includes('GET CLOSER TO THE WORK')`));

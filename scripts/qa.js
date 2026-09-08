@@ -280,6 +280,12 @@ const checks=[
   ,['Phase 3 Crew Board uses existing Crew bulletin data',app.includes('CREW BOARD')&&server.includes('maker_crew_bulletin_posts')]
   ,['Phase 3 Live supports attendance without new module',server.includes('live_event_attendance')&&app.includes('I’M GOING')]
   ,['Phase 3 emphasizes Maker Variations',server.includes('recentVariations')&&app.includes('Recent Maker Variations')]
+  ,['First Visit route is public and interest led',app.includes("route==='start-here'")&&app.includes('function renderStartHere()')&&app.includes('NO ACCOUNT REQUIRED · PICK AS MANY AS YOU LIKE')]
+  ,['First Visit choices remain local only',app.includes("localStorage.getItem('workshop-start-here-interests')")&&app.includes("localStorage.setItem('workshop-start-here-interests'")&&!server.includes('workshop-start-here-interests')]
+  ,['First Visit returns the five-point handoff',app.includes('.slice(0,3)')&&app.includes('OPEN COMMUNITY BUILD →')&&app.includes('MEET THE CREW →')&&app.includes('VISIT THEIR BENCH →')]
+  ,['Logged-out Home exposes four public entryways',app.includes('Four ways through the door.')&&app.includes('TAKE THE TOUR')&&app.includes('FIND YOUR FIRST THING')&&app.includes('WALK THE BENCHES')&&app.includes('FIND A MAKER CREW')]
+  ,['Public project pages include Start Here guidance',app.includes('id="project-start-here"')&&app.includes('FIND MORE LIKE THIS →')&&app.includes('HOW THE WORKSHOP WORKS ↗')]
+  ,['Tour hands off into account-free discovery',read('public/tour/index.html').includes('href="/#/start-here"')&&read('public/tour/index.html').includes('No account required.')]
 
 
 ];

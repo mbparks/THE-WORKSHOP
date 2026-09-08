@@ -30,6 +30,10 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     check('anonymous project list hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob'));
     r=await json(base,'/api/projects/p_knob');check('anonymous direct project route hides Members project',r.res.status===404);
     r=await json(base,'/api/home');check('anonymous Home feed hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob')&&!r.data.continueProject);
+    check('First Visit has at least three public project choices',r.res.ok&&r.data.projects.length>=3&&r.data.projects.every(p=>p.visibility==='Public'));
+    r=await json(base,'/api/community-builds');check('First Visit has a public Community Build choice',r.res.ok&&r.data.items.some(x=>x.visibility==='Public'));
+    r=await json(base,'/api/people');const publicPeople=Array.isArray(r.data.people)?r.data.people:[];
+    const publicCrews=await json(base,'/api/crews');check('First Visit has a public maker or Crew connection',r.res.ok&&publicCrews.res.ok&&(publicPeople.length+publicCrews.data.items.length)>0);
     r=await json(base,'/api/search?q=Cast%20Aluminum&kind=projects');check('anonymous search hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob'));
 
     const loginMike=await json(base,'/api/auth/dev-login',{method:'POST',body:{userId:'u_mike'}});const mike=cookieFrom(loginMike.res);
