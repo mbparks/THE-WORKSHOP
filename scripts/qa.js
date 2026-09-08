@@ -286,6 +286,11 @@ const checks=[
   ,['Logged-out Home exposes four public entryways',app.includes('Four ways through the door.')&&app.includes('TAKE THE TOUR')&&app.includes('FIND YOUR FIRST THING')&&app.includes('WALK THE BENCHES')&&app.includes('FIND A MAKER CREW')]
   ,['Public project pages include Start Here guidance',app.includes('id="project-start-here"')&&app.includes('FIND MORE LIKE THIS →')&&app.includes('HOW THE WORKSHOP WORKS ↗')]
   ,['Tour hands off into account-free discovery',read('public/tour/index.html').includes('href="/#/start-here"')&&read('public/tour/index.html').includes('No account required.')]
+  ,['Open Bench uses additive project fields and a visibility-gated aggregate',server.includes("ensureColumn('projects','open_signals'")&&server.includes("ensureColumn('projects','open_request'")&&server.includes("pathname === '/api/open-benches'")&&server.includes('filterVisibleProjects(rows,me)')]
+  ,['Open Bench signals use a bounded invitation vocabulary',server.includes("OPEN_BENCH_SIGNALS=new Set(['feedback','hand','tester','collaborator','materials','variation'])")&&server.includes('normalizeOpenSignals')]
+  ,['Open Bench is visible on project cards pages Home and Builds',app.includes('open-bench-card-signal')&&app.includes('project-open-bench')&&app.includes('home-open-benches')&&app.includes('Open Benches')]
+  ,['Open Bench responses stay attached to project discussion',app.includes('function respondToOpenBench')&&app.includes('Open Bench · ${label}')&&app.includes('/comments`')&&integrationQa.includes('Open Bench response uses the project discussion')]
+  ,['Open Bench avoids popularity mechanics',app.includes('There are no response totals, rankings, or popularity signals.')&&app.includes('Projects appear by most recently updated—not popularity.')]
 
 
 ];
