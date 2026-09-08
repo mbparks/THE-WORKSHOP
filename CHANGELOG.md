@@ -1,3 +1,13 @@
+# THE WORKSHOP v10.0.0 — Make Together
+
+- Added **Make Together**, one project-centered participation hub for Open Bench invitations, Bench Handshakes, Open Bench Hours, and documented outcomes.
+- Added private **My Shared Work** actions for incoming requests, pending offers, confirmed Bench Hours, and accepted-only connection details.
+- Added bounded filters for all six Open Bench invitation types plus scheduled Bench Hours.
+- Added **What Shared Work Changed**, a chronological outcome view built from completed Maker Variations and Useful Responses already attached to Projects.
+- Added Make Together to Builds navigation, Home participation links, and Start Something.
+- Kept every public result visibility-gated and omitted private request text, connection details, attendance totals, popularity counts, rankings, and streaks.
+- Bumped the service-worker/application cache version to v10.0.0.
+
 # THE WORKSHOP v9.12.0 — Open Bench Hours
 
 - Added Project-attached **Open Bench Hours** for makers who want to declare a real window when others can join the work.

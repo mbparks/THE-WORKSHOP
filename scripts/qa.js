@@ -312,6 +312,13 @@ const checks=[
   ,['Open Bench Hour requests support host decisions and maker withdrawal',server.includes("['Accepted','Declined'].includes(requested)")&&server.includes("requested!=='Withdrawn'")&&app.includes('reviewBenchHourRequest')&&app.includes('withdrawBenchHourRequest')]
   ,['Accepted Open Bench Hours reuse the existing calendar and ICS',server.includes("source:'bench-hour'")&&server.includes('Open Bench Hour:')&&app.includes('accepted Open Bench Hours')]
   ,['v9.12 capability flag is published',server.includes('openBenchHours:true')]
+  ,['Make Together aggregates existing project-centered participation',server.includes("pathname === '/api/make-together'")&&server.includes('openProjects,hours,myWork')&&app.includes("route==='make-together'")]
+  ,['Make Together exposes one coherent participation path',app.includes('OPEN THE BENCH')&&app.includes('OFFER A HANDSHAKE')&&app.includes('SET A TIME')&&app.includes('LEAVE A TRACE')]
+  ,['Make Together private work is authenticated and kept out of public responses',server.includes('privateWork:Boolean(me)')&&server.includes("myWork=[]")&&app.includes('PRIVATE TO YOU')]
+  ,['Make Together preserves chronological discovery without public counts',server.includes("hours:'soonest first'")&&server.includes("openProjects:'recent project updates'")&&server.includes('countsPublic:false')&&app.includes('CHRONOLOGICAL · NEVER RANKED')]
+  ,['Make Together closes the loop with useful responses and variations',server.includes("kind:'MAKER VARIATION'")&&server.includes('c.usefulness_note')&&app.includes('What Shared Work Changed')&&app.includes('NO SCOREBOARD')]
+  ,['Make Together is discoverable from Builds Home and Start Something',app.includes("href:'#/make-together',label:'MAKE TOGETHER'")&&app.includes('OPEN MAKE TOGETHER →')&&app.includes('<strong>Make Together</strong>')]
+  ,['v10 capability flag is published',server.includes('makeTogether:true')]
 
 
 ];
