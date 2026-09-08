@@ -53,8 +53,7 @@ async function waitForCondition(cdp,expression,label,timeout=15000){
   throw new Error(`Timed out waiting for ${label}${last?` (${last})`:''}`);
 }
 async function setHash(cdp,hash){
-  const changed=await evaluate(cdp,`(()=>{if(location.hash===${JSON.stringify(hash)})return false;document.querySelector('#route-view')?.setAttribute('aria-busy','true');location.hash=${JSON.stringify(hash)};return true})()`);
-  if(!changed)return;
+  await evaluate(cdp,`(async()=>{location.hash=${JSON.stringify(hash)};await renderRoute()})()`);
   await waitForCondition(cdp,`document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'route render');
   await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.trim().length>40`,'route content');
 }
