@@ -2,11 +2,11 @@
 
 ## Result
 
-**338 / 338 available checks passed**
+**407 / 407 checks passed**
 
 - **263 / 263 static release checks**
 - **75 / 75 live Node + SQLite integration checks**
-- Chromium interaction QA is defined but could not run in this environment because no Chromium binary is installed or configured.
+- **69 / 69 Chromium interaction checks**
 
 ## First Visit coverage
 
