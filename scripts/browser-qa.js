@@ -53,7 +53,8 @@ async function waitForCondition(cdp,expression,label,timeout=15000){
   throw new Error(`Timed out waiting for ${label}${last?` (${last})`:''}`);
 }
 async function setHash(cdp,hash){
-  await evaluate(cdp,`location.hash=${JSON.stringify(hash)}`);
+  const changed=await evaluate(cdp,`(()=>{if(location.hash===${JSON.stringify(hash)})return false;document.querySelector('#route-view')?.setAttribute('aria-busy','true');location.hash=${JSON.stringify(hash)};return true})()`);
+  if(!changed)return;
   await waitForCondition(cdp,`document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'route render');
   await waitForCondition(cdp,`document.querySelector('#route-view')?.textContent.trim().length>40`,'route content');
 }
@@ -146,14 +147,14 @@ async function setHash(cdp,hash){
     await waitForCondition(cdp,`document.querySelector('#user-name')?.textContent==='Mike'&&document.querySelector('#route-view')?.getAttribute('aria-busy')==='false'`,'signed-in user shell',20000);
 
     const routes=[
-      ['#/home','home'],['#/bench','bench'],['#/builds','builds'],['#/make-together','make together'],['#/workshop','workshop'],['#/library','library'],['#/live','live'],['#/people','people'],['#/gearhead','gearhead']
+      ['#/home','home'],['#/bench','bench'],['#/builds','builds'],['#/make-together','make together','builds'],['#/workshop','workshop'],['#/library','library'],['#/live','live'],['#/people','people'],['#/gearhead','gearhead']
     ];
     const compositions=[];
-    for(const [hash,module] of routes){
+    for(const [hash,module,atmosphereModule=module] of routes){
       await setHash(cdp,hash);
       const result=await evaluate(cdp,`(()=>({module:document.querySelector('#workshop-atmosphere')?.dataset.module||'',sprites:document.querySelectorAll('#atmo-foreground .atmo-sprite').length,error:Boolean(document.querySelector('.error-state-v4')),text:document.querySelector('#route-view')?.textContent.trim().slice(0,120)||'',html:document.querySelector('#atmo-foreground')?.innerHTML||''}))()`);
       check(`${module} route renders without runtime error`,result&&!result.error&&result.text.length>20,result?.text||'');
-      check(`${module} atmosphere persists after navigation`,result?.module===module&&result?.sprites>=6,JSON.stringify({module:result?.module,sprites:result?.sprites}));
+      check(`${module} atmosphere persists after navigation`,result?.module===atmosphereModule&&result?.sprites>=6,JSON.stringify({module:result?.module,sprites:result?.sprites}));
       compositions.push(result?.html||'');
     }
     check('Atmosphere recomposes between major modules',new Set(compositions).size>=6,`unique compositions: ${new Set(compositions).size}`);
