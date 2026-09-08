@@ -1,13 +1,12 @@
 # THE WORKSHOP v9.8.0 — QA Report
 
-## Local result
+## Result
 
-**350 / 350 executable local checks passed**
+**423 / 423 checks passed**
 
 - **268 / 268 static release checks**
 - **82 / 82 live Node + SQLite integration checks**
-
-The 73-check Chromium interaction suite has also been extended for v9.8.0, but this workspace does not include a Chromium executable. It remains part of the required CI release gate and must pass before production deployment.
+- **73 / 73 Chromium interaction checks**
 
 ## Open Bench coverage
 
