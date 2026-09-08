@@ -294,7 +294,11 @@ const checks=[
   ,['Bench Handshakes support owner closure and maker withdrawal',server.includes("['Acknowledged','Completed','Declined'].includes(requested)")&&server.includes("requested!=='Withdrawn'")&&app.includes('function reviewBenchHandshake')&&app.includes('function withdrawBenchHandshake')]
   ,['Bench Handshakes render on the project without popularity totals',app.includes('function benchHandshakeList')&&app.includes('Offers at This Bench')&&app.includes('HANDSHAKE MADE')&&app.includes('HELP LANDED')]
   ,['Bench Handshake notifications are restrained to offers and status changes',server.includes('extended a Bench Handshake')&&server.includes('your Bench Handshake is now')&&server.includes("'collaboration'")]
-  ,['Open Bench avoids popularity mechanics',app.includes('There are no response totals, rankings, or popularity signals.')&&app.includes('Projects appear by most recently updated—not popularity.')]
+  ,['Open Bench avoids popularity mechanics',app.includes('There are no response totals, rankings, or popularity signals.')&&app.includes('recent-update order—not popularity or an opaque score.')]
+  ,['Ways In uses existing Bench context with plain-language reasons',server.includes('function projectWayIn')&&server.includes('can_help')&&server.includes('want_learn')&&app.includes('WHY THIS MAY BE A WAY IN')]
+  ,['Ways In remains visibility gated chronological and owner excluding',server.includes("pathname === '/api/ways-in'")&&server.includes('p.owner_id<>?')&&server.includes("orderedBy:'recent project updates'")&&server.includes('filterVisibleProjects(rows,u)')]
+  ,['Open Bench discovery filters use the bounded signal vocabulary',app.includes('id="open-bench-filters"')&&app.includes('data-open-filter')&&app.includes('MATCHES MY BENCH')]
+  ,['Unified search exposes Open Benches Notes and Logs',app.includes("['open','Open Benches']")&&app.includes("['notes','Notes & Logs']")&&server.includes('openBenches:[]')&&server.includes("if(want('notes'))out.buildLogs")]
 
 
 ];

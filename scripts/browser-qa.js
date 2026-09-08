@@ -218,6 +218,13 @@ async function setHash(cdp,hash){
     await waitForCondition(cdp,`[...document.querySelectorAll('.bench-handshake>p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Bench Handshake attached to project');
     check('Open Bench response becomes a project-attached Handshake',await evaluate(cdp,`document.querySelector('.bench-handshake-status')?.textContent.includes('HAND EXTENDED')`));
     check('Offering maker can withdraw an active Handshake',await evaluate(cdp,`Boolean(document.querySelector('[data-action="withdraw-bench-handshake"]'))`));
+    await setHash(cdp,'#/home');
+    check('Signed-in Home explains a transparent Way In',await evaluate(cdp,`document.querySelector('.ways-in-home')?.textContent.includes('WHERE I COULD HELP')&&document.querySelector('.way-in-reasons')?.textContent.includes('WHY THIS MAY BE A WAY IN')`));
+    await setHash(cdp,'#/builds');
+    check('Open Benches can be filtered by invitation type',await evaluate(cdp,`document.querySelectorAll('#open-bench-filters [data-open-filter]').length===8`));
+    await evaluate(cdp,`document.querySelector('#open-bench-filters [data-open-filter="tester"]')?.click()`);
+    check('Invitation filter keeps matching Open Benches visible',await evaluate(cdp,`[...document.querySelectorAll('#open-bench-grid .open-bench-card:not([hidden])')].every(x=>x.dataset.openSignals.split(' ').includes('tester'))`));
+    await setHash(cdp,'#/projects/p_knob');
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
     await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="review-bench-handshake"]'))`,'Bench Handshake owner controls');
     check('Project owner can review the Handshake in place',true);
@@ -290,6 +297,7 @@ async function setHash(cdp,hash){
 
     await setHash(cdp,'#/search/gear/all');
     check('Global search follows consolidated IA',await evaluate(cdp,`(()=>{const t=document.querySelector('#route-view')?.textContent||'';return t.includes('Community Builds')&&t.includes('Help + Critique')})()`));
+    check('Global search exposes Open Benches and Notes without new modules',await evaluate(cdp,`(()=>{const t=document.querySelector('.search-kind-bar')?.textContent||'';return t.includes('Open Benches')&&t.includes('Notes & Logs')})()`));
 
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await setHash(cdp,'#/home');

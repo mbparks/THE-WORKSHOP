@@ -35,6 +35,9 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     r=await json(base,'/api/people');const publicPeople=Array.isArray(r.data.people)?r.data.people:[];
     const publicCrews=await json(base,'/api/crews');check('First Visit has a public maker or Crew connection',r.res.ok&&publicCrews.res.ok&&(publicPeople.length+publicCrews.data.items.length)>0);
     r=await json(base,'/api/search?q=Cast%20Aluminum&kind=projects');check('anonymous search hides Members project',r.res.ok&&!r.data.projects.some(p=>p.id==='p_knob'));
+    r=await json(base,'/api/ways-in');check('Personal Ways In require sign-in',r.res.status===401);
+    r=await json(base,'/api/search?q=impossible%20bearings&kind=notes');check('Unified Notes search returns published Shop Notes',r.res.ok&&r.data.shopNotes.some(n=>n.id==='n1'));
+    r=await json(base,'/api/search?q=vent&kind=help');check('Help search includes troubleshooting questions',r.res.ok&&r.data.help.some(x=>x.id==='q1'));
 
     const loginMike=await json(base,'/api/auth/dev-login',{method:'POST',body:{userId:'u_mike'}});const mike=cookieFrom(loginMike.res);
     check('development Mike login works',loginMike.res.ok&&mike.includes('='));
@@ -77,6 +80,8 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     r=await json(base,`/api/projects/${privateId}`,{method:'PUT',cookie:mike,body:{openSignals:['hand'],openRequest:'Private invitation QA'}});check('Private project can keep an owner-only Open Bench signal',r.res.ok&&r.data.project?.openSignals?.includes('hand'));
     r=await json(base,'/api/open-benches');check('Public Open Benches expose visible invitations in updated order',r.res.ok&&r.data.projects.some(p=>p.id==='p_lora'&&p.openRequest.includes('condensation')));
     check('Public Open Benches never leak private projects',r.res.ok&&!r.data.projects.some(p=>p.id===privateId));
+    r=await json(base,'/api/ways-in',{cookie:mike});check('Ways In connect a member to visible Open Benches with plain-language reasons',r.res.ok&&r.data.orderedBy==='recent project updates'&&r.data.projects.some(p=>p.id==='p_lora'&&p.ownerId!=='u_mike'&&p.wayIn?.reasons?.length));
+    r=await json(base,'/api/search?q=condensation&kind=open',{cookie:mike});check('Unified search finds Open Benches by invitation detail',r.res.ok&&r.data.openBenches.some(p=>p.id==='p_lora'&&p.wayIn?.reasons?.length));
     const openBenchResponse=await json(base,'/api/projects/p_lora/handshakes',{method:'POST',cookie:mike,body:{signal:'tester',message:'I can run a two-night outdoor condensation test.'}});const handshakeId=openBenchResponse.data.handshake?.id;check('Member can extend a structured Bench Handshake',openBenchResponse.res.status===201&&handshakeId&&openBenchResponse.data.handshake.status==='Offered');
     r=await json(base,'/api/projects/p_lora');check('Bench Handshake remains attached to the public project',r.res.ok&&r.data.handshakes.some(h=>h.id===handshakeId&&h.signal==='tester'));
     r=await json(base,'/api/projects/p_lora/handshakes',{method:'POST',cookie:mike,body:{signal:'tester',message:'Duplicate active offer'}});check('Duplicate active Bench Handshake is rejected',r.res.status===409);
@@ -90,6 +95,7 @@ const checks=[];function check(name,ok,detail=''){checks.push([name,Boolean(ok),
     r=await json(base,'/api/projects/p_lora/follow',{method:'POST',cookie:mike,body:{}});check('Member can follow a visible Project',r.res.ok&&r.data.following===true&&r.data.followerCount>=1);
     r=await json(base,'/api/projects/p_lora',{cookie:mike});check('Project payload reports active follow state',r.res.ok&&r.data.project?.following===true&&r.data.project?.followerCount>=1);
     const followLog=await json(base,'/api/projects/p_lora/logs',{method:'POST',cookie:lee,body:{type:'Test',title:'Follower notification QA',body:'A meaningful test update for project followers.'}});check('Project owner can add followed-project update',followLog.res.status===201);
+    r=await json(base,'/api/search?q=Follower%20notification%20QA&kind=notes',{cookie:mike});check('Unified Notes search returns visible Project logs',r.res.ok&&r.data.buildLogs.some(l=>l.id===followLog.data.entry?.id));
     r=await json(base,'/api/notifications',{cookie:mike});check('Project follower receives restrained update notification',r.res.ok&&r.data.items.some(n=>n.kind==='project'&&String(n.body).includes('LoRa Environmental Sensor')));
     const rootComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:mike,body:{body:'Could we document the power budget tradeoff here?'}});const rootCommentId=rootComment.data.comment?.id;check('Project comment can be created',rootComment.res.status===201&&rootCommentId);
     const replyComment=await json(base,'/api/projects/p_lora/comments',{method:'POST',cookie:lee,body:{body:'Yes — I will add the measured numbers.',parentId:rootCommentId}});check('Project comment supports one-level reply',replyComment.res.status===201&&replyComment.data.comment?.parent_id===rootCommentId);

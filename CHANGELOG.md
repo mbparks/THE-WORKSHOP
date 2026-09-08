@@ -1,3 +1,13 @@
+# THE WORKSHOP v9.10.0 — Find Your Way In
+
+- Added signed-in **Where I Could Help** recommendations that connect active Open Benches to a member’s stated skills, tools, help areas, and learning goals.
+- Every connection explains itself in plain language and remains ordered by recent Project updates rather than a hidden score.
+- Added Open Bench filters for all six bounded invitation types plus an optional **Matches My Bench** view.
+- Expanded unified search with dedicated **Open Benches** and **Notes & Logs** groups.
+- Fixed Help search so troubleshooting questions appear alongside critiques and identification requests.
+- Preserved Project visibility, the consolidated navigation model, and the absence of rankings, streaks, popularity totals, or a new feed.
+- Bumped the service-worker/application cache version to v9.10.0.
+
 # THE WORKSHOP v9.9.0 — Bench Handshakes
 
 - Replaced unstructured Open Bench responses with project-attached Bench Handshakes.

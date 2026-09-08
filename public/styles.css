@@ -664,3 +664,10 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .bench-owner-note{padding:12px;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}.bench-owner-note span{font:800 8px/1 var(--mono);letter-spacing:.1em;color:var(--accent)}.bench-owner-note p{margin:7px 0 0;font-size:13px;line-height:1.5;white-space:pre-wrap}
 .bench-handshake-empty{margin-top:18px}
 @media(max-width:760px){.bench-handshake-list{grid-template-columns:1fr}.bench-handshake header{display:grid}.bench-handshake header small{text-align:left}}
+
+/* v9.10.0 — Find Your Way In */
+.way-in-reasons{display:grid;gap:5px;padding:11px;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}.way-in-reasons>span{font:800 10px/1.2 var(--mono);letter-spacing:.1em;color:var(--accent)}.way-in-reasons small{font-size:12px;line-height:1.4;color:var(--text)}
+.ways-in-home{background:color-mix(in srgb,var(--accent) 3%,var(--bg))}.way-in-profile-note{max-width:760px;padding:12px 14px;border:1px dashed var(--accent);color:var(--text);font-size:13px;line-height:1.45}
+.open-bench-filters{margin:18px 0}.open-bench-card[hidden]{display:none}.open-bench-none{padding:18px;border:1px dashed var(--rule)}
+.search-open-bench .open-bench-chips{margin:9px 0}.search-open-bench .way-in-reasons{margin:10px 0}.search-results .way-in-reasons small{display:block;text-transform:none;letter-spacing:0}
+@media(max-width:620px){.open-bench-filters{display:flex;overflow-x:auto;flex-wrap:nowrap;padding-bottom:5px}.open-bench-filters button{flex:0 0 auto}}
