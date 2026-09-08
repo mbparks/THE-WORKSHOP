@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.11.0';
+const APP_VERSION = '9.12.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -344,6 +344,25 @@ function projectRow(r,viewer=null) {
   };
 }
 
+const OPEN_BENCH_HOUR_FORMATS=new Set(['Project Talk','Video / Voice','In Person','Other']);
+function openBenchHourStatus(row){
+  if(row.status!=='Scheduled')return row.status;
+  return new Date(row.ends_at).getTime()<=Date.now()?'Ended':'Scheduled';
+}
+function openBenchHourRow(row,viewer=null){
+  if(!row)return null;
+  const isOwner=Boolean(viewer&&viewer.id===row.owner_id),status=openBenchHourStatus(row);
+  const accepted=Number(db.prepare("SELECT COUNT(*) n FROM open_bench_hour_requests WHERE hour_id=? AND status='Accepted'").get(row.id)?.n||0);
+  const mine=viewer&&!isOwner?db.prepare('SELECT id,note,status,created_at,updated_at FROM open_bench_hour_requests WHERE hour_id=? AND user_id=?').get(row.id,viewer.id):null;
+  const requests=isOwner?db.prepare(`SELECT r.id,r.user_id,r.note,r.status,r.created_at,r.updated_at,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM open_bench_hour_requests r JOIN users u ON u.id=r.user_id WHERE r.hour_id=? ORDER BY CASE r.status WHEN 'Pending' THEN 0 WHEN 'Accepted' THEN 1 ELSE 2 END,r.updated_at DESC`).all(row.id):[];
+  const full=accepted>=Math.max(1,Number(row.capacity)||1),maySeeDetails=isOwner||mine?.status==='Accepted';
+  return {id:row.id,projectId:row.project_id,projectTitle:row.project_title||'',ownerId:row.owner_id,owner:row.owner_name||'',startsAt:row.starts_at,endsAt:row.ends_at,timezone:row.timezone||'Local time',format:row.format,topic:row.topic||'',publicNote:row.public_note||'',privateDetails:maySeeDetails?String(row.private_details||''):'',status,spaceStatus:status!=='Scheduled'?'Closed':full?'Full':'Available',isOwner,myRequest:mine||null,requests,canRequest:Boolean(viewer&&!isOwner&&status==='Scheduled'&&!full&&(!mine||['Declined','Withdrawn'].includes(mine.status)))};
+}
+function projectOpenBenchHours(projectId,viewer=null){
+  const rows=db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id,u.display_name owner_name FROM open_bench_hours h JOIN projects p ON p.id=h.project_id JOIN users u ON u.id=h.owner_id WHERE h.project_id=? ORDER BY h.starts_at ASC`).all(projectId);
+  return rows.filter(h=>canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},viewer)).filter(h=>h.status==='Scheduled'||h.owner_id===viewer?.id||db.prepare("SELECT 1 FROM open_bench_hour_requests WHERE hour_id=? AND user_id=? AND status='Accepted'").get(h.id,viewer?.id||'')).map(h=>openBenchHourRow(h,viewer));
+}
+
 
 function normalizeGitHubRepo(value='') {
   const raw=String(value||'').trim(); if(!raw)return null;
@@ -407,6 +426,16 @@ function initSchema() {
     CREATE TABLE IF NOT EXISTS open_bench_handshakes (
       id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       signal TEXT NOT NULL, message TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'Offered', owner_note TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS open_bench_hours (
+      id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      starts_at TEXT NOT NULL, ends_at TEXT NOT NULL, timezone TEXT DEFAULT '', format TEXT NOT NULL DEFAULT 'Project Talk', topic TEXT DEFAULT '', public_note TEXT DEFAULT '',
+      private_details TEXT DEFAULT '', capacity INTEGER NOT NULL DEFAULT 4, status TEXT NOT NULL DEFAULT 'Scheduled', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS open_bench_hour_requests (
+      id TEXT PRIMARY KEY, hour_id TEXT NOT NULL REFERENCES open_bench_hours(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      note TEXT DEFAULT '', status TEXT NOT NULL DEFAULT 'Pending', created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+      UNIQUE(hour_id,user_id)
     );
     CREATE TABLE IF NOT EXISTS questions (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), title TEXT NOT NULL, trying TEXT NOT NULL, tried TEXT DEFAULT '', happened TEXT DEFAULT '',
@@ -781,6 +810,9 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_projects_updated ON projects(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_logs_project ON build_log_entries(project_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_open_bench_handshakes_project ON open_bench_handshakes(project_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_open_bench_hours_project ON open_bench_hours(project_id,status,starts_at);
+    CREATE INDEX IF NOT EXISTS idx_open_bench_hours_start ON open_bench_hours(status,starts_at);
+    CREATE INDEX IF NOT EXISTS idx_open_bench_hour_requests ON open_bench_hour_requests(hour_id,status,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_questions_updated ON questions(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_discussions_updated ON discussion_topics(updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_discussion_replies_topic ON discussion_replies(topic_id, created_at ASC);
@@ -1655,7 +1687,7 @@ function routeApi(req, res, url) {
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
   if(pathname==='/api/version-diagnostics'&&method==='GET')return sendJson(res,200,{serverVersion:APP_VERSION,schemaVersion:db.prepare('SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1').get()?.version||'',time:now()});
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
   if(pathname==='/api/identity/check'&&method==='GET'){
     const entityType=String(url.searchParams.get('entityType')||''),entityId=String(url.searchParams.get('entityId')||'');const s=identityAddressState(url.searchParams.get('address')||'',entityType,entityId);return sendJson(res,200,s);
@@ -1696,6 +1728,7 @@ function routeApi(req, res, url) {
     const items=[];
     for(const e of db.prepare(`SELECT e.*,u.display_name host,(SELECT COUNT(*) FROM live_event_attendance a WHERE a.event_id=e.id AND a.status='Going') going_count,(SELECT COUNT(*) FROM live_event_attendance a WHERE a.event_id=e.id AND a.status='Interested') interested_count FROM live_events e JOIN users u ON u.id=e.created_by WHERE e.status<>'Archived' ORDER BY e.starts_at`).all())if(canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me))){const mine=me?db.prepare('SELECT status FROM live_event_attendance WHERE event_id=? AND user_id=?').get(e.id,me.id)?.status||'':'';items.push({id:e.id,type:e.event_type||'LIVE',title:e.title,description:e.description||'',startsAt:e.starts_at||'',endsAt:e.ends_at||'',status:e.status,location:'Online / stream',href:`#/live/${e.id}`,source:'live',goingCount:Number(e.going_count||0),interestedCount:Number(e.interested_count||0),myAttendance:mine});}
     for(const ss of db.prepare(`SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status IN ('Active','Upcoming') ORDER BY s.starts_at`).all())if(canSeeSession(ss,me))items.push({id:ss.id,type:'COMMUNITY BUILD SESSION',title:ss.title,description:ss.theme||ss.description||'',startsAt:ss.starts_at||'',endsAt:ss.ends_at||'',status:ss.status,location:ss.crew_id?'Maker Crew':'Workshop',href:`#/session/${ss.id}`,source:'session'});
+    if(me)for(const h of db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id FROM open_bench_hours h JOIN projects p ON p.id=h.project_id WHERE h.status='Scheduled' AND h.ends_at>? AND (h.owner_id=? OR EXISTS(SELECT 1 FROM open_bench_hour_requests r WHERE r.hour_id=h.id AND r.user_id=? AND r.status='Accepted')) ORDER BY h.starts_at`).all(now(),me.id,me.id))if(canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},me))items.push({id:h.id,type:'OPEN BENCH HOUR',title:h.topic||h.project_title,description:h.public_note||`Working session for ${h.project_title}.`,startsAt:h.starts_at,endsAt:h.ends_at,status:'Scheduled',location:h.format,href:`#/projects/${h.project_id}`,source:'bench-hour'});
     const crewIds=me?db.prepare(`SELECT crew_id FROM maker_crew_members WHERE user_id=? AND status='Active'`).all(me.id).map(x=>x.crew_id):[];
     for(const e of db.prepare(`SELECT e.*,c.code,c.name crew_name FROM maker_crew_events e JOIN maker_crews c ON c.id=e.crew_id WHERE e.status<>'Cancelled' ORDER BY e.starts_at`).all())if(e.visibility==='Public'||crewIds.includes(e.crew_id)||isCrewOrganizer(e.crew_id,me))items.push({id:e.id,type:`MAKER CREW · ${e.event_type||'MEETUP'}`,title:e.title,description:e.description||'',startsAt:e.starts_at||'',endsAt:e.ends_at||'',status:e.status||'Scheduled',location:e.venue_name||e.city_region||e.code,href:`#/crew/${e.crew_id}/meetups`,source:'crew'});
     items.sort((a,b)=>String(a.startsAt||'9999').localeCompare(String(b.startsAt||'9999')));
@@ -1706,6 +1739,7 @@ function routeApi(req, res, url) {
     const items=[];
     for(const e of db.prepare(`SELECT e.* FROM live_events e WHERE e.status<>'Archived' ORDER BY e.starts_at`).all())if(canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me)))items.push({id:e.id,title:e.title,description:e.description||'',startsAt:e.starts_at,endsAt:e.ends_at});
     for(const x of db.prepare(`SELECT * FROM workshop_sessions WHERE status IN ('Active','Upcoming') ORDER BY starts_at`).all())if(canSeeSession(x,me))items.push({id:x.id,title:x.title,description:x.theme||x.description||'',startsAt:x.starts_at,endsAt:x.ends_at});
+    if(me)for(const h of db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id FROM open_bench_hours h JOIN projects p ON p.id=h.project_id WHERE h.status='Scheduled' AND h.ends_at>? AND (h.owner_id=? OR EXISTS(SELECT 1 FROM open_bench_hour_requests r WHERE r.hour_id=h.id AND r.user_id=? AND r.status='Accepted')) ORDER BY h.starts_at`).all(now(),me.id,me.id))if(canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},me))items.push({id:h.id,title:`Open Bench Hour: ${h.topic||h.project_title}`,description:h.public_note||`Working session for ${h.project_title}.`,startsAt:h.starts_at,endsAt:h.ends_at});
     const icsDate=v=>String(v||'').replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z').replace(/\+.*$/,'').replace(/T(\d{6})$/,'T$1Z');
     const escIcs=v=>String(v||'').replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
     const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Green Shoe Garage//THE WORKSHOP//EN','CALSCALE:GREGORIAN'];
@@ -1845,6 +1879,12 @@ function routeApi(req, res, url) {
     return sendJson(res,200,{projects:filterVisibleProjects(rows,me).map(r=>projectRow(r,me)).filter(p=>p.openSignals.length)});
   }
 
+  if (pathname === '/api/open-bench-hours' && method === 'GET') {
+    const rows=db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id,u.display_name owner_name FROM open_bench_hours h JOIN projects p ON p.id=h.project_id JOIN users u ON u.id=h.owner_id WHERE h.status='Scheduled' AND h.ends_at>? ORDER BY h.starts_at ASC LIMIT 40`).all(now());
+    const hours=rows.filter(h=>canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},me)).map(h=>openBenchHourRow(h,me));
+    return sendJson(res,200,{hours,orderedBy:'soonest first',countsPublic:false});
+  }
+
   if (pathname === '/api/ways-in' && method === 'GET') {
     const u=requireUser(req,res);if(!u)return;
     const rows=db.prepare(projectSelect(u.id)+" WHERE p.owner_id<>? AND p.open_signals IS NOT NULL AND p.open_signals<>'[]' AND p.open_signals<>'' ORDER BY p.updated_at DESC LIMIT 60").all(u.id,u.id);
@@ -1905,6 +1945,7 @@ function routeApi(req, res, url) {
     const logs=db.prepare(`SELECT l.*,u.display_name author FROM build_log_entries l JOIN users u ON u.id=l.user_id WHERE l.project_id=? ORDER BY l.created_at DESC`).all(pid);
     const comments=db.prepare(`SELECT c.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM comments c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.created_at ASC`).all(pid);
     const handshakes=db.prepare(`SELECT h.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM open_bench_handshakes h JOIN users u ON u.id=h.user_id WHERE h.project_id=? ORDER BY CASE h.status WHEN 'Offered' THEN 0 WHEN 'Acknowledged' THEN 1 ELSE 2 END,h.updated_at DESC`).all(pid).map(h=>{if(!h.variation_project_id)return h;const variation=db.prepare('SELECT id,title,visibility,owner_id FROM projects WHERE id=?').get(h.variation_project_id);return variation&&canViewProject(variation,me)?{...h,variation_title:variation.title}:{...h,variation_project_id:'',variation_title:''}});
+    const benchHours=projectOpenBenchHours(pid,me);
     const files=db.prepare(`SELECT f.*,u.display_name uploader FROM project_files f JOIN users u ON u.id=f.uploader_id WHERE f.project_id=? ORDER BY f.logical_name,f.version DESC`).all(pid).map(f=>({...f,locked:!canAccessLevel(f.access_level||'Inherit',me,row.owner_id),url:canAccessLevel(f.access_level||'Inherit',me,row.owner_id)?`/uploads/${encodeURIComponent(f.stored_name)}`:''}));
     const releases=db.prepare(`SELECT r.*,u.display_name creator FROM project_releases r JOIN users u ON u.id=r.created_by WHERE r.project_id=? ORDER BY r.created_at DESC`).all(pid).map(r=>({...r,files:db.prepare(`SELECT f.*,u.display_name uploader FROM project_release_files rf JOIN project_files f ON f.id=rf.file_id JOIN users u ON u.id=f.uploader_id WHERE rf.release_id=? ORDER BY f.logical_name`).all(r.id)}));
     const critiques=db.prepare(`SELECT c.*,u.display_name author,(SELECT COUNT(*) FROM critique_responses r WHERE r.critique_id=c.id) response_count FROM critiques c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.updated_at DESC`).all(pid).map(c=>({...c,feedback_types:json(c.feedback_types)}));
@@ -1917,7 +1958,7 @@ function routeApi(req, res, url) {
     const variations=childProjects('Project',pid,uid);
     let sourceProject=null;
     if(row.parent_type==='Project'&&row.parent_id){const sourceRow=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,row.parent_id);if(sourceRow&&canViewProject(sourceRow,me))sourceProject=projectRow(sourceRow,me);}
-    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -2029,6 +2070,86 @@ function routeApi(req, res, url) {
       if(project.owner_id===u.id)notifyUser(handshake.user_id,'collaboration',`${project.title}: your Bench Handshake is now ${requested.toLowerCase()}.`,`#/projects/${project.id}`,u.id);
       audit(u.id,'open_bench.handshake.update','open_bench_handshake',handshake.id,{projectId:project.id,status:requested});
       return sendJson(res,200,{handshake:{...handshake,status:requested,owner_note:project.owner_id===u.id?ownerNote:handshake.owner_note,updated_at:ts}});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const projectBenchHoursMatch=pathname.match(/^\/api\/projects\/([^/]+)\/bench-hours$/);
+  if(projectBenchHoursMatch&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    const project=db.prepare('SELECT * FROM projects WHERE id=?').get(projectBenchHoursMatch[1]);
+    if(!project||!canViewProject(project,u))return sendJson(res,404,{error:'Project not found.'});
+    if(project.owner_id!==u.id)return sendJson(res,403,{error:'Only the project owner can schedule an Open Bench Hour.'});
+    if(!normalizeOpenSignals(json(project.open_signals)).length)return sendJson(res,400,{error:'Open this Bench to a specific kind of participation before scheduling hours.'});
+    return readBody(req).then(body=>{
+      const start=new Date(String(body.startsAt||'')),end=new Date(String(body.endsAt||'')),startMs=start.getTime(),endMs=end.getTime();
+      if(!Number.isFinite(startMs)||!Number.isFinite(endMs))return sendJson(res,400,{error:'Choose a valid start time and end time.'});
+      if(startMs<Date.now()+5*60000)return sendJson(res,400,{error:'Schedule the Bench Hour at least five minutes from now.'});
+      if(startMs>Date.now()+180*86400000)return sendJson(res,400,{error:'Schedule Bench Hours no more than 180 days ahead.'});
+      if(endMs-startMs<15*60000||endMs-startMs>8*3600000)return sendJson(res,400,{error:'Bench Hours must last between 15 minutes and 8 hours.'});
+      const format=OPEN_BENCH_HOUR_FORMATS.has(String(body.format||''))?String(body.format):'Project Talk';
+      const topic=String(body.topic||'').trim(),publicNote=String(body.publicNote||'').trim(),privateDetails=String(body.privateDetails||'').trim(),timezone=String(body.timezone||'Local time').trim();
+      if(!topic)return sendJson(res,400,{error:'Name what you plan to work on during this Bench Hour.'});
+      if(topic.length>160||publicNote.length>600||privateDetails.length>1200||timezone.length>80)return sendJson(res,400,{error:'One or more Bench Hour details are too long.'});
+      if(format!=='Project Talk'&&!privateDetails)return sendJson(res,400,{error:'Add private connection details for accepted makers.'});
+      const active=Number(db.prepare("SELECT COUNT(*) n FROM open_bench_hours WHERE project_id=? AND status='Scheduled' AND ends_at>?").get(project.id,now())?.n||0);
+      if(active>=8)return sendJson(res,409,{error:'This Project already has eight upcoming Bench Hours.'});
+      const hid=id('hour'),ts=now(),capacity=Math.max(1,Math.min(12,Number(body.capacity)||4)),details=privateDetails||(format==='Project Talk'?'Meet on this Project page in Help + Project Talk.':'');
+      db.prepare(`INSERT INTO open_bench_hours (id,project_id,owner_id,starts_at,ends_at,timezone,format,topic,public_note,private_details,capacity,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,'Scheduled',?,?)`).run(hid,project.id,u.id,start.toISOString(),end.toISOString(),timezone||'Local time',format,topic,publicNote,details,capacity,ts,ts);
+      audit(u.id,'open_bench.hour.schedule','project',project.id,{hourId:hid,startsAt:start.toISOString(),format});
+      const row=db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id,u.display_name owner_name FROM open_bench_hours h JOIN projects p ON p.id=h.project_id JOIN users u ON u.id=h.owner_id WHERE h.id=?`).get(hid);
+      return sendJson(res,201,{hour:openBenchHourRow(row,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const benchHourDetail=pathname.match(/^\/api\/open-bench-hours\/([^/]+)$/);
+  if(benchHourDetail&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const hour=db.prepare('SELECT * FROM open_bench_hours WHERE id=?').get(benchHourDetail[1]);
+    if(!hour)return sendJson(res,404,{error:'Open Bench Hour not found.'});
+    if(hour.owner_id!==u.id)return sendJson(res,403,{error:'Only the Project owner can change this Open Bench Hour.'});
+    return readBody(req).then(body=>{
+      const status=String(body.status||'');if(status!=='Cancelled')return sendJson(res,400,{error:'An Open Bench Hour can be cancelled from this control.'});
+      if(hour.status!=='Scheduled')return sendJson(res,409,{error:'This Open Bench Hour is already closed.'});
+      const ts=now();db.prepare("UPDATE open_bench_hours SET status='Cancelled',updated_at=? WHERE id=?").run(ts,hour.id);
+      for(const r of db.prepare("SELECT user_id FROM open_bench_hour_requests WHERE hour_id=? AND status='Accepted'").all(hour.id))notifyUser(r.user_id,'event','An Open Bench Hour you joined was cancelled.',`#/projects/${hour.project_id}`,u.id);
+      audit(u.id,'open_bench.hour.cancel','open_bench_hour',hour.id,{projectId:hour.project_id});return sendJson(res,200,{ok:true,status:'Cancelled'});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const benchHourRequests=pathname.match(/^\/api\/open-bench-hours\/([^/]+)\/requests$/);
+  if(benchHourRequests&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    const hour=db.prepare(`SELECT h.*,p.title project_title,p.visibility project_visibility,p.owner_id project_owner_id FROM open_bench_hours h JOIN projects p ON p.id=h.project_id WHERE h.id=?`).get(benchHourRequests[1]);
+    if(!hour||!canViewProject({id:hour.project_id,visibility:hour.project_visibility,owner_id:hour.project_owner_id},u))return sendJson(res,404,{error:'Open Bench Hour not found.'});
+    if(hour.owner_id===u.id)return sendJson(res,403,{error:'You are hosting this Open Bench Hour.'});
+    if(openBenchHourStatus(hour)!=='Scheduled')return sendJson(res,409,{error:'This Open Bench Hour has closed.'});
+    return readBody(req).then(body=>{
+      const note=String(body.note||'').trim();if(!note)return sendJson(res,400,{error:'Tell the maker what you hope to work on or ask.'});if(note.length>600)return sendJson(res,400,{error:'Keep the request to 600 characters or fewer.'});
+      const accepted=Number(db.prepare("SELECT COUNT(*) n FROM open_bench_hour_requests WHERE hour_id=? AND status='Accepted'").get(hour.id)?.n||0);if(accepted>=Math.max(1,Number(hour.capacity)||1))return sendJson(res,409,{error:'This Open Bench Hour is full.'});
+      const existing=db.prepare('SELECT * FROM open_bench_hour_requests WHERE hour_id=? AND user_id=?').get(hour.id,u.id);if(existing&&['Pending','Accepted'].includes(existing.status))return sendJson(res,409,{error:'You already have an active request for this Open Bench Hour.'});
+      const rid=existing?.id||id('hourreq'),ts=now();
+      if(existing)db.prepare("UPDATE open_bench_hour_requests SET note=?,status='Pending',updated_at=? WHERE id=?").run(note,ts,rid);else db.prepare("INSERT INTO open_bench_hour_requests (id,hour_id,user_id,note,status,created_at,updated_at) VALUES (?,?,?,?,'Pending',?,?)").run(rid,hour.id,u.id,note,ts,ts);
+      notifyUser(hour.owner_id,'event',`${u.display_name} requested a place at your Open Bench Hour for ${hour.project_title}.`,`#/projects/${hour.project_id}`,u.id);audit(u.id,'open_bench.hour.request','open_bench_hour',hour.id,{requestId:rid});
+      return sendJson(res,201,{request:{id:rid,hour_id:hour.id,user_id:u.id,note,status:'Pending',created_at:existing?.created_at||ts,updated_at:ts}});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
+  const benchHourRequestDetail=pathname.match(/^\/api\/open-bench-hours\/([^/]+)\/requests\/([^/]+)$/);
+  if(benchHourRequestDetail&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const hour=db.prepare('SELECT * FROM open_bench_hours WHERE id=?').get(benchHourRequestDetail[1]),request=db.prepare('SELECT * FROM open_bench_hour_requests WHERE id=? AND hour_id=?').get(benchHourRequestDetail[2],benchHourRequestDetail[1]);
+    if(!hour||!request)return sendJson(res,404,{error:'Open Bench Hour request not found.'});
+    return readBody(req).then(body=>{
+      const requested=String(body.status||'');
+      if(hour.owner_id===u.id){
+        if(!['Accepted','Declined'].includes(requested))return sendJson(res,400,{error:'Choose Accepted or Declined.'});
+        if(openBenchHourStatus(hour)!=='Scheduled')return sendJson(res,409,{error:'This Open Bench Hour has closed.'});
+        if(requested==='Accepted'){const accepted=Number(db.prepare("SELECT COUNT(*) n FROM open_bench_hour_requests WHERE hour_id=? AND status='Accepted' AND id<>?").get(hour.id,request.id)?.n||0);if(accepted>=Math.max(1,Number(hour.capacity)||1))return sendJson(res,409,{error:'This Open Bench Hour is full.'});}
+      }else{
+        if(request.user_id!==u.id)return sendJson(res,403,{error:'Only the host or requesting maker can change this request.'});
+        if(requested!=='Withdrawn'||!['Pending','Accepted'].includes(request.status))return sendJson(res,400,{error:'You can withdraw only an active request.'});
+      }
+      const ts=now();db.prepare('UPDATE open_bench_hour_requests SET status=?,updated_at=? WHERE id=?').run(requested,ts,request.id);
+      if(hour.owner_id===u.id)notifyUser(request.user_id,'event',`Your Open Bench Hour request was ${requested.toLowerCase()}.`,`#/projects/${hour.project_id}`,u.id);
+      audit(u.id,'open_bench.hour.request.update','open_bench_hour_request',request.id,{hourId:hour.id,status:requested});return sendJson(res,200,{request:{...request,status:requested,updated_at:ts}});
     }).catch(e=>sendJson(res,400,{error:e.message}));
   }
 

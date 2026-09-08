@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.11.0**
+Current release: **v9.12.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -15,20 +15,20 @@ That is the product test for every feature.
 
 ---
 
-## What changed in v9.11.0
+## What changed in v9.12.0
 
-### Useful Responses
+### Open Bench Hours
 
-- Project owners can mark another maker's Project Talk contribution as **Changed the Build**, **Prevented a Problem**, or **Useful Direction**.
-- An optional note records the concrete effect beside the response itself.
-- The contributing maker receives one restrained notification; there are no public totals, points, or rankings.
+- Makers can schedule bounded working windows directly on an active Open Bench Project.
+- Each hour names the work, start time, duration, timezone, format, public preparation note, and private connection details.
+- Another maker can request a place privately; the host can accept or decline without publishing attendance counts.
 
-### Maker Variations
+### Private coordination, existing calendar
 
-- **Make a Variation** invitations can now lead directly into a linked derivative Project.
-- Each variation preserves a visible statement of what the maker intends to change.
-- **Show What You Built** returns a concise outcome to the source Project.
-- Source Projects collect all visible variations with completed work first and no competitive ordering.
+- Connection details remain hidden until the host accepts a request.
+- Capacity prevents overbooking but is never displayed as a popularity signal.
+- Accepted and hosted Bench Hours appear in the existing Live + Calendar view and ICS export.
+- Past windows end automatically, and hosts can cancel with one restrained notification to accepted makers.
 
 ---
 
