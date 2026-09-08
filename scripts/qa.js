@@ -289,7 +289,11 @@ const checks=[
   ,['Open Bench uses additive project fields and a visibility-gated aggregate',server.includes("ensureColumn('projects','open_signals'")&&server.includes("ensureColumn('projects','open_request'")&&server.includes("pathname === '/api/open-benches'")&&server.includes('filterVisibleProjects(rows,me)')]
   ,['Open Bench signals use a bounded invitation vocabulary',server.includes("OPEN_BENCH_SIGNALS=new Set(['feedback','hand','tester','collaborator','materials','variation'])")&&server.includes('normalizeOpenSignals')]
   ,['Open Bench is visible on project cards pages Home and Builds',app.includes('open-bench-card-signal')&&app.includes('project-open-bench')&&app.includes('home-open-benches')&&app.includes('Open Benches')]
-  ,['Open Bench responses stay attached to project discussion',app.includes('function respondToOpenBench')&&app.includes('Open Bench · ${label}')&&app.includes('/comments`')&&integrationQa.includes('Open Bench response uses the project discussion')]
+  ,['Bench Handshakes use additive project-attached persistence',server.includes('CREATE TABLE IF NOT EXISTS open_bench_handshakes')&&server.includes('idx_open_bench_handshakes_project')&&server.includes('/handshakes$/')]
+  ,['Bench Handshakes require active bounded invitations',server.includes("normalizeOpenSignals(json(project.open_signals)).includes(signal)")&&server.includes("status IN ('Offered','Acknowledged')")]
+  ,['Bench Handshakes support owner closure and maker withdrawal',server.includes("['Acknowledged','Completed','Declined'].includes(requested)")&&server.includes("requested!=='Withdrawn'")&&app.includes('function reviewBenchHandshake')&&app.includes('function withdrawBenchHandshake')]
+  ,['Bench Handshakes render on the project without popularity totals',app.includes('function benchHandshakeList')&&app.includes('Offers at This Bench')&&app.includes('HANDSHAKE MADE')&&app.includes('HELP LANDED')]
+  ,['Bench Handshake notifications are restrained to offers and status changes',server.includes('extended a Bench Handshake')&&server.includes('your Bench Handshake is now')&&server.includes("'collaboration'")]
   ,['Open Bench avoids popularity mechanics',app.includes('There are no response totals, rankings, or popularity signals.')&&app.includes('Projects appear by most recently updated—not popularity.')]
 
 
