@@ -72,9 +72,9 @@ async function setHash(cdp,hash){
   try{
     const base=`http://127.0.0.1:${appPort}`;await waitForHttp(`${base}/api/meta`);
     const chromium=findChromium();
-    chrome=spawn(chromium,[`--remote-debugging-port=${debugPort}`,`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--window-size=1440,1000','about:blank'],{stdio:['ignore','pipe','pipe']});
+    chrome=spawn(chromium,[`--remote-debugging-port=${debugPort}`,'--remote-debugging-address=127.0.0.1',`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--window-size=1440,1000','about:blank'],{stdio:['ignore','pipe','pipe']});
     chrome.stdout.on('data',d=>logs.push(String(d)));chrome.stderr.on('data',d=>logs.push(String(d)));
-    await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`);
+    await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`,300);
     // The container's managed Chromium policy blocks every navigated URL, including
     // localhost. Load the real application into about:blank and bridge fetch() calls
     // to the real temporary server over CDP. This still executes the production HTML,
