@@ -1,3 +1,14 @@
+# THE WORKSHOP v9.12.0 — Open Bench Hours
+
+- Added Project-attached **Open Bench Hours** for makers who want to declare a real window when others can join the work.
+- Added bounded scheduling with a topic, start/end time, timezone, format, public preparation note, private connection details, and hidden capacity.
+- Added private place requests with host acceptance/decline and maker withdrawal.
+- Kept connection details hidden until acceptance and enforced Project visibility on every read and write path.
+- Added automatic end-state handling, host cancellation, capacity enforcement, and restrained request/decision/cancellation notifications.
+- Added upcoming Bench Hours to Home in chronological order and accepted/hosted hours to the existing Live + Calendar and ICS export.
+- Added no attendance totals, ranking, streak, new feed, or top-level navigation module.
+- Bumped the service-worker/application cache version to v9.12.0.
+
 # THE WORKSHOP v9.11.0 — Useful Responses and Maker Variations
 
 - Added bounded **Useful Response** marks to Project Talk: Changed the Build, Prevented a Problem, and Useful Direction.

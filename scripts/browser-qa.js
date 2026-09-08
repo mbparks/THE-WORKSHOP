@@ -204,6 +204,12 @@ async function setHash(cdp,hash){
     await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-signal-form');f.querySelector('[value="feedback"]').checked=true;f.querySelector('[value="tester"]').checked=true;f.querySelector('[name="openRequest"]').value='Try the revised knob outdoors and report how it feels.';f.requestSubmit()})()`);
     await waitForCondition(cdp,`document.querySelector('.project-open-bench')?.textContent.includes('Try the revised knob outdoors')`,'Open Bench project callout');
     check('Saved Open Bench invitation renders on the Project',await evaluate(cdp,`document.querySelectorAll('.project-open-bench .open-bench-chip').length===2`));
+    await evaluate(cdp,`document.querySelector('[data-action="schedule-bench-hour"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#open-bench-hour-form')`,'Open Bench Hour editor');
+    check('Open Bench Hour editor explains private requests and hidden capacity',await evaluate(cdp,`document.querySelector('#open-bench-hour-form')?.textContent.includes('Requests stay private')&&document.querySelector('#open-bench-hour-form')?.textContent.includes('not displayed publicly')`));
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-hour-form'),d=new Date(Date.now()+4*86400000);d.setMinutes(0,0,0);const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);f.querySelector('[name="topic"]').value='Browser QA knob test hour';f.querySelector('[name="startsAt"]').value=local;f.querySelector('[name="format"]').value='Video / Voice';f.querySelector('[name="publicNote"]').value='Bring one glove test observation.';f.querySelector('[name="privateDetails"]').value='Join the private Browser QA room.';f.querySelector('[name="capacity"]').value='1';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.open-bench-hour')?.textContent.includes('Browser QA knob test hour')`,'scheduled Open Bench Hour');
+    check('Scheduled Open Bench Hour stays attached to the Project',await evaluate(cdp,`Boolean(document.querySelector('#open-bench-hours'))&&document.querySelector('.open-bench-hour')?.textContent.includes('AVAILABLE')`));
     await evaluate(cdp,`document.querySelector('[data-action="invite-collaborator"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#invite-form [name="callsign"]')`,'Callsign collaborator invite');
     check('Collaborator invitation uses global callsign address',await evaluate(cdp,`document.querySelector('#invite-form [name="callsign"]')?.placeholder==='@paperpilot'`));
@@ -211,6 +217,12 @@ async function setHash(cdp,hash){
     check('Project page exposes Guided Build',await evaluate(cdp,`Boolean(document.querySelector('#project-guide .guided-build-grid'))`));
     check('Project can ask Workshop with project context',await evaluate(cdp,`Boolean(document.querySelector('[data-action="project-help"]'))`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="request-bench-hour"]'))`,'Open Bench Hour request control');
+    await evaluate(cdp,`document.querySelector('[data-action="request-bench-hour"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#bench-hour-request-form')`,'Open Bench Hour request form');
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#bench-hour-request-form');f.querySelector('[name="note"]').value='I can bring a work-glove observation.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.open-bench-hour')?.textContent.includes('MY REQUEST · PENDING')`,'private Open Bench Hour request');
+    check('Maker can request an Open Bench Hour without seeing connection details',await evaluate(cdp,`!document.querySelector('.bench-hour-private')&&Boolean(document.querySelector('[data-action="withdraw-bench-hour"]'))`));
     await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="open-bench-respond"]'))`,'Open Bench response control');
     await evaluate(cdp,`document.querySelector('[data-action="open-bench-respond"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#open-bench-response-form')`,'Open Bench response editor');
@@ -220,6 +232,7 @@ async function setHash(cdp,hash){
     check('Offering maker can withdraw an active Handshake',await evaluate(cdp,`Boolean(document.querySelector('[data-action="withdraw-bench-handshake"]'))`));
     await setHash(cdp,'#/home');
     check('Signed-in Home explains a transparent Way In',await evaluate(cdp,`document.querySelector('.ways-in-home')?.textContent.includes('WHERE I COULD HELP')&&document.querySelector('.way-in-reasons')?.textContent.includes('WHY THIS MAY BE A WAY IN')`));
+    check('Home surfaces upcoming Open Bench Hours without a new module',await evaluate(cdp,`document.querySelector('.home-bench-hours')?.textContent.includes('Browser QA knob test hour')&&document.querySelector('.home-bench-hours')?.textContent.includes('Soonest first, never ranked')&&!document.querySelector('.home-bench-hours .bench-hour-private')`));
     await setHash(cdp,'#/builds');
     check('Open Benches can be filtered by invitation type',await evaluate(cdp,`document.querySelectorAll('#open-bench-filters [data-open-filter]').length===8`));
     await evaluate(cdp,`document.querySelector('#open-bench-filters [data-open-filter="tester"]')?.click()`);
@@ -228,6 +241,13 @@ async function setHash(cdp,hash){
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
     await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="review-bench-handshake"]'))`,'Bench Handshake owner controls');
     check('Project owner can review the Handshake in place',true);
+    await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="review-bench-hour"][data-status="Accepted"]'))`,'Open Bench Hour host review');
+    await evaluate(cdp,`document.querySelector('[data-action="review-bench-hour"][data-status="Accepted"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('.bench-hour-requests')?.textContent.includes('ACCEPTED')`,'accepted Open Bench Hour request');
+    check('Host can accept the private Open Bench Hour request in place',true);
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
+    await waitForCondition(cdp,`document.querySelector('.bench-hour-private')?.textContent.includes('private Browser QA room')`,'accepted Open Bench Hour details');
+    check('Accepted maker receives private connection details',true);
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/projects/p_lora');
     check('Public project can be personalized with Make It Yours',await evaluate(cdp,`Boolean(document.querySelector('[data-action="make-it-yours"]'))`));
@@ -310,6 +330,7 @@ async function setHash(cdp,hash){
 
     await setHash(cdp,'#/live');
     check('Live page exposes calendar export',await evaluate(cdp,`Boolean(document.querySelector('a[href="/api/calendar.ics"]'))`));
+    check('Owned Open Bench Hours appear in the existing calendar',await evaluate(cdp,`[...document.querySelectorAll('.calendar-card')].some(x=>x.textContent.includes('OPEN BENCH HOUR')&&x.textContent.includes('Browser QA knob test hour'))`));
     const liveHref=await evaluate(cdp,`document.querySelector('.calendar-card[href^="#/live/"]')?.getAttribute('href')||''`);
     if(liveHref){await setHash(cdp,liveHref);check('Live event exposes Interested and I’m Going attendance controls',await evaluate(cdp,`Boolean(document.querySelector('[data-action="live-attendance"][data-status="Interested"]'))&&Boolean(document.querySelector('[data-action="live-attendance"][data-status="Going"]'))`));}
 

@@ -305,6 +305,13 @@ const checks=[
   ,['Source Projects collect visibility-gated Maker Variations',server.includes("childProjects('Project',pid,uid)")&&app.includes('COMPLETED FIRST · NEVER RANKED')&&app.includes('makerVariationCard')]
   ,['Variation Handshakes can lead into a linked Project',server.includes("signal='variation'")&&server.includes('variation_project_id')&&app.includes('START MY VARIATION →')]
   ,['v9.11 capability flags are published',server.includes('usefulResponses:true')&&server.includes('makerVariations:true')]
+  ,['Open Bench Hours use additive Project-attached persistence',server.includes('CREATE TABLE IF NOT EXISTS open_bench_hours')&&server.includes('CREATE TABLE IF NOT EXISTS open_bench_hour_requests')&&server.includes('idx_open_bench_hours_project')]
+  ,['Only Open Bench owners can schedule bounded hours',server.includes('Only the project owner can schedule an Open Bench Hour.')&&server.includes('at least five minutes from now')&&server.includes('between 15 minutes and 8 hours')]
+  ,['Open Bench Hour connection details are acceptance gated',server.includes("mine?.status==='Accepted'")&&server.includes("maySeeDetails?String(row.private_details||''):'")&&app.includes('FOR ACCEPTED MAKERS')]
+  ,['Open Bench Hour requests remain private and capacity counts stay hidden',server.includes("countsPublic:false")&&app.includes('Requests stay private')&&app.includes('not displayed publicly')&&!app.includes('acceptedCount')]
+  ,['Open Bench Hour requests support host decisions and maker withdrawal',server.includes("['Accepted','Declined'].includes(requested)")&&server.includes("requested!=='Withdrawn'")&&app.includes('reviewBenchHourRequest')&&app.includes('withdrawBenchHourRequest')]
+  ,['Accepted Open Bench Hours reuse the existing calendar and ICS',server.includes("source:'bench-hour'")&&server.includes('Open Bench Hour:')&&app.includes('accepted Open Bench Hours')]
+  ,['v9.12 capability flag is published',server.includes('openBenchHours:true')]
 
 
 ];
