@@ -665,6 +665,22 @@ body.deep .detailed-only{display:initial!important}.detailed-only{display:none!i
 .bench-handshake-empty{margin-top:18px}
 @media(max-width:760px){.bench-handshake-list{grid-template-columns:1fr}.bench-handshake header{display:grid}.bench-handshake header small{text-align:left}}
 
+/* v9.11 — useful responses + maker variations */
+.variation-origin-callout{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:22px clamp(18px,5vw,64px);border-bottom:1px solid var(--rule);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.variation-origin-callout>div{max-width:780px}.variation-origin-callout h2{margin:5px 0 7px;font-size:clamp(22px,3vw,36px)}.variation-origin-callout p{margin:0;color:var(--muted);line-height:1.55}
+.project-variations{padding:clamp(30px,5vw,64px);border-bottom:1px solid var(--rule);background:var(--panel)}
+.project-variations>.muted-copy{max-width:780px;margin:10px 0 22px}
+.maker-variation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.maker-variation-card{display:grid;gap:12px;padding:20px;border:1px solid var(--rule);border-top:4px solid var(--muted);background:var(--bg);color:var(--ink);text-decoration:none;transition:transform .18s ease,border-color .18s ease}
+.maker-variation-card:hover{transform:translateY(-2px);border-color:var(--accent)}.maker-variation-card.is-complete{border-top-color:var(--accent)}
+.maker-variation-card-head{display:flex;justify-content:space-between;gap:12px;font:800 9px/1.35 var(--mono);letter-spacing:.1em}.maker-variation-card-head>span{color:var(--accent)}.maker-variation-card-head small{color:var(--muted);font:inherit;text-align:right}
+.maker-variation-card h3{margin:0;font-size:clamp(20px,2.4vw,30px)}.maker-variation-card p{display:grid;gap:5px;margin:0;color:var(--muted);font-size:14px;line-height:1.5}.maker-variation-card p strong{color:var(--ink);font:800 9px/1 var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.useful-response-marker{display:grid;gap:7px;margin:12px 0 4px;padding:12px 14px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.useful-response-marker>span,.useful-response-pill{color:var(--accent);font:800 9px/1.25 var(--mono);letter-spacing:.09em}.useful-response-marker p{margin:0!important;color:var(--ink)!important;font-size:13px!important;line-height:1.45!important}
+.comment-v4.is-useful-response,.question-response.is-useful-response{border-color:color-mix(in srgb,var(--accent) 54%,var(--rule))}
+.useful-response-picker{display:grid;gap:9px}.useful-response-picker label{display:grid;grid-template-columns:auto 1fr;gap:11px;align-items:start;padding:13px;border:1px solid var(--rule);background:var(--panel);cursor:pointer}.useful-response-picker input{margin-top:3px}.useful-response-picker span{display:grid;gap:5px}.useful-response-picker strong{font-size:14px}.useful-response-picker small{color:var(--muted);font-size:12px;line-height:1.45}
+@media(max-width:760px){.variation-origin-callout{align-items:stretch;flex-direction:column}.maker-variation-grid{grid-template-columns:1fr}.maker-variation-card-head{display:grid}.maker-variation-card-head small{text-align:left}}
+
 /* v9.10.0 — Find Your Way In */
 .way-in-reasons{display:grid;gap:5px;padding:11px;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--panel))}.way-in-reasons>span{font:800 10px/1.2 var(--mono);letter-spacing:.1em;color:var(--accent)}.way-in-reasons small{font-size:12px;line-height:1.4;color:var(--text)}
 .ways-in-home{background:color-mix(in srgb,var(--accent) 3%,var(--bg))}.way-in-profile-note{max-width:760px;padding:12px 14px;border:1px dashed var(--accent);color:var(--text);font-size:13px;line-height:1.45}

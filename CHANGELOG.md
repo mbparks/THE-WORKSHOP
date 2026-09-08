@@ -1,3 +1,14 @@
+# THE WORKSHOP v9.11.0 — Useful Responses and Maker Variations
+
+- Added bounded **Useful Response** marks to Project Talk: Changed the Build, Prevented a Problem, and Useful Direction.
+- Added optional owner notes that record the concrete effect of a response beside the response itself.
+- Added one restrained notification when another maker's contribution receives a new Useful Response mark.
+- Added structured Maker Variation intent and outcome fields with additive database migration.
+- Connected **Make a Variation** invitations and Bench Handshakes to the linked-project workflow.
+- Added source-project variation galleries with completed work first, visibility enforcement, and no ranking.
+- Expanded answer-mark handling with contributor notifications, missing-answer validation, and correct solved-state recalculation.
+- Bumped the service-worker/application cache version to v9.11.0.
+
 # THE WORKSHOP v9.10.0 — Find Your Way In
 
 - Added signed-in **Where I Could Help** recommendations that connect active Open Benches to a member’s stated skills, tools, help areas, and learning goals.

@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v9.10.0**
+Current release: **v9.11.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -15,7 +15,24 @@ That is the product test for every feature.
 
 ---
 
-## What changed in v9.0.4
+## What changed in v9.11.0
+
+### Useful Responses
+
+- Project owners can mark another maker's Project Talk contribution as **Changed the Build**, **Prevented a Problem**, or **Useful Direction**.
+- An optional note records the concrete effect beside the response itself.
+- The contributing maker receives one restrained notification; there are no public totals, points, or rankings.
+
+### Maker Variations
+
+- **Make a Variation** invitations can now lead directly into a linked derivative Project.
+- Each variation preserves a visible statement of what the maker intends to change.
+- **Show What You Built** returns a concise outcome to the source Project.
+- Source Projects collect all visible variations with completed work first and no competitive ordering.
+
+---
+
+## Earlier v9 work
 
 ### Maker Crew map placement
 

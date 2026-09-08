@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.10.0';
+const APP_VERSION = '9.11.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -277,6 +277,7 @@ function parseList(v) {
 }
 const OPEN_BENCH_SIGNALS=new Set(['feedback','hand','tester','collaborator','materials','variation']);
 const OPEN_BENCH_LABELS={feedback:'Feedback Welcome',hand:'Need a Hand',tester:'Looking for Tester',collaborator:'Open to Collaborator',materials:'Need a Tool or Material',variation:'Make a Variation'};
+const USEFUL_RESPONSE_MARKS=new Set(['Changed the Build','Prevented a Problem','Useful Direction']);
 function normalizeOpenSignals(value){return [...new Set(parseList(value).map(x=>String(x).trim().toLowerCase()).filter(x=>OPEN_BENCH_SIGNALS.has(x)))];}
 
 function ensureColumn(table, name, definition) {
@@ -338,7 +339,7 @@ function projectRow(r,viewer=null) {
     stage:r.stage, status:r.status, disciplines:json(r.disciplines), tags:json(r.tags), coverEmoji:r.cover_emoji,
     visibility:r.visibility, license:r.license, estimatedCost:r.estimated_cost, difficulty:r.difficulty, tools:json(r.tools),
     materials:json(r.materials), platforms:json(r.platforms), softwareLanguages:json(r.software_languages), softwareFrameworks:json(r.software_frameworks), dependencies:json(r.dependencies), electronicsHardware:json(r.electronics_hardware), interfaces:json(r.interfaces), powerRequirements:r.power_requirements||'', openSignals:normalizeOpenSignals(json(r.open_signals)), openRequest:r.open_request||'', website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
-    parentType:r.parent_type, parentId:r.parent_id, crewId:r.crew_id||'', crewCode:r.crew_code||'', crewName:r.crew_name||'', createdAt:r.created_at, updatedAt:r.updated_at,
+    parentType:r.parent_type, parentId:r.parent_id, variationIntent:r.variation_intent||'', variationOutcome:r.variation_outcome||'', crewId:r.crew_id||'', crewCode:r.crew_code||'', crewName:r.crew_name||'', createdAt:r.created_at, updatedAt:r.updated_at,
     saved:Boolean(r.saved), following:Boolean(r.following), followerCount:Number(r.follower_count || 0), logCount:Number(r.log_count || 0), commentCount:Number(r.comment_count || 0), fit:viewer?projectFit(r,viewer):null
   };
 }
@@ -1017,6 +1018,9 @@ function normalizeLegacyAccess(){
 normalizeLegacyAccess();
 seedCrewIdentityAddresses();
 ensureColumn('comments','parent_id',"TEXT DEFAULT ''");
+ensureColumn('comments','usefulness',"TEXT DEFAULT ''");
+ensureColumn('comments','usefulness_note',"TEXT DEFAULT ''");
+ensureColumn('comments','usefulness_at',"TEXT DEFAULT ''");
 ensureColumn('projects','materials',"TEXT DEFAULT '[]'");
 ensureColumn('projects','website',"TEXT DEFAULT ''");
 ensureColumn('projects','cover_url',"TEXT DEFAULT ''");
@@ -1046,6 +1050,10 @@ ensureColumn('projects','interfaces',"TEXT DEFAULT '[]'");
 ensureColumn('projects','power_requirements',"TEXT DEFAULT ''");
 ensureColumn('projects','open_signals',"TEXT DEFAULT '[]'");
 ensureColumn('projects','open_request',"TEXT DEFAULT ''");
+ensureColumn('projects','variation_intent',"TEXT DEFAULT ''");
+ensureColumn('projects','variation_outcome',"TEXT DEFAULT ''");
+ensureColumn('open_bench_handshakes','variation_project_id',"TEXT DEFAULT ''");
+db.exec('CREATE INDEX IF NOT EXISTS idx_projects_parent ON projects(parent_type,parent_id,status,updated_at DESC)');
 
 ensureColumn('users','profile_visibility',"TEXT DEFAULT 'Members'");
 ensureColumn('users','location_visibility',"TEXT DEFAULT 'Members'");
@@ -1647,7 +1655,7 @@ function routeApi(req, res, url) {
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
   if(pathname==='/api/version-diagnostics'&&method==='GET')return sendJson(res,200,{serverVersion:APP_VERSION,schemaVersion:db.prepare('SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1').get()?.version||'',time:now()});
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
   if(pathname==='/api/identity/check'&&method==='GET'){
     const entityType=String(url.searchParams.get('entityType')||''),entityId=String(url.searchParams.get('entityId')||'');const s=identityAddressState(url.searchParams.get('address')||'',entityType,entityId);return sendJson(res,200,s);
@@ -1864,14 +1872,26 @@ function routeApi(req, res, url) {
     const u=requireUser(req,res);if(!u)return;
     const source=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,projectCloneMatch[1]);
     if(!source||!canViewProject(source,u))return sendJson(res,404,{error:'Project not found.'});
+    if(source.owner_id===u.id)return sendJson(res,400,{error:'A Maker Variation starts from another maker’s Project.'});
     return readBody(req).then(body=>{
       const title=String(body.title||`${source.title} — My Build`).trim();if(!title)return sendJson(res,400,{error:'Give your version a name.'});
       const pid=id('p'),ts=now(),adaptation=String(body.adaptation||'').trim();
-      db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,platforms,software_languages,software_frameworks,dependencies,electronics_hardware,interfaces,power_requirements,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
-        .run(pid,u.id,title,slugify(title),String(body.description??source.description),String(body.stage||'Idea'),'Active',source.disciplines,source.tags,String(source.cover_emoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(source.license||'Unspecified'),String(body.estimatedCost??source.estimated_cost),String(body.difficulty||source.difficulty||'Approachable'),source.tools,source.materials,source.platforms||'[]',source.software_languages||'[]',source.software_frameworks||'[]',source.dependencies||'[]',source.electronics_hardware||'[]',source.interfaces||'[]',source.power_requirements||'','','',String(source.cover_url||''),String(source.project_type||'Project'),'Project',source.id,ts,ts);
-      const note=[`Started from “${source.title}” by ${source.owner_name}.`,adaptation?`What I plan to change: ${adaptation}`:'I will adapt the reference to my own tools, materials, constraints, and goals.'].join('\n\n');
-      db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,'Idea','Make It Yours',note,ts,ts);
-      audit(u.id,'project.clone','project',pid,{sourceProjectId:source.id});
+      if(!adaptation)return sendJson(res,400,{error:'Describe what your variation will change.'});
+      if(adaptation.length>1200)return sendJson(res,400,{error:'Keep the variation intent to 1200 characters or fewer.'});
+      const handshakeId=String(body.handshakeId||'').trim();
+      const variationHandshake=handshakeId?db.prepare("SELECT * FROM open_bench_handshakes WHERE id=? AND project_id=? AND user_id=? AND signal='variation'").get(handshakeId,source.id,u.id):null;
+      if(handshakeId&&!variationHandshake)throw new Error('That variation handshake is not available.');
+      if(variationHandshake?.variation_project_id)throw new Error('That handshake already has a linked variation.');
+      db.exec('BEGIN');try{
+        db.prepare(`INSERT INTO projects (id,owner_id,title,slug,description,stage,status,disciplines,tags,cover_emoji,visibility,license,estimated_cost,difficulty,tools,materials,platforms,software_languages,software_frameworks,dependencies,electronics_hardware,interfaces,power_requirements,website,github_repo,cover_url,project_type,parent_type,parent_id,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+          .run(pid,u.id,title,slugify(title),String(body.description??source.description),String(body.stage||'Idea'),'Active',source.disciplines,source.tags,String(source.cover_emoji||'✦'),canonicalVisibility(body.visibility,'Members'),String(source.license||'Unspecified'),String(body.estimatedCost??source.estimated_cost),String(body.difficulty||source.difficulty||'Approachable'),source.tools,source.materials,source.platforms||'[]',source.software_languages||'[]',source.software_frameworks||'[]',source.dependencies||'[]',source.electronics_hardware||'[]',source.interfaces||'[]',source.power_requirements||'','','',String(source.cover_url||''),String(source.project_type||'Project'),'Project',source.id,ts,ts);
+        db.prepare('UPDATE projects SET variation_intent=? WHERE id=?').run(adaptation,pid);
+        if(variationHandshake)db.prepare('UPDATE open_bench_handshakes SET variation_project_id=?,updated_at=? WHERE id=?').run(pid,ts,variationHandshake.id);
+        const note=[`Started from “${source.title}” by ${source.owner_name}.`,`What I plan to change: ${adaptation}`].join('\n\n');
+        db.prepare(`INSERT INTO build_log_entries (id,project_id,user_id,type,title,body,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)`).run(id('l'),pid,u.id,'Idea','Make It Yours',note,ts,ts);
+        audit(u.id,'project.clone','project',pid,{sourceProjectId:source.id});
+        db.exec('COMMIT');
+      }catch(error){db.exec('ROLLBACK');throw error;}
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,pid);
       return sendJson(res,201,{project:projectRow(row,u),source:{id:source.id,title:source.title}});
     }).catch(e=>sendJson(res,400,{error:e.message}));
@@ -1884,7 +1904,7 @@ function routeApi(req, res, url) {
     if (!row || !canViewProject(row,me)) return sendJson(res,404,{error:'Project not found.'});
     const logs=db.prepare(`SELECT l.*,u.display_name author FROM build_log_entries l JOIN users u ON u.id=l.user_id WHERE l.project_id=? ORDER BY l.created_at DESC`).all(pid);
     const comments=db.prepare(`SELECT c.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM comments c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.created_at ASC`).all(pid);
-    const handshakes=db.prepare(`SELECT h.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM open_bench_handshakes h JOIN users u ON u.id=h.user_id WHERE h.project_id=? ORDER BY CASE h.status WHEN 'Offered' THEN 0 WHEN 'Acknowledged' THEN 1 ELSE 2 END,h.updated_at DESC`).all(pid);
+    const handshakes=db.prepare(`SELECT h.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM open_bench_handshakes h JOIN users u ON u.id=h.user_id WHERE h.project_id=? ORDER BY CASE h.status WHEN 'Offered' THEN 0 WHEN 'Acknowledged' THEN 1 ELSE 2 END,h.updated_at DESC`).all(pid).map(h=>{if(!h.variation_project_id)return h;const variation=db.prepare('SELECT id,title,visibility,owner_id FROM projects WHERE id=?').get(h.variation_project_id);return variation&&canViewProject(variation,me)?{...h,variation_title:variation.title}:{...h,variation_project_id:'',variation_title:''}});
     const files=db.prepare(`SELECT f.*,u.display_name uploader FROM project_files f JOIN users u ON u.id=f.uploader_id WHERE f.project_id=? ORDER BY f.logical_name,f.version DESC`).all(pid).map(f=>({...f,locked:!canAccessLevel(f.access_level||'Inherit',me,row.owner_id),url:canAccessLevel(f.access_level||'Inherit',me,row.owner_id)?`/uploads/${encodeURIComponent(f.stored_name)}`:''}));
     const releases=db.prepare(`SELECT r.*,u.display_name creator FROM project_releases r JOIN users u ON u.id=r.created_by WHERE r.project_id=? ORDER BY r.created_at DESC`).all(pid).map(r=>({...r,files:db.prepare(`SELECT f.*,u.display_name uploader FROM project_release_files rf JOIN project_files f ON f.id=rf.file_id JOIN users u ON u.id=f.uploader_id WHERE rf.release_id=? ORDER BY f.logical_name`).all(r.id)}));
     const critiques=db.prepare(`SELECT c.*,u.display_name author,(SELECT COUNT(*) FROM critique_responses r WHERE r.critique_id=c.id) response_count FROM critiques c JOIN users u ON u.id=c.user_id WHERE c.project_id=? ORDER BY c.updated_at DESC`).all(pid).map(c=>({...c,feedback_types:json(c.feedback_types)}));
@@ -1894,7 +1914,10 @@ function routeApi(req, res, url) {
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
-    return sendJson(res,200,{project:projectRow(row,me),logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    const variations=childProjects('Project',pid,uid);
+    let sourceProject=null;
+    if(row.parent_type==='Project'&&row.parent_id){const sourceRow=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,row.parent_id);if(sourceRow&&canViewProject(sourceRow,me))sourceProject=projectRow(sourceRow,me);}
+    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -1911,6 +1934,7 @@ function routeApi(req, res, url) {
         JSON.stringify(parseList(body.tools ?? json(p.tools))),JSON.stringify(parseList(body.materials ?? json(p.materials))),JSON.stringify(parseList(body.platforms ?? json(p.platforms))),JSON.stringify(parseList(body.softwareLanguages ?? json(p.software_languages))),JSON.stringify(parseList(body.softwareFrameworks ?? json(p.software_frameworks))),JSON.stringify(parseList(body.dependencies ?? json(p.dependencies))),JSON.stringify(parseList(body.electronicsHardware ?? json(p.electronics_hardware))),JSON.stringify(parseList(body.interfaces ?? json(p.interfaces))),String(body.powerRequirements??p.power_requirements??''),JSON.stringify(body.openSignals===undefined?normalizeOpenSignals(json(p.open_signals)):normalizeOpenSignals(body.openSignals)),String(body.openRequest??p.open_request??'').trim().slice(0,600),String((body.website??p.website)||''),
         body.githubRepo===undefined?String(p.github_repo||''):(normalizeGitHubRepo(body.githubRepo)?.url||''),String((body.coverUrl??p.cover_url)||''),String(body.projectType||p.project_type||'Project'),ts,p.id);
       if(body.githubRepo!==undefined)db.prepare('DELETE FROM github_cache WHERE project_id=?').run(p.id);
+      if(body.variationIntent!==undefined||body.variationOutcome!==undefined)db.prepare('UPDATE projects SET variation_intent=?,variation_outcome=? WHERE id=?').run(String(body.variationIntent??p.variation_intent??'').trim().slice(0,1200),String(body.variationOutcome??p.variation_outcome??'').trim().slice(0,1600),p.id);
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,p.id);
       sendJson(res,200,{project:projectRow(row)});
     }).catch(e=>sendJson(res,400,{error:e.message}));
@@ -2022,6 +2046,12 @@ function routeApi(req, res, url) {
     return readBody(req).then(body=>{const text=String(body.body||'').trim();if(!text)return sendJson(res,400,{error:'A project comment cannot be empty.'});db.prepare('UPDATE comments SET body=? WHERE id=?').run(text,c.id);notifyMentions(text,u.id,`#/projects/${project.id}`);return sendJson(res,200,{ok:true});});
   }
 
+  const projectCommentUseful=pathname.match(/^\/api\/projects\/([^/]+)\/comments\/([^/]+)\/useful$/);
+  if(projectCommentUseful&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const project=db.prepare('SELECT * FROM projects WHERE id=?').get(projectCommentUseful[1]);if(!project||!canViewProject(project,u))return sendJson(res,404,{error:'Project not found.'});if(project.owner_id!==u.id)return sendJson(res,403,{error:'Only the project owner can mark a useful response.'});const comment=db.prepare('SELECT * FROM comments WHERE id=? AND project_id=?').get(projectCommentUseful[2],project.id);if(!comment)return sendJson(res,404,{error:'Project response not found.'});if(comment.user_id===u.id)return sendJson(res,400,{error:'Useful Response marks are for another maker’s contribution.'});
+    return readBody(req).then(body=>{const mark=String(body.mark||'').trim(),note=String(body.note||'').trim();if(mark&&!USEFUL_RESPONSE_MARKS.has(mark))return sendJson(res,400,{error:'Choose a recognized useful-response outcome.'});if(note.length>600)return sendJson(res,400,{error:'Keep the response note to 600 characters or fewer.'});const ts=mark?now():'';db.prepare('UPDATE comments SET usefulness=?,usefulness_note=?,usefulness_at=? WHERE id=?').run(mark,mark?note:'',ts,comment.id);if(mark&&mark!==comment.usefulness)notifyUser(comment.user_id,'project',`${project.title}: your response was marked “${mark}”.`,`#/projects/${project.id}#project-discussion`,u.id);audit(u.id,'project.response.useful','comment',comment.id,{projectId:project.id,mark});return sendJson(res,200,{ok:true,usefulness:mark,usefulnessNote:mark?note:'',usefulnessAt:ts});}).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
   const saveMatch=pathname.match(/^\/api\/projects\/([^/]+)\/save$/);
   if(saveMatch && method==='POST'){
     const u=requireUser(req,res); if(!u)return;
@@ -2048,7 +2078,7 @@ function routeApi(req, res, url) {
   const markMatch=pathname.match(/^\/api\/questions\/([^/]+)\/answers\/([^/]+)\/mark$/);
   if(markMatch && method==='PUT'){
     const u=requireUser(req,res); if(!u)return; const q=db.prepare('SELECT * FROM questions WHERE id=?').get(markMatch[1]); if(!q)return sendJson(res,404,{error:'Question not found.'}); if(q.user_id!==u.id)return sendJson(res,403,{error:'Only the person who asked can mark an answer.'});
-    return readBody(req).then(body=>{const mark=String(body.mark||''); if(!['','Solved It','Helped','Useful Direction'].includes(mark))return sendJson(res,400,{error:'Unknown answer mark.'}); if(mark==='Solved It')db.prepare(`UPDATE answers SET mark='' WHERE question_id=?`).run(q.id); db.prepare('UPDATE answers SET mark=? WHERE id=? AND question_id=?').run(mark,markMatch[2],q.id); db.prepare('UPDATE questions SET status=?,updated_at=? WHERE id=?').run(mark==='Solved It'?'Solved':'Open',now(),q.id); return sendJson(res,200,{ok:true,status:mark==='Solved It'?'Solved':'Open'});});
+    return readBody(req).then(body=>{const mark=String(body.mark||''); if(!['','Solved It','Helped','Useful Direction'].includes(mark))return sendJson(res,400,{error:'Unknown answer mark.'});const answer=db.prepare('SELECT * FROM answers WHERE id=? AND question_id=?').get(markMatch[2],q.id);if(!answer)return sendJson(res,404,{error:'Answer not found.'}); if(mark==='Solved It')db.prepare(`UPDATE answers SET mark='' WHERE question_id=?`).run(q.id); db.prepare('UPDATE answers SET mark=? WHERE id=? AND question_id=?').run(mark,answer.id,q.id); const solved=Boolean(db.prepare("SELECT 1 FROM answers WHERE question_id=? AND mark='Solved It'").get(q.id));db.prepare('UPDATE questions SET status=?,updated_at=? WHERE id=?').run(solved?'Solved':'Open',now(),q.id);if(mark&&mark!==answer.mark)notifyUser(answer.user_id,'question',`${q.title}: your answer was marked “${mark}”.`,`#/question/${q.id}`,u.id);return sendJson(res,200,{ok:true,status:solved?'Solved':'Open',mark});});
   }
   const questionDetail=pathname.match(/^\/api\/questions\/([^/]+)$/);
   if(questionDetail && method==='GET'){
