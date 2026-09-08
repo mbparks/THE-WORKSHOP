@@ -1,3 +1,13 @@
+# THE WORKSHOP v9.8.0 — Open Bench Signals
+
+- Added six bounded, project-centered invitations: feedback, practical help, testing, collaboration, tools/materials, and maker variations.
+- Project owners can open or close a Bench and describe the specific participation that would be useful now.
+- Open Bench invitations appear on project cards, project pages, Home, and Builds.
+- Added a visibility-gated `/api/open-benches` aggregate ordered by recent project updates rather than popularity.
+- Responses are stored in the existing project discussion so context stays with the work.
+- Preserved project privacy, owner-only controls, chronological discovery, and the absence of public engagement counters or ranking.
+- Bumped the service-worker/application cache version to v9.8.0.
+
 # THE WORKSHOP v9.7.0 — First Visit and Discovery
 
 - Added an account-free **Find Your First Thing** path with local-only interest choices.

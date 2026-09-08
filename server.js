@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '9.7.0';
+const APP_VERSION = '9.8.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -275,6 +275,8 @@ function parseList(v) {
   if (Array.isArray(v)) return v.filter(Boolean).map(String);
   return String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 }
+const OPEN_BENCH_SIGNALS=new Set(['feedback','hand','tester','collaborator','materials','variation']);
+function normalizeOpenSignals(value){return [...new Set(parseList(value).map(x=>String(x).trim().toLowerCase()).filter(x=>OPEN_BENCH_SIGNALS.has(x)))];}
 
 function ensureColumn(table, name, definition) {
   const cols = db.prepare(`PRAGMA table_info(${table})`).all().map(r => r.name);
@@ -318,7 +320,7 @@ function projectRow(r,viewer=null) {
     id:r.id, ownerId:r.owner_id, owner:r.owner_name, ownerCallsign:r.owner_callsign||'', title:r.title, slug:r.slug, description:r.description,
     stage:r.stage, status:r.status, disciplines:json(r.disciplines), tags:json(r.tags), coverEmoji:r.cover_emoji,
     visibility:r.visibility, license:r.license, estimatedCost:r.estimated_cost, difficulty:r.difficulty, tools:json(r.tools),
-    materials:json(r.materials), platforms:json(r.platforms), softwareLanguages:json(r.software_languages), softwareFrameworks:json(r.software_frameworks), dependencies:json(r.dependencies), electronicsHardware:json(r.electronics_hardware), interfaces:json(r.interfaces), powerRequirements:r.power_requirements||'', website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
+    materials:json(r.materials), platforms:json(r.platforms), softwareLanguages:json(r.software_languages), softwareFrameworks:json(r.software_frameworks), dependencies:json(r.dependencies), electronicsHardware:json(r.electronics_hardware), interfaces:json(r.interfaces), powerRequirements:r.power_requirements||'', openSignals:normalizeOpenSignals(json(r.open_signals)), openRequest:r.open_request||'', website:r.website || '', githubRepo:r.github_repo || '', coverUrl:r.cover_url || '', projectType:r.project_type || 'Project',
     parentType:r.parent_type, parentId:r.parent_id, crewId:r.crew_id||'', crewCode:r.crew_code||'', crewName:r.crew_name||'', createdAt:r.created_at, updatedAt:r.updated_at,
     saved:Boolean(r.saved), following:Boolean(r.following), followerCount:Number(r.follower_count || 0), logCount:Number(r.log_count || 0), commentCount:Number(r.comment_count || 0), fit:viewer?projectFit(r,viewer):null
   };
@@ -1020,6 +1022,8 @@ ensureColumn('projects','dependencies',"TEXT DEFAULT '[]'");
 ensureColumn('projects','electronics_hardware',"TEXT DEFAULT '[]'");
 ensureColumn('projects','interfaces',"TEXT DEFAULT '[]'");
 ensureColumn('projects','power_requirements',"TEXT DEFAULT ''");
+ensureColumn('projects','open_signals',"TEXT DEFAULT '[]'");
+ensureColumn('projects','open_request',"TEXT DEFAULT ''");
 
 ensureColumn('users','profile_visibility',"TEXT DEFAULT 'Members'");
 ensureColumn('users','location_visibility',"TEXT DEFAULT 'Members'");
@@ -1805,6 +1809,12 @@ function routeApi(req, res, url) {
     return sendJson(res,200,{projects:filterVisibleProjects(rows,me).map(r=>projectRow(r,me))});
   }
 
+  if (pathname === '/api/open-benches' && method === 'GET') {
+    const uid=me?.id||'';
+    const rows=db.prepare(projectSelect(uid)+" WHERE p.open_signals IS NOT NULL AND p.open_signals<>'[]' AND p.open_signals<>'' ORDER BY p.updated_at DESC").all(uid);
+    return sendJson(res,200,{projects:filterVisibleProjects(rows,me).map(r=>projectRow(r,me)).filter(p=>p.openSignals.length)});
+  }
+
   if (pathname === '/api/projects' && method === 'POST') {
     const u = requireUser(req,res); if (!u) return;
     return readBody(req).then(body=>{
@@ -1863,11 +1873,11 @@ function routeApi(req, res, url) {
     return readBody(req).then(body=>{
       const title=String(body.title||p.title).trim(); if(!title)return sendJson(res,400,{error:'Give the project a name.'});
       const ts=now();
-      db.prepare(`UPDATE projects SET title=?,slug=?,description=?,stage=?,status=?,disciplines=?,tags=?,cover_emoji=?,visibility=?,license=?,estimated_cost=?,difficulty=?,tools=?,materials=?,platforms=?,software_languages=?,software_frameworks=?,dependencies=?,electronics_hardware=?,interfaces=?,power_requirements=?,website=?,github_repo=?,cover_url=?,project_type=?,updated_at=? WHERE id=?`)
+      db.prepare(`UPDATE projects SET title=?,slug=?,description=?,stage=?,status=?,disciplines=?,tags=?,cover_emoji=?,visibility=?,license=?,estimated_cost=?,difficulty=?,tools=?,materials=?,platforms=?,software_languages=?,software_frameworks=?,dependencies=?,electronics_hardware=?,interfaces=?,power_requirements=?,open_signals=?,open_request=?,website=?,github_repo=?,cover_url=?,project_type=?,updated_at=? WHERE id=?`)
       .run(title,slugify(title),String(body.description??p.description),String(body.stage||p.stage),String(body.status||p.status),
         JSON.stringify(parseList(body.disciplines ?? json(p.disciplines))),JSON.stringify(parseList(body.tags ?? json(p.tags))),String(body.coverEmoji||p.cover_emoji),
         canonicalVisibility(body.visibility,p.visibility||'Members'),String(body.license||p.license),String(body.estimatedCost??p.estimated_cost),String(body.difficulty||p.difficulty),
-        JSON.stringify(parseList(body.tools ?? json(p.tools))),JSON.stringify(parseList(body.materials ?? json(p.materials))),JSON.stringify(parseList(body.platforms ?? json(p.platforms))),JSON.stringify(parseList(body.softwareLanguages ?? json(p.software_languages))),JSON.stringify(parseList(body.softwareFrameworks ?? json(p.software_frameworks))),JSON.stringify(parseList(body.dependencies ?? json(p.dependencies))),JSON.stringify(parseList(body.electronicsHardware ?? json(p.electronics_hardware))),JSON.stringify(parseList(body.interfaces ?? json(p.interfaces))),String(body.powerRequirements??p.power_requirements??''),String((body.website??p.website)||''),
+        JSON.stringify(parseList(body.tools ?? json(p.tools))),JSON.stringify(parseList(body.materials ?? json(p.materials))),JSON.stringify(parseList(body.platforms ?? json(p.platforms))),JSON.stringify(parseList(body.softwareLanguages ?? json(p.software_languages))),JSON.stringify(parseList(body.softwareFrameworks ?? json(p.software_frameworks))),JSON.stringify(parseList(body.dependencies ?? json(p.dependencies))),JSON.stringify(parseList(body.electronicsHardware ?? json(p.electronics_hardware))),JSON.stringify(parseList(body.interfaces ?? json(p.interfaces))),String(body.powerRequirements??p.power_requirements??''),JSON.stringify(body.openSignals===undefined?normalizeOpenSignals(json(p.open_signals)):normalizeOpenSignals(body.openSignals)),String(body.openRequest??p.open_request??'').trim().slice(0,600),String((body.website??p.website)||''),
         body.githubRepo===undefined?String(p.github_repo||''):(normalizeGitHubRepo(body.githubRepo)?.url||''),String((body.coverUrl??p.cover_url)||''),String(body.projectType||p.project_type||'Project'),ts,p.id);
       if(body.githubRepo!==undefined)db.prepare('DELETE FROM github_cache WHERE project_id=?').run(p.id);
       const row=db.prepare(projectSelect(u.id)+' WHERE p.id=?').get(u.id,p.id);

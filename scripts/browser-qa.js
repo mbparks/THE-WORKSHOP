@@ -72,9 +72,9 @@ async function setHash(cdp,hash){
   try{
     const base=`http://127.0.0.1:${appPort}`;await waitForHttp(`${base}/api/meta`);
     const chromium=findChromium();
-    chrome=spawn(chromium,[`--remote-debugging-port=${debugPort}`,`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--window-size=1440,1000','about:blank'],{stdio:['ignore','pipe','pipe']});
+    chrome=spawn(chromium,[`--remote-debugging-port=${debugPort}`,'--remote-debugging-address=127.0.0.1',`--user-data-dir=${chromeDir}`,'--headless=new','--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-extensions','--disable-background-networking','--disable-sync','--no-first-run','--no-default-browser-check','--window-size=1440,1000','about:blank'],{stdio:['ignore','pipe','pipe']});
     chrome.stdout.on('data',d=>logs.push(String(d)));chrome.stderr.on('data',d=>logs.push(String(d)));
-    await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`);
+    await waitForHttp(`http://127.0.0.1:${debugPort}/json/version`,300);
     // The container's managed Chromium policy blocks every navigated URL, including
     // localhost. Load the real application into about:blank and bridge fetch() calls
     // to the real temporary server over CDP. This still executes the production HTML,
@@ -197,12 +197,27 @@ async function setHash(cdp,hash){
     check('Project page exposes local object navigation',await evaluate(cdp,`document.querySelectorAll('.project-section-nav a').length>=5`));
     check('Project page provides a share action',await evaluate(cdp,`Boolean(document.querySelector('[data-action="share-current"]'))`));
     check('Owned Project exposes callsign collaborator invitation',await evaluate(cdp,`Boolean(document.querySelector('[data-action="invite-collaborator"]'))`));
+    check('Owned Project exposes an Open Bench control',await evaluate(cdp,`Boolean(document.querySelector('[data-action="open-bench-edit"]'))`));
+    await evaluate(cdp,`document.querySelector('[data-action="open-bench-edit"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#open-bench-signal-form')`,'Open Bench editor');
+    check('Open Bench editor offers bounded participation choices',await evaluate(cdp,`document.querySelectorAll('#open-bench-signal-form [name="openSignal"]').length===6`));
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-signal-form');f.querySelector('[value="feedback"]').checked=true;f.querySelector('[value="tester"]').checked=true;f.querySelector('[name="openRequest"]').value='Try the revised knob outdoors and report how it feels.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`document.querySelector('.project-open-bench')?.textContent.includes('Try the revised knob outdoors')`,'Open Bench project callout');
+    check('Saved Open Bench invitation renders on the Project',await evaluate(cdp,`document.querySelectorAll('.project-open-bench .open-bench-chip').length===2`));
     await evaluate(cdp,`document.querySelector('[data-action="invite-collaborator"]')?.click()`);
     await waitForCondition(cdp,`document.querySelector('#invite-form [name="callsign"]')`,'Callsign collaborator invite');
     check('Collaborator invitation uses global callsign address',await evaluate(cdp,`document.querySelector('#invite-form [name="callsign"]')?.placeholder==='@paperpilot'`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
     check('Project page exposes Guided Build',await evaluate(cdp,`Boolean(document.querySelector('#project-guide .guided-build-grid'))`));
     check('Project can ask Workshop with project context',await evaluate(cdp,`Boolean(document.querySelector('[data-action="project-help"]'))`));
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_lee'})});state.me=(await api('/api/me')).user;updateUserUI();await renderProject('p_knob')})()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('[data-action="open-bench-respond"]'))`,'Open Bench response control');
+    await evaluate(cdp,`document.querySelector('[data-action="open-bench-respond"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#open-bench-response-form')`,'Open Bench response editor');
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#open-bench-response-form');f.querySelector('[name="body"]').value='I can test the grip with work gloves this week.';f.requestSubmit()})()`);
+    await waitForCondition(cdp,`[...document.querySelectorAll('.comment-v4 p')].some(x=>x.textContent.includes('I can test the grip with work gloves'))`,'Open Bench response attached to project');
+    check('Open Bench response remains in Project Talk',true);
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/projects/p_lora');
     check('Public project can be personalized with Make It Yours',await evaluate(cdp,`Boolean(document.querySelector('[data-action="make-it-yours"]'))`));
     check('Visible Project exposes follow control',await evaluate(cdp,`Boolean(document.querySelector('[data-action="follow-project"]'))`));
