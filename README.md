@@ -419,7 +419,7 @@ A filesystem snapshot is useful, but it does not replace a tested application-le
 npm run qa
 ```
 
-Release verification for this source snapshot: **208 static checks + 26 integration checks + 39 Chromium checks = 273 passing checks.**
+Release verification for this source snapshot: **324 static checks + 211 integration checks + 126 Chromium checks = 661 passing checks.**
 
 This runs all three layers:
 
