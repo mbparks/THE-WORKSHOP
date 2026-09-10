@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.1.0**
+Current release: **v10.2.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -14,6 +14,16 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 That is the product test for every feature.
 
 ---
+
+## What changed in v10.2.0
+
+### Commons
+
+- Added a chronological exchange layer for **I Have**, **I Need**, **I Can Teach**, and **I Can Help** posts.
+- Commons posts can stay attached to an existing Project or Maker Crew and can use Workshop, Local, Remote, or My Crew scope.
+- Responses are private between the post owner and responder; owners can accept, decline, fulfill, close, and receive notifications without exposing response totals.
+- Local exchanges store approximate city/region only. Server-side visibility, Project access, Crew membership, drafts, expiry, and account export/delete rules are enforced.
+- Commons is integrated into Workshop navigation, Make Together, Project pages, Maker Crew pages, Saved, Search, and the existing intent-based start flow without adding a generic social feed or popularity mechanics.
 
 ## What changed in v10.1.0
 

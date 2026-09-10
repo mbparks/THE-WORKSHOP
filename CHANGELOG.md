@@ -1,3 +1,12 @@
+# THE WORKSHOP v10.2.0 — Commons
+
+- Added **Commons**, a chronological exchange layer for Have, Need, Teach, and Help posts.
+- Added project-linked and Maker Crew-linked context with Workshop, Local, Remote, and My Crew scopes.
+- Added private responses, owner acceptance/decline/fulfillment controls, notifications, expiry, drafts, saved items, search, export, account cleanup, and server-side visibility gates.
+- Integrated Commons into Workshop navigation, Make Together, Project pages, Maker Crew pages, Saved, Search, and the existing intent-based start flow without adding a generic social feed or public response totals.
+- Added seeded exchange examples and static/integration/browser QA coverage.
+- Bumped the application, PWA, service-worker, and cache-busting version markers to v10.2.0.
+
 # THE WORKSHOP v10.1.0 — Unfinished in Public
 
 - Added Project-linked **Unfinished in Public** snapshots for what exists, what is stuck, the next tiny step, and help needed.

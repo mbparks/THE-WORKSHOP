@@ -1,4 +1,4 @@
-# THE WORKSHOP v10.1.0 — Navigation and Information Architecture
+# THE WORKSHOP v10.2.0 — Navigation and Information Architecture
 
 THE WORKSHOP exposes a small number of durable destinations. Specialized content types remain available inside those destinations rather than each becoming a global module.
 
@@ -21,6 +21,7 @@ BUILDS
 WORKSHOP
   Discussions
   Help + Critique
+  Commons
   Scrap Exchange
 
 LIBRARY
@@ -45,6 +46,8 @@ GEARHEAD CREW
 Desktop contextual navigation and the mobile **MODULES** switcher share the same `NAV_MODULES` definition in `public/app.js`.
 
 **Unfinished in Public** is intentionally integrated into Project pages and Make Together rather than becoming a new primary destination. This keeps the Project as the durable home for work while giving incomplete work a visible, chronological place in the existing collaboration path.
+
+**Commons** is a Workshop tool for chronological exchanges of materials, needs, teaching offers, and bounded help. It is also surfaced inside Make Together, Project pages, and Maker Crew pages so an exchange keeps its working context instead of becoming a detached social feed.
 
 ## Route families
 
@@ -82,6 +85,8 @@ Project detail pages use local navigation for Overview, Notebook, Files, Collabo
 
 - `#/workshop`
 - `#/help`
+- `#/commons`
+- `#/commons/:commonsId`
 - `#/scrap`
 - detail routes for discussions, questions, critiques, and identification requests
 

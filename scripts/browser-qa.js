@@ -164,6 +164,30 @@ async function openMakeTogether(cdp){
     }
     check('Atmosphere recomposes between major modules',new Set(compositions).size>=6,`unique compositions: ${new Set(compositions).size}`);
 
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/logout',{method:'POST'});state.me=(await api('/api/me')).user;updateUserUI()})()`);
+    await setHash(cdp,'#/commons',`Boolean(document.querySelector('.commons-view'))`);
+    check('Commons renders the four practical exchange types',await evaluate(cdp,`document.querySelectorAll('.commons-kind-tile').length===4&&document.querySelectorAll('[data-commons-filter]').length===9`));
+    check('Commons feed states chronological, unranked exchange',await evaluate(cdp,`document.querySelector('.commons-feed-section')?.textContent.includes('CHRONOLOGICAL')&&document.querySelector('.commons-view')?.textContent.includes('not a social feed')&&document.querySelector('.commons-view')?.textContent.includes('no totals')`));
+    await evaluate(cdp,`document.querySelector('[data-commons-filter="Need"]')?.click()`);
+    check('Commons kind filter keeps only matching posts visible',await evaluate(cdp,`[...document.querySelectorAll('.commons-filter-item:not([hidden])')].every(x=>x.dataset.commonsKind==='Need')`));
+    await evaluate(cdp,`document.querySelector('[data-commons-filter="all"]')?.click()`);
+
+    await setHash(cdp,'#/commons/commons_demo_have',`Boolean(document.querySelector('.commons-detail-view'))`);
+    check('Commons detail keeps anonymous responses private',await evaluate(cdp,`Boolean(document.querySelector('.commons-detail-body'))&&!document.querySelector('.commons-response-card')&&!document.querySelector('.commons-detail-view')?.textContent.includes('Responses to this post')`));
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_morgan'})});state.me=(await api('/api/me')).user;updateUserUI();await renderRoute()})()`);
+    await waitForCondition(cdp,`document.querySelector('#user-name')?.textContent==='Morgan'`,'Commons responder login');
+    await setHash(cdp,'#/commons/commons_demo_have',`Boolean(document.querySelector('.commons-detail-view'))`);
+    check('Commons gives a non-owner a private response path',await evaluate(cdp,`Boolean(document.querySelector('[data-action="commons-respond"]'))&&document.querySelector('.commons-detail-view')?.textContent.includes('ONLY YOU CAN SEE THIS')`));
+    await setHash(cdp,'#/projects/p_lora');
+    check('Projects expose the Commons exchange surface',await evaluate(cdp,`Boolean(document.querySelector('#project-commons'))&&Boolean(document.querySelector('[href="#project-commons"]'))`));
+    await openMakeTogether(cdp);
+    check('Make Together carries Commons without creating a new feed module',await evaluate(cdp,`Boolean(document.querySelector('.commons-public-section'))&&document.querySelector('.commons-public-section')?.textContent.includes('NO COUNTS')`));
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
+    await evaluate(cdp,`document.querySelector('#start-button')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('.start-intent-group')`,'Start Something Commons link');
+    check('Start Something links the Commons into the existing intent flow',await evaluate(cdp,`Boolean(document.querySelector('.start-intent-group a[href="#/commons"]'))`));
+    await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
+
     await setHash(cdp,'#/home');
     const motionBefore=await evaluate(cdp,`getComputedStyle(document.querySelector('#atmo-foreground .plane')||document.querySelector('#atmo-foreground .atmo-sprite')).transform`);
     await sleep(900);
