@@ -177,7 +177,7 @@ async function openMakeTogether(cdp){
     await waitForCondition(cdp,`document.querySelector('.handoff-my-feedback')?.textContent.includes('YOUR PRIVATE NOTE')`,'private Handoff learner note');
     check('Learner sees only their private Handoff note in place',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-detail-view')?.textContent||'';return t.includes('YOUR PRIVATE NOTE')&&!t.includes('MAKER VIEW')&&!/\b\d+\s+feedback\b/i.test(t)})()`));
     await setHash(cdp,'#/library',`Boolean(document.querySelector('.handoff-library-section'))`);
-    check('Library keeps Handoff Field Cards beside the Shop Manual',await evaluate(cdp,`document.querySelector('.handoff-library-section')?.textContent.includes('What another maker can use')&&document.querySelector('.library-shelf')`));
+    check('Library keeps Handoff Field Cards beside the Shop Manual',await evaluate(cdp,`document.querySelector('.handoff-library-section')?.textContent.includes('What another maker can use')&&Boolean(document.querySelector('#library-grid'))`));
 
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/logout',{method:'POST'});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/commons',`Boolean(document.querySelector('.commons-view'))`);
