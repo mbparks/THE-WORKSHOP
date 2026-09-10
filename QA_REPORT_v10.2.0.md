@@ -22,5 +22,6 @@ Commons: chronological Have / Need / Teach / Help exchange posts with Project an
 
 - Static QA: **310/310 passed**.
 - Integration QA: **156/156 passed**.
-- Browser QA: the checks are committed, but the local release runner stopped before execution because Chromium is not installed or discoverable (`Chromium was not found`).
+- Browser QA: **105/105 passed** in GitHub Actions run `34423186773`.
+- The local scratch runner does not have Chromium installed, but the CI Chromium image completed the full route and interaction suite.
 - `git diff --check`: passed.
