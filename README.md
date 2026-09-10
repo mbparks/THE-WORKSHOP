@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.4.0**
+Current release: **v10.5.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -12,6 +12,15 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 > **Does this help someone make, understand, repair, design, discover, teach, or collaborate?**
 
 That is the product test for every feature.
+
+## What changed in v10.5.0
+
+### Local Quests
+
+- Added small, place-aware **Local Quests** for noticing, meeting, repairing, making, exploring, and documenting something nearby.
+- Quest makers can publish a prompt with a timebox, approximate place hint, materials, access notes, safety boundaries, evidence prompt, reflection prompt, and optional Project or Maker Crew context.
+- Members can start a private attempt, add a field note, and choose whether a completed note is visible to Members or the public. In-progress and abandoned attempts remain private.
+- Local Quests are integrated into Builds navigation, Home, Make Together, Project and Maker Crew context, Saved, Search, export, and the existing Start Something flow without adding a social feed, completion counts, rankings, or precise location data.
 
 ---
 

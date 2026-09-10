@@ -1,3 +1,12 @@
+# THE WORKSHOP v10.5.0 — Local Quests
+
+- Added durable **Local Quests** for small, place-aware prompts across noticing, meeting, repair, making, exploration, and documentation.
+- Added quest-maker authoring with timeboxes, approximate place hints, materials, access and safety notes, evidence and reflection prompts, optional Project / Maker Crew context, drafts, publishing, editing, deletion, saves, search, export, and account cleanup.
+- Added private-by-default member attempts with voluntary completed field notes. Public and member notes are visible only after completion; no completion counts, rankings, popularity mechanics, addresses, or precise locations are exposed.
+- Integrated Local Quests into Builds navigation, Home, Make Together, Project and Maker Crew surfaces, Saved, Search, and Start Something.
+- Added six seeded quest examples plus static, integration, and real-browser regression coverage.
+- Bumped the application, PWA, service-worker, and cache-busting version markers to v10.5.0.
+
 # THE WORKSHOP v10.4.0 — Gather Kits
 
 - Added durable **Gather Kits** for communal making with structured welcomes, roles, stations, shared supplies, setup checklists, accessibility notes, safety boundaries, closing reflections, and follow-up.

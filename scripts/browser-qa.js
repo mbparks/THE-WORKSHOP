@@ -190,6 +190,32 @@ async function openMakeTogether(cdp){
     check('Gather editor labels access, safety, and approximate location without an address field',await evaluate(cdp,`(()=>{const f=document.querySelector('#gather-form'),t=f?.textContent||'';return t.includes('Approximate city / region')&&t.includes('Accessibility + participation notes')&&t.includes('Safety notes + stop conditions')&&!f.querySelector('[name="address"]')&&!f.querySelector('[name="exactAddress"]')})()`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
     await evaluate(cdp,`fetch('/api/gather/'+${JSON.stringify(browserGatherCopyId)},{method:'DELETE'})`);
+
+    await setHash(cdp,'#/quests',`Boolean(document.querySelector('.local-quest-library-section'))`);
+    check('Local Quest hub renders small, place-aware prompts without ranking',await evaluate(cdp,`(()=>{const t=document.querySelector('.local-quests-view')?.textContent||'';return document.querySelectorAll('.local-quest-card').length>=6&&t.includes('Local Quests')&&t.includes('SMALL ENOUGH TO TRY')&&t.includes('NO SCOREBOARD')&&t.includes('MOST RECENTLY UPDATED')})()`));
+    check('Local Quest hub exposes bounded search and type filters',await evaluate(cdp,`Boolean(document.querySelector('#quest-local-search'))&&document.querySelectorAll('#quest-type-filter option').length===7`));
+    await evaluate(cdp,`document.querySelector('[data-action="new-quest"]')?.click()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('#local-quest-form'))`,'Local Quest editor');
+    check('Local Quest editor keeps place hints approximate and omits precise location fields',await evaluate(cdp,`(()=>{const f=document.querySelector('#local-quest-form'),t=f?.textContent||'';return t.includes('Approximate place / route')&&t.includes('Do not include an address, coordinates')&&!f.querySelector('[name="address"]')&&!f.querySelector('[name="latitude"]')&&!f.querySelector('[name="longitude"]')})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
+    await setHash(cdp,'#/quest/quest_repair_small',`Boolean(document.querySelector('.local-quest-detail-view'))`);
+    check('Local Quest detail makes the prompt, access, safety, and trace usable',await evaluate(cdp,`(()=>{const t=document.querySelector('.local-quest-detail-view')?.textContent||'';return t.includes('The prompt')&&t.includes('Access + participation')&&t.includes('Safety + stop conditions')&&t.includes('Leave a trace')&&t.includes('Approximate only · never an address')})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="start-quest"]')?.click()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('#quest-attempt-form'))`,'private Local Quest attempt');
+    check('Local Quest attempt form starts private and offers intentional sharing',await evaluate(cdp,`(()=>{const f=document.querySelector('#quest-attempt-form'),t=f?.textContent||'';return t.includes('Draft notes stay private')&&t.includes('Public or Member visibility applies only after completion')&&f.querySelector('[name="visibility"]')?.value==='Private'})()`));
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#quest-attempt-form');f.querySelector('[name="notes"]').value='I found one loose fastener and stopped before opening the powered enclosure.';f.querySelector('[name="evidence"]').value='The same symptom remained after tightening the external fastener.';f.querySelector('[name="reflection"]').value='The useful result was knowing where the safe boundary was.';f.querySelector('[name="status"]').value='Completed';f.querySelector('[name="visibility"]').value='Public';f.requestSubmit();return true})()`);
+    await waitForCondition(cdp,`document.querySelector('.local-quest-notes-section')?.textContent.includes('loose fastener')`,'published Local Quest field note');
+    check('Completed Local Quest field note appears without a completion counter',await evaluate(cdp,`(()=>{const t=document.querySelector('.local-quest-detail-view')?.textContent||'';return t.includes('FIELD NOTE')&&t.includes('loose fastener')&&!/\b\d+\s+completions?\b/i.test(t)})()`));
+    await setHash(cdp,'#/home');
+    check('Home surfaces the Local Quest lane',await evaluate(cdp,`Boolean(document.querySelector('.home-local-quests'))&&document.querySelector('.home-local-quests')?.textContent.includes('Find Three Local Textures')`));
+    await openMakeTogether(cdp);
+    check('Make Together carries Local Quests without a separate social feed',await evaluate(cdp,`Boolean(document.querySelector('.quest-public-section'))&&document.querySelector('.quest-public-section')?.textContent.includes('Take a Local Quest')&&document.querySelector('.quest-public-section')?.textContent.includes('NO COUNTS')`));
+    await setHash(cdp,'#/projects/p_lora');
+    check('Project page exposes Local Quests in its object navigation',await evaluate(cdp,`Boolean(document.querySelector('#project-quests'))&&document.querySelector('#project-quests')?.textContent.includes('Leave a Tiny Field Card')&&Boolean(document.querySelector('[href="#project-quests"]'))`));
+    await setHash(cdp,'#/crew/crew_21502');
+    check('Maker Crew page exposes Local Quests in its object navigation',await evaluate(cdp,`Boolean(document.querySelector('#crew-quests'))&&document.querySelector('#crew-quests')?.textContent.includes('Ask a Maker About One Repair')&&Boolean(document.querySelector('[href="#crew-quests"]'))`));
+    await setHash(cdp,'#/search/repair/quests',`Boolean(document.querySelector('.search-results'))`);
+    check('Global search finds Local Quests as a bounded kind',await evaluate(cdp,`document.querySelector('.search-kind-bar a.active')?.textContent.includes('Local Quests')&&document.querySelector('.result-group')?.textContent.includes('Repair One Small Useful Thing')`));
     await setHash(cdp,'#/library',`Boolean(document.querySelector('.handoff-library-section'))`);
     check('Library keeps Handoff Field Cards beside the Shop Manual',await evaluate(cdp,`document.querySelector('.handoff-library-section')?.textContent.includes('What another maker can use')&&Boolean(document.querySelector('#library-grid'))`));
 
@@ -242,6 +268,7 @@ async function openMakeTogether(cdp){
     await evaluate(cdp,`document.querySelector('#start-button').click()`);
     await waitForCondition(cdp,`document.querySelector('.start-intent-group')`,'Start Something modal');
     check('Start Something is organized by intent',await evaluate(cdp,`(()=>{const t=document.querySelector('.modal-body')?.textContent||'';return ['MAKE SOMETHING','DOCUMENT SOMETHING','ASK FOR HELP','JOIN SOMETHING'].every(x=>t.includes(x))})()`));
+    check('Start Something offers Local Quests in the existing intent flow',await evaluate(cdp,`(()=>{const t=document.querySelector('.modal-body')?.textContent||'';return t.includes('Local Quest')&&Boolean(document.querySelector('.start-choice-v4[href="#/quests"]'))})()`));
     check('Focused density keeps authorized publishing tools available',await evaluate(cdp,`(()=>{const group=[...document.querySelectorAll('.start-intent-group')].find(x=>x.textContent.includes('PUBLISH / CURATE'));return Boolean(group)&&getComputedStyle(group).display!=='none'})()`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]').click()`);
 

@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '10.4.0';
+const APP_VERSION = '10.5.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -548,6 +548,20 @@ function initSchema() {
       tags TEXT DEFAULT '[]', visibility TEXT NOT NULL DEFAULT 'Public', status TEXT NOT NULL DEFAULT 'Draft', version INTEGER NOT NULL DEFAULT 1,
       created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS local_quests (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, crew_id TEXT REFERENCES maker_crews(id) ON DELETE SET NULL,
+      title TEXT NOT NULL, quest_type TEXT NOT NULL DEFAULT 'Make', summary TEXT NOT NULL, prompt TEXT NOT NULL,
+      timebox TEXT DEFAULT '', place_hint TEXT DEFAULT '', materials TEXT DEFAULT '[]', access_notes TEXT DEFAULT '', safety_notes TEXT DEFAULT '',
+      evidence_prompt TEXT DEFAULT '', reflection_prompt TEXT DEFAULT '', tags TEXT DEFAULT '[]',
+      visibility TEXT NOT NULL DEFAULT 'Public', status TEXT NOT NULL DEFAULT 'Draft', version INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS local_quest_attempts (
+      id TEXT PRIMARY KEY, quest_id TEXT NOT NULL REFERENCES local_quests(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'Started', notes TEXT DEFAULT '', evidence TEXT DEFAULT '', reflection TEXT DEFAULT '',
+      visibility TEXT NOT NULL DEFAULT 'Private', started_at TEXT NOT NULL, completed_at TEXT DEFAULT '', updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS discussion_topics (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), area TEXT NOT NULL, category TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
       project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, status TEXT DEFAULT 'Open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -935,6 +949,11 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_gather_kits_session ON gather_kits(session_id,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_gather_kits_live ON gather_kits(live_event_id,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_gather_kits_crew_event ON gather_kits(crew_event_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_local_quests_status ON local_quests(status,visibility,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_local_quests_project ON local_quests(project_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_local_quests_crew ON local_quests(crew_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_local_quest_attempts_quest ON local_quest_attempts(quest_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_local_quest_attempts_user ON local_quest_attempts(user_id,updated_at DESC);
   `);
 }
 
@@ -1491,6 +1510,74 @@ function seedBatch104Demo(){
 }
 if (SEED_DEMO) seedBatch104Demo();
 
+function seedBatch105Demo(){
+  const ts=now();
+  const project=idv=>db.prepare('SELECT 1 FROM projects WHERE id=?').get(idv)?idv:null;
+  const crew=idv=>db.prepare('SELECT 1 FROM maker_crews WHERE id=?').get(idv)?idv:null;
+  const rows=[
+    {
+      id:'quest_ask_maker',userId:'u_mike',projectId:null,crewId:crew('crew_21502'),questType:'Meet',
+      title:'Ask a Maker About One Repair',summary:'Spend a short, permission-based conversation learning how someone decides whether an object is worth repairing.',
+      prompt:'Find a maker, repairer, neighbor, or friend who has brought one ordinary object back into use. Ask what the first useful observation was, which assumption changed, and what they would tell someone opening a similar object for the first time.',
+      timebox:'20 minutes',placeHint:'A maker bench, Crew meetup, or phone call',materials:['a notebook or voice memo','permission to quote or share anything you record'],
+      access:'Conversation can happen by text, phone, or in person. Listening, asking one question, or taking notes are all valid ways to participate.',
+      safety:'Ask before handling an object or recording a story. Do not ask anyone to demonstrate a hazardous repair outside the equipment or competence available.',
+      evidence:'What was the first observation, and what did the maker choose not to do?',reflection:'What did this conversation change about how you notice repair opportunities?',tags:['meet','story','repair'],at:new Date(Date.now()-1*86400000).toISOString()
+    },
+    {
+      id:'quest_repair_small',userId:'u_lee',projectId:project('p_toaster'),crewId:null,questType:'Repair',
+      title:'Repair One Small Useful Thing',summary:'Choose one small object with a bounded fault and make the next safe observation or intervention visible.',
+      prompt:'Pick a small, non-safety-critical object that you are allowed to open. Before changing anything, record what it should do, what it actually does, and one visible clue. Make one bounded intervention, test the same symptom again, and stop if the fault or hazard exceeds your tools or experience.',
+      timebox:'30–60 minutes',placeHint:'Your bench, a shared repair table, or a clear work surface',materials:['the object and its owner’s permission','a notebook or camera','only the tools and parts already appropriate to the fault'],
+      access:'Use photographs, a verbal description, or a helper as evidence if handling tools is not the useful part of the task. Keep the object stable and the work area uncluttered.',
+      safety:'Do not work on mains-powered, medical, pressurized, load-bearing, or otherwise safety-critical equipment unless the right competence and equipment are present. Disconnect power before opening.',
+      evidence:'Record the original symptom, the one change you made, and the result of the same test after the change.',reflection:'Did the intervention repair the object, teach you something, or show you where to stop?',tags:['repair','right-to-repair','small step'],at:new Date(Date.now()-2*86400000).toISOString()
+    },
+    {
+      id:'quest_texture_walk',userId:'u_morgan',projectId:null,crewId:null,questType:'Notice',
+      title:'Find Three Local Textures',summary:'Take a slow, accessible noticing walk and collect three textures that could become a material, pattern, or design constraint.',
+      prompt:'Look closely at three surfaces you encounter in an ordinary route: a wall, repair, sidewalk edge, plant, tool, fabric, or discarded object. Describe each without needing to photograph it. Notice wear, repetition, contrast, softness, friction, or the evidence of another person’s intervention.',
+      timebox:'20 minutes',placeHint:'A block, park, hallway, porch, or window view',materials:['a notebook, camera, or voice memo','permission to make a private or public record'],
+      access:'The quest can happen from a window, seated position, familiar indoor route, or through remembered surfaces. Use words, sound, touch where appropriate, or a support person’s description.',
+      safety:'Stay on a route and surface that is safe and accessible to you. Do not enter private property or touch unknown, sharp, contaminated, or electrically connected objects.',
+      evidence:'Describe the three surfaces and one quality you would carry into a making decision.',reflection:'Which texture changed when you looked at it as evidence rather than decoration?',tags:['notice','materials','observation'],at:new Date(Date.now()-3*86400000).toISOString()
+    },
+    {
+      id:'quest_discarded_material',userId:'u_ada',projectId:null,crewId:null,questType:'Make',
+      title:'Make Something From One Discarded Material',summary:'Choose one clean, understood discard and give it a small second use before reaching for new stock.',
+      prompt:'Find one discarded material already within reach. Sketch or build a small useful, strange, or beautiful object that respects its shape and condition. Keep the scope bounded: one material, one purpose, one test. Record what the material made easier and what it refused to do.',
+      timebox:'60–120 minutes',placeHint:'A home scrap bin, shared shop, or neighborhood material shelf',materials:['one clean, understood discard','basic tools that match its condition','paper for a quick sketch'],
+      access:'Planning, sorting, photographing, naming a use, or documenting a failed attempt all count. Choose a process that fits your available grip, reach, lighting, and energy.',
+      safety:'Reject leaking batteries, unknown chemicals, moldy material, sharp contaminated metal, pressure vessels, and anything whose safe handling is uncertain. Match tools to the material and your competence.',
+      evidence:'Show or describe the material before and after, plus the one test that tells you whether the new use is useful.',reflection:'What did the material’s previous life contribute to the design?',tags:['make','reuse','scrap'],at:new Date(Date.now()-4*86400000).toISOString()
+    },
+    {
+      id:'quest_material_story',userId:'u_rin',projectId:null,crewId:null,questType:'Explore',
+      title:'Trace One Object’s Material Story',summary:'Choose an ordinary object and follow one material through its making, use, repair, and possible next life.',
+      prompt:'Pick an object that is close enough to inspect without taking it apart. Choose one material in it—wood, steel, plastic, paper, fabric, clay, or another specific substance. Write down what you can infer about where it came from, what work shaped it, what wear reveals, and what a repair or reuse path might preserve.',
+      timebox:'45 minutes',placeHint:'A familiar room, workbench, cupboard, or public object you are allowed to observe',materials:['the object or a photograph of it','a notebook or voice memo'],
+      access:'Use an object you already know, ask another person to describe it, or work from a photograph. No disassembly is required.',
+      safety:'Do not handle unknown powders, fibers, residues, sharp edges, or damaged electrical parts. Ask permission before inspecting another person’s object.',
+      evidence:'Name one observation, one uncertainty, and one question you would ask before repairing or reusing the object.',reflection:'What part of the material story was invisible until you looked for it?',tags:['explore','materials','repairability'],at:new Date(Date.now()-5*86400000).toISOString()
+    },
+    {
+      id:'quest_field_card',userId:'u_lee',projectId:project('p_lora'),crewId:null,questType:'Document',
+      title:'Leave a Tiny Field Card',summary:'Turn one small piece of practical knowledge into a note that another maker could try without needing the whole backstory.',
+      prompt:'Choose one setting, shortcut, measurement, repair clue, or shop habit you have recently tested. Write the conditions, the smallest sequence, the evidence that tells you it worked, and one reason someone might need to adapt it. Keep the card short enough to use at the bench.',
+      timebox:'30 minutes',placeHint:'Beside the work, in a Project Notebook, or at a shared Crew bench',materials:['a notebook, index card, or text editor','the object, test result, or reference you are documenting'],
+      access:'Dictate the card, use a large-format note, or record a short audio explanation and transcribe only the parts another maker needs.',
+      safety:'Name hazards and stop conditions if the knowledge involves heat, power, sharp tools, chemicals, stored energy, or uncertain equipment.',
+      evidence:'Include one check another maker can perform without trusting your conclusion blindly.',reflection:'What context did you almost leave out because it felt obvious?',tags:['document','handoff','field note'],at:new Date(Date.now()-6*86400000).toISOString()
+    }
+  ];
+  const insert=db.prepare(`INSERT OR IGNORE INTO local_quests (id,user_id,project_id,crew_id,title,quest_type,summary,prompt,timebox,place_hint,materials,access_notes,safety_notes,evidence_prompt,reflection_prompt,tags,visibility,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`);
+  for(const r of rows){
+    if(!db.prepare('SELECT 1 FROM users WHERE id=?').get(r.userId))continue;
+    insert.run(r.id,r.userId,r.projectId,r.crewId,r.title,r.questType,r.summary,r.prompt,r.timebox,r.placeHint,JSON.stringify(r.materials),r.access,r.safety,r.evidence,r.reflection,JSON.stringify(r.tags),'Public','Published',1,r.at,r.at);
+  }
+}
+if (SEED_DEMO) seedBatch105Demo();
+
 function seedGearheadDemo(){
   if(SEED_DEMO&&!db.prepare('SELECT COUNT(*) c FROM gather_kits').get().c)seedBatch104Demo();
   if(db.prepare('SELECT COUNT(*) c FROM gearhead_entries').get().c)return;
@@ -1679,7 +1766,7 @@ function notifyAdmins(kind,body,href,subject,text,settingKey=''){
 }
 function emailUser(userId,prefKey,kind,subject,text){const u=db.prepare('SELECT email FROM users WHERE id=?').get(userId);if(!u)return;const prefs=emailPrefs(userId);if(Number(prefs.enabled)!==1||Number(prefs[prefKey]??1)!==1)return;queueEmail({kind,to:u.email,subject,text});}
 function assertSavable(type,itemId){
-  const map={project:['projects','id'],library:['library_items','id'],handoff:['handoff_cards','id'],gather:['gather_kits','id'],question:['questions','id'],'shop-note':['shop_notes','id'],'build-along':['build_alongs','id'],'open-brief':['open_briefs','id'],commons:['commons_entries','id']};
+  const map={project:['projects','id'],library:['library_items','id'],handoff:['handoff_cards','id'],gather:['gather_kits','id'],quest:['local_quests','id'],question:['questions','id'],'shop-note':['shop_notes','id'],'build-along':['build_alongs','id'],'open-brief':['open_briefs','id'],commons:['commons_entries','id']};
   const spec=map[type]; if(!spec)return false; return Boolean(db.prepare(`SELECT 1 FROM ${spec[0]} WHERE ${spec[1]}=?`).get(itemId));
 }
 
@@ -1837,6 +1924,88 @@ function gatherForContext(kind,itemId,viewer,includeUnpublished=false){
   const columns={project:'project_id',crew:'crew_id',session:'session_id',liveEvent:'live_event_id',crewEvent:'crew_event_id'},column=columns[kind];if(!column||!itemId)return [];
   return db.prepare(`${gatherSelect()} WHERE g.${column}=? ORDER BY g.updated_at DESC`).all(itemId).filter(row=>gatherVisible(row,viewer,includeUnpublished)).map(row=>gatherRow(row,viewer));
 }
+const LOCAL_QUEST_TYPES=['Notice','Meet','Repair','Make','Explore','Document'];
+const LOCAL_QUEST_TYPE_SET=new Set(LOCAL_QUEST_TYPES);
+const LOCAL_QUEST_STATUSES=new Set(['Draft','Published','Archived']);
+const QUEST_ATTEMPT_STATUSES=new Set(['Started','Completed','Abandoned']);
+const QUEST_ATTEMPT_VISIBILITIES=new Set(['Private','Members','Public']);
+function localQuestVisibility(value,fallback='Public'){
+  const v=String(value||fallback);return QUEST_ATTEMPT_VISIBILITIES.has(v)?v:fallback;
+}
+function localQuestList(value,limit=40){
+  let raw=value;if(typeof raw==='string'&&raw.trim().startsWith('[')){try{raw=JSON.parse(raw)}catch{}}
+  const values=Array.isArray(raw)?raw:String(raw||'').split(/[\n,]+/);
+  return values.map(x=>String(x||'').replace(/^\s*[-*•]\s*/,'').trim().slice(0,300)).filter(Boolean).slice(0,limit);
+}
+function localQuestSelect(){return `SELECT q.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) author_callsign,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility,mc.name crew_name,mc.code crew_code,mc.visibility crew_visibility,mc.status crew_status FROM local_quests q JOIN users u ON u.id=q.user_id LEFT JOIN projects p ON p.id=q.project_id LEFT JOIN maker_crews mc ON mc.id=q.crew_id`}
+function localQuestCrewVisible(row,viewer){
+  if(!row?.crew_id)return true;
+  const crew=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(row.crew_id);if(!crew||!canSeeCrew(crew,viewer))return false;
+  if(crew.visibility==='Public'&&row.visibility==='Public')return true;
+  return Boolean(viewer&&(viewer.id===row.user_id||canEditEditorial(viewer)||crewRole(row.crew_id,viewer.id)));
+}
+function localQuestVisible(row,viewer,includeUnpublished=false){
+  if(!row||!visibleAuthor(viewer,row.user_id)||!canAccessLevel(row.visibility||'Public',viewer,row.user_id))return false;
+  if(row.project_id){const project=row.project_visibility!==undefined?{id:row.project_id,visibility:row.project_visibility,owner_id:row.project_owner_id}:db.prepare('SELECT * FROM projects WHERE id=?').get(row.project_id);if(!project||!canViewProject(project,viewer))return false;}
+  if(!localQuestCrewVisible(row,viewer))return false;
+  if(row.status!=='Published'&&!(includeUnpublished&&canEditQuest(row,viewer)))return false;
+  if(row.status==='Archived'&&!(includeUnpublished&&canEditQuest(row,viewer)))return false;
+  return true;
+}
+function canEditQuest(row,u){return Boolean(u&&row&&(row.user_id===u.id||canEditEditorial(u)));}
+function localQuestLinkValues(body={},fallback={}){
+  const value=(camel,snake)=>body[camel]===undefined?String(fallback[snake]||''):String(body[camel]||'').trim();
+  return {projectId:value('projectId','project_id'),crewId:value('crewId','crew_id')};
+}
+function localQuestLinkAccess(u,links){
+  if(links.projectId){const p=db.prepare('SELECT * FROM projects WHERE id=?').get(links.projectId);if(!p)return {ok:false,status:404,error:'Linked Project not found.'};if(!(p.owner_id===u.id||projectCollaborator(p.id,u.id)||canEditEditorial(u)))return {ok:false,status:403,error:'Only that Project team can attach a Local Quest to that Project.'};}
+  if(links.crewId){const c=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(links.crewId);if(!c)return {ok:false,status:404,error:'Linked Maker Crew not found.'};if(!(crewRole(c.id,u.id)||canEditEditorial(u)))return {ok:false,status:403,error:'Active Maker Crew membership is required for that Local Quest context.'};}
+  return {ok:true,links};
+}
+function localQuestBoundVisibility(value,links){
+  let visibility=localQuestVisibility(value,'Public');if(visibility!=='Public')return visibility;
+  for(const [table,idv] of [['projects',links.projectId],['maker_crews',links.crewId]])if(idv&&db.prepare(`SELECT visibility FROM ${table} WHERE id=?`).get(idv)?.visibility!=='Public')return 'Members';
+  return visibility;
+}
+function localQuestInput(body={},fallback={}){
+  const value=(camel,snake,defaultValue='')=>String(body[camel]===undefined?(fallback[snake]??defaultValue):(body[camel]??'')).trim();
+  const questType=value('questType','quest_type','Make'),status=value('status','status','Draft');
+  return {
+    title:value('title','title'),questType:LOCAL_QUEST_TYPE_SET.has(questType)?questType:'Make',summary:value('summary','summary'),prompt:value('prompt','prompt'),
+    timebox:value('timebox','timebox'),placeHint:value('placeHint','place_hint'),materials:localQuestList(body.materials===undefined?fallback.materials:body.materials),
+    accessNotes:value('accessNotes','access_notes'),safetyNotes:value('safetyNotes','safety_notes'),evidencePrompt:value('evidencePrompt','evidence_prompt'),reflectionPrompt:value('reflectionPrompt','reflection_prompt'),
+    tags:localQuestList(body.tags===undefined?fallback.tags:body.tags),visibility:localQuestVisibility(body.visibility===undefined?fallback.visibility:body.visibility,'Public'),status:LOCAL_QUEST_STATUSES.has(status)?status:'Draft'
+  };
+}
+function localQuestInputError(value){
+  if(!value.title||!value.summary||!value.prompt)return 'A Local Quest needs a title, a clear purpose, and a prompt someone can try.';
+  const limits={title:180,summary:1800,prompt:2600,timebox:120,placeHint:180,accessNotes:2400,safetyNotes:2400,evidencePrompt:1200,reflectionPrompt:1800};
+  for(const [key,limit] of Object.entries(limits))if(String(value[key]||'').length>limit)return `Keep ${key.replace(/[A-Z]/g,m=>' '+m.toLowerCase())} to ${limit} characters or fewer.`;
+  return '';
+}
+function localQuestAttemptVisibility(value,fallback='Private'){
+  const v=String(value||fallback);return QUEST_ATTEMPT_VISIBILITIES.has(v)?v:fallback;
+}
+function localQuestAttemptRow(row){
+  if(!row)return null;
+  return {id:row.id,questId:row.quest_id,userId:row.user_id,author:row.author||'',callsign:row.callsign||'',status:row.status||'Started',notes:row.notes||'',evidence:row.evidence||'',reflection:row.reflection||'',visibility:localQuestAttemptVisibility(row.visibility),startedAt:row.started_at,completedAt:row.completed_at||'',updatedAt:row.updated_at};
+}
+function localQuestAttemptVisible(row,quest,viewer){
+  if(!row||!quest||row.status!=='Completed'||!visibleAuthor(viewer,row.user_id))return false;
+  const allowed=row.visibility==='Public'||(row.visibility==='Members'&&Boolean(viewer));
+  return allowed&&localQuestVisible(quest,viewer);
+}
+function localQuestRow(row,viewer=null){
+  if(!row)return null;
+  const saved=viewer?Boolean(db.prepare("SELECT 1 FROM saved_items WHERE user_id=? AND item_type='quest' AND item_id=?").get(viewer.id,row.id)):false;
+  const attempt=viewer?db.prepare('SELECT id,status,completed_at FROM local_quest_attempts WHERE quest_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 1').get(row.id,viewer.id):null;
+  return {id:row.id,userId:row.user_id,author:row.author||'',authorCallsign:row.author_callsign||'',title:row.title,questType:row.quest_type||'Make',summary:row.summary||'',prompt:row.prompt||'',timebox:row.timebox||'',placeHint:row.place_hint||'',materials:localQuestList(row.materials),accessNotes:row.access_notes||'',safetyNotes:row.safety_notes||'',evidencePrompt:row.evidence_prompt||'',reflectionPrompt:row.reflection_prompt||'',tags:localQuestList(row.tags),projectId:row.project_id||'',projectTitle:row.project_title||'',crewId:row.crew_id||'',crewName:row.crew_name||'',crewCode:row.crew_code||'',visibility:localQuestVisibility(row.visibility),status:row.status||'Draft',version:Number(row.version||1),createdAt:row.created_at,updatedAt:row.updated_at,isOwner:Boolean(viewer&&viewer.id===row.user_id),canEdit:canEditQuest(row,viewer),canStart:Boolean(viewer&&row.status==='Published'&&localQuestVisible(row,viewer)),myAttemptId:attempt?.id||'',myAttemptStatus:attempt?.status||'',myAttemptCompletedAt:attempt?.completed_at||'',saved};
+}
+function localQuestForContext(kind,itemId,viewer,includeUnpublished=false){
+  const column={project:'project_id',crew:'crew_id'}[kind];if(!column||!itemId)return [];
+  return db.prepare(`${localQuestSelect()} WHERE q.${column}=? ORDER BY q.updated_at DESC`).all(itemId).filter(row=>localQuestVisible(row,viewer,includeUnpublished)).map(row=>localQuestRow(row,viewer));
+}
+
 function childProjects(parentType,parentId,viewerId=''){
   const viewer=viewerId?db.prepare('SELECT * FROM users WHERE id=?').get(viewerId):null;
   const rows=db.prepare(projectSelect(viewerId)+` WHERE p.parent_type=? AND p.parent_id=? ORDER BY CASE WHEN p.status='Complete' THEN 0 ELSE 1 END, p.updated_at DESC`).all(viewerId,parentType,parentId);
@@ -1924,8 +2093,10 @@ function crewPayload(c,viewer){
   const handoffCards=handoffRows.filter(r=>handoffVisible(r,viewer,Boolean(viewer&&((crewRole(c.id,viewer.id))||canEditEditorial(viewer))))).map(r=>handoffRow(r,viewer));
   const gatherRows=db.prepare(`${gatherSelect()} WHERE g.crew_id=? OR g.crew_event_id IN (SELECT id FROM maker_crew_events WHERE crew_id=?) ORDER BY g.updated_at DESC LIMIT 24`).all(c.id,c.id);
   const gatherKits=gatherRows.filter(r=>gatherVisible(r,viewer,Boolean(viewer))).map(r=>gatherRow(r,viewer));
+  const localQuestRows=db.prepare(`${localQuestSelect()} WHERE q.crew_id=? ORDER BY q.updated_at DESC LIMIT 24`).all(c.id);
+  const localQuests=localQuestRows.filter(r=>localQuestVisible(r,viewer,Boolean(viewer))).map(r=>localQuestRow(r,viewer));
   const localNeeds=bulletin.filter(b=>['Need a Hand','Need a Tool','Have Material','Looking for Knowledge','Project Needs a Home'].includes(b.post_type));
-  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,commons,handoffCards,gatherKits,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
+  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,commons,handoffCards,gatherKits,localQuests,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
 }
 
 
@@ -2058,7 +2229,7 @@ function routeApi(req, res, url) {
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
   if(pathname==='/api/version-diagnostics'&&method==='GET')return sendJson(res,200,{serverVersion:APP_VERSION,schemaVersion:db.prepare('SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1').get()?.version||'',time:now()});
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,unfinishedInPublic:true,commons:true,handoffFieldCards:true,gatherKits:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,unfinishedInPublic:true,commons:true,handoffFieldCards:true,gatherKits:true,localQuests:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
   if(pathname==='/api/identity/check'&&method==='GET'){
     const entityType=String(url.searchParams.get('entityType')||''),entityId=String(url.searchParams.get('entityId')||'');const s=identityAddressState(url.searchParams.get('address')||'',entityType,entityId);return sendJson(res,200,s);
@@ -2202,7 +2373,7 @@ function routeApi(req, res, url) {
   if (pathname === '/api/account/terms' && method === 'POST') return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(!(body.accept==='yes'||body.accept===true))return sendJson(res,400,{error:'Terms acceptance is required.'});const accepted=now();db.prepare('UPDATE users SET terms_version_accepted=?,terms_accepted_at=? WHERE id=?').run(TERMS_VERSION,accepted,u.id);audit(u.id,'account.terms.accept','user',u.id,{termsVersion:TERMS_VERSION});return sendJson(res,200,{ok:true,termsVersion:TERMS_VERSION,user:safeUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id))});}).catch(e=>sendJson(res,400,{error:e.message}));
   if (pathname === '/api/account/password' && method === 'PUT') return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(!passwordOk(String(body.currentPassword||''),u.password_hash))return sendJson(res,403,{error:'Current password is incorrect.'});const next=String(body.newPassword||''),confirm=String(body.confirmNewPassword||'');if(next.length<10)return sendJson(res,400,{error:'Use at least 10 characters.'});if(next!==confirm)return sendJson(res,400,{error:'New passwords do not match.'});db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(passwordHash(next),u.id);return sendJson(res,200,{ok:true});});
   if (pathname === '/api/account/forced-password' && method === 'PUT') return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(!u.force_password_reset)return sendJson(res,400,{error:'This account does not currently require a password reset.'});const next=String(body.newPassword||''),confirm=String(body.confirmNewPassword||'');if(next.length<10)return sendJson(res,400,{error:'Use at least 10 characters.'});if(next!==confirm)return sendJson(res,400,{error:'New passwords do not match.'});db.prepare('UPDATE users SET password_hash=?,force_password_reset=0 WHERE id=?').run(passwordHash(next),u.id);const token=parseCookies(req).workshop_session||'';db.prepare('DELETE FROM sessions WHERE user_id=? AND token<>?').run(u.id,token);audit(u.id,'account.forced_password.complete','user',u.id,{});return sendJson(res,200,{ok:true,user:safeUser(db.prepare('SELECT * FROM users WHERE id=?').get(u.id))});});
-  if (pathname === '/api/account' && method === 'DELETE') return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(String(body.confirm||'')!=='DELETE')return sendJson(res,400,{error:'Type DELETE to confirm account removal.'});const owned=db.prepare('SELECT id FROM projects WHERE owner_id=?').all(u.id).map(x=>x.id);if(owned.length){const fsrows=db.prepare(`SELECT stored_name FROM project_files WHERE project_id IN (${owned.map(()=>'?').join(',')})`).all(...owned);for(const f of fsrows){try{fs.unlinkSync(path.join(UPLOADS,f.stored_name))}catch{}}}db.exec('BEGIN');try{db.prepare('DELETE FROM maker_crew_event_attendance WHERE user_id=?').run(u.id);db.prepare('DELETE FROM maker_crew_bulletin_posts WHERE user_id=?').run(u.id);db.prepare('DELETE FROM maker_crew_requests WHERE requested_by=?').run(u.id);db.prepare('DELETE FROM maker_crew_members WHERE user_id=?').run(u.id);db.prepare('DELETE FROM content_reports WHERE reporter_id=?').run(u.id);db.prepare('DELETE FROM commons_responses WHERE user_id=?').run(u.id);db.prepare('DELETE FROM commons_entries WHERE user_id=?').run(u.id);db.prepare('DELETE FROM discussion_replies WHERE user_id=?').run(u.id);db.prepare('DELETE FROM discussion_topics WHERE user_id=?').run(u.id);db.prepare('DELETE FROM answers WHERE user_id=?').run(u.id);db.prepare('DELETE FROM questions WHERE user_id=?').run(u.id);db.prepare('DELETE FROM comments WHERE user_id=?').run(u.id);db.prepare('DELETE FROM build_log_entries WHERE user_id=?').run(u.id);db.prepare('DELETE FROM project_tasks WHERE created_by=? OR assignee_id=?').run(u.id,u.id);db.prepare('DELETE FROM project_collaboration_invites WHERE from_user_id=? OR to_user_id=?').run(u.id,u.id);db.prepare('DELETE FROM tool_cabinet_items WHERE user_id=?').run(u.id);db.prepare('DELETE FROM project_collaborators WHERE user_id=?').run(u.id);db.prepare('DELETE FROM live_comments WHERE user_id=?').run(u.id);db.prepare('DELETE FROM critique_responses WHERE user_id=?').run(u.id);db.prepare('DELETE FROM critiques WHERE user_id=?').run(u.id);db.prepare('DELETE FROM peer_reflections WHERE reviewer_id=?').run(u.id);db.prepare('DELETE FROM work_submissions WHERE user_id=?').run(u.id);db.prepare('DELETE FROM assignment_projects WHERE user_id=?').run(u.id);db.prepare('DELETE FROM shop_notes WHERE user_id=?').run(u.id);db.prepare('DELETE FROM projects WHERE owner_id=?').run(u.id);db.prepare("DELETE FROM identity_addresses WHERE entity_type='user' AND entity_id=?").run(u.id);db.prepare('DELETE FROM users WHERE id=?').run(u.id);db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}return sendJson(res,200,{ok:true},{'Set-Cookie':'workshop_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});});
+  if (pathname === '/api/account' && method === 'DELETE') return readBody(req).then(body=>{const u=requireUser(req,res);if(!u)return;if(String(body.confirm||'')!=='DELETE')return sendJson(res,400,{error:'Type DELETE to confirm account removal.'});const owned=db.prepare('SELECT id FROM projects WHERE owner_id=?').all(u.id).map(x=>x.id);if(owned.length){const fsrows=db.prepare(`SELECT stored_name FROM project_files WHERE project_id IN (${owned.map(()=>'?').join(',')})`).all(...owned);for(const f of fsrows){try{fs.unlinkSync(path.join(UPLOADS,f.stored_name))}catch{}}}db.exec('BEGIN');try{db.prepare('DELETE FROM maker_crew_event_attendance WHERE user_id=?').run(u.id);db.prepare('DELETE FROM maker_crew_bulletin_posts WHERE user_id=?').run(u.id);db.prepare('DELETE FROM maker_crew_requests WHERE requested_by=?').run(u.id);db.prepare('DELETE FROM maker_crew_members WHERE user_id=?').run(u.id);db.prepare('DELETE FROM content_reports WHERE reporter_id=?').run(u.id);db.prepare('DELETE FROM commons_responses WHERE user_id=?').run(u.id);db.prepare('DELETE FROM commons_entries WHERE user_id=?').run(u.id);db.prepare('DELETE FROM discussion_replies WHERE user_id=?').run(u.id);db.prepare('DELETE FROM discussion_topics WHERE user_id=?').run(u.id);db.prepare('DELETE FROM answers WHERE user_id=?').run(u.id);db.prepare('DELETE FROM questions WHERE user_id=?').run(u.id);db.prepare('DELETE FROM comments WHERE user_id=?').run(u.id);db.prepare('DELETE FROM build_log_entries WHERE user_id=?').run(u.id);db.prepare('DELETE FROM local_quest_attempts WHERE user_id=?').run(u.id);db.prepare('DELETE FROM local_quests WHERE user_id=?').run(u.id);db.prepare('DELETE FROM project_tasks WHERE created_by=? OR assignee_id=?').run(u.id,u.id);db.prepare('DELETE FROM project_collaboration_invites WHERE from_user_id=? OR to_user_id=?').run(u.id,u.id);db.prepare('DELETE FROM tool_cabinet_items WHERE user_id=?').run(u.id);db.prepare('DELETE FROM project_collaborators WHERE user_id=?').run(u.id);db.prepare('DELETE FROM live_comments WHERE user_id=?').run(u.id);db.prepare('DELETE FROM critique_responses WHERE user_id=?').run(u.id);db.prepare('DELETE FROM critiques WHERE user_id=?').run(u.id);db.prepare('DELETE FROM peer_reflections WHERE reviewer_id=?').run(u.id);db.prepare('DELETE FROM work_submissions WHERE user_id=?').run(u.id);db.prepare('DELETE FROM assignment_projects WHERE user_id=?').run(u.id);db.prepare('DELETE FROM shop_notes WHERE user_id=?').run(u.id);db.prepare('DELETE FROM projects WHERE owner_id=?').run(u.id);db.prepare("DELETE FROM identity_addresses WHERE entity_type='user' AND entity_id=?").run(u.id);db.prepare('DELETE FROM users WHERE id=?').run(u.id);db.exec('COMMIT')}catch(e){db.exec('ROLLBACK');throw e}return sendJson(res,200,{ok:true},{'Set-Cookie':'workshop_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0'});});
 
   if (pathname === '/api/home' && method === 'GET') {
     const uid = me?.id || '';
@@ -2224,6 +2395,7 @@ function routeApi(req, res, url) {
     const brief = db.prepare('SELECT * FROM open_briefs ORDER BY created_at DESC LIMIT 1').get();
     const library = db.prepare("SELECT * FROM library_items WHERE status='Published' ORDER BY featured DESC, created_at DESC LIMIT 20").all().filter(r=>canAccessLevel(r.visibility||'Public',me,r.created_by||'')).slice(0,4).map(r=>libraryRow(r,uid));
     const handoffCards=db.prepare(`${handoffSelect()} WHERE h.status='Published' ORDER BY h.updated_at DESC LIMIT 4`).all().filter(r=>handoffVisible(r,me)).map(r=>handoffRow(r,me));
+    const localQuests=db.prepare(`${localQuestSelect()} WHERE q.status='Published' ORDER BY q.updated_at DESC LIMIT 8`).all().filter(r=>localQuestVisible(r,me)).map(r=>localQuestRow(r,me)).slice(0,4);
     const liveEvent = db.prepare(`SELECT e.*,p.title project_title FROM live_events e LEFT JOIN projects p ON p.id=e.project_id WHERE e.status IN ('Live','Scheduled') ORDER BY CASE e.status WHEN 'Live' THEN 0 ELSE 1 END,e.starts_at ASC`).all().find(e=>canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me)));
     const wallExhibition=db.prepare("SELECT * FROM wall_exhibitions WHERE status='Published' AND visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
     const activeSession=db.prepare("SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status IN ('Active','Upcoming') ORDER BY CASE s.status WHEN 'Active' THEN 0 ELSE 1 END,s.starts_at").all().find(x=>canSeeSession(x,me));
@@ -2233,7 +2405,7 @@ function routeApi(req, res, url) {
     for(const r of db.prepare(`SELECT e.created_at,e.id,e.title,c.id crew_id,c.name crew_name,c.visibility,c.status FROM maker_crew_events e JOIN maker_crews c ON c.id=e.crew_id WHERE e.status<>'Cancelled' ORDER BY e.created_at DESC LIMIT 8`).all()){if(canSeeCrew(r,me))activity.push({kind:'MAKER CREW',at:r.created_at,actor:r.crew_name,title:r.title,copy:'scheduled a meetup',href:`#/crew/${r.crew_id}/meetups`})}
     for(const r of db.prepare(`SELECT t.created_at,t.title,t.source_type,t.source_id,u.display_name,u.id user_id FROM community_build_teams t JOIN users u ON u.id=t.created_by ORDER BY t.created_at DESC LIMIT 8`).all()){activity.push({kind:'BUILD TOGETHER',at:r.created_at,actor:r.display_name,actorId:r.user_id,title:r.title,copy:'formed a Community Build team',href:'#/community-builds'})}
     const aroundWorkshop=activity.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,8);
-    return sendJson(res,200,{projects,recommendedProjects,outsideLaneProject,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,handoffCards,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null,aroundWorkshop});
+    return sendJson(res,200,{projects,recommendedProjects,outsideLaneProject,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,handoffCards,localQuests,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null,aroundWorkshop});
   }
 
   if (pathname === '/api/projects' && method === 'GET') {
@@ -2298,13 +2470,16 @@ function routeApi(req, res, url) {
     const handoffCards=handoffRows.filter(r=>handoffVisible(r,me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>handoffRow(r,me)).slice(0,12);
     const gatherRows=db.prepare(`${gatherSelect()} WHERE g.status='Published' ORDER BY g.updated_at DESC LIMIT 30`).all();
     const gatherKits=gatherRows.filter(r=>gatherVisible(r,me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>gatherRow(r,me)).slice(0,12);
+    const localQuestRows=db.prepare(`${localQuestSelect()} WHERE q.status='Published' ORDER BY q.updated_at DESC LIMIT 30`).all();
+    const localQuests=localQuestRows.filter(r=>localQuestVisible(r,me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>localQuestRow(r,me)).slice(0,12);
     if(me){
       const responseRows=db.prepare(`SELECT r.id response_id,r.message response_message,r.status response_status,r.updated_at response_updated_at,e.*,owner.display_name author,owner.id author_id,responder.display_name responder_name,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=owner.id AND ia.status='current' LIMIT 1) author_callsign,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility,mc.name crew_name,mc.code crew_code FROM commons_responses r JOIN commons_entries e ON e.id=r.entry_id JOIN users owner ON owner.id=e.user_id JOIN users responder ON responder.id=r.user_id LEFT JOIN projects p ON p.id=e.project_id LEFT JOIN maker_crews mc ON mc.id=e.crew_id WHERE e.user_id=? AND r.status='Open' ORDER BY r.updated_at`).all(me.id);
       for(const r of responseRows)if(commonsVisible(r,me,true))myWork.push({id:r.response_id,kind:'COMMONS RESPONSE',status:'NEEDS REPLY',title:r.title,copy:`${r.responder_name}: ${r.response_message}`,projectId:r.project_id||'',at:r.response_updated_at,href:`#/commons/${r.id}`});
+      for(const r of db.prepare(`SELECT a.id,a.status,a.updated_at,a.completed_at,q.id quest_id,q.title,q.project_id,q.crew_id,q.visibility,q.status quest_status FROM local_quest_attempts a JOIN local_quests q ON q.id=a.quest_id WHERE a.user_id=? AND a.status IN ('Started','Completed') ORDER BY a.updated_at DESC`).all(me.id))myWork.push({id:r.id,kind:'LOCAL QUEST',status:r.status==='Completed'?'COMPLETED':'IN PROGRESS',title:r.title,copy:r.status==='Completed'?'Your field note is saved.':'You have a Local Quest waiting on your bench.',projectId:r.project_id||'',crewId:r.crew_id||'',at:r.updated_at,href:`#/quest/${r.quest_id}`});
     }
     const actionRank=s=>s==='NEEDS REPLY'?0:s==='CONFIRMED'?1:s==='PENDING'||s==='OFFERED'?2:3;
     myWork.sort((a,b)=>actionRank(a.status)-actionRank(b.status)||String(a.at||'').localeCompare(String(b.at||'')));
-    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),unfinished,commons,handoffCards,gatherKits,orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented',unfinished:'most recently updated',commons:'most recently updated',handoffCards:'most recently updated',gatherKits:'most recently updated'},countsPublic:false,privateWork:Boolean(me)});
+    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),unfinished,commons,handoffCards,gatherKits,localQuests,orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented',unfinished:'most recently updated',commons:'most recently updated',handoffCards:'most recently updated',gatherKits:'most recently updated',localQuests:'most recently updated'},countsPublic:false,privateWork:Boolean(me)});
   }
 
   if(pathname==='/api/unfinished' && method==='GET'){
@@ -2489,13 +2664,14 @@ function routeApi(req, res, url) {
     const handoffRows=db.prepare(`${handoffSelect()} WHERE h.project_id=? ORDER BY h.updated_at DESC`).all(pid);
     const handoffCards=handoffRows.filter(r=>handoffVisible(r,me,Boolean(me&&(me.id===r.user_id||row.owner_id===me.id||canEditEditorial(me))))).map(r=>handoffRow(r,me));
     const gatherKits=gatherForContext('project',pid,me,Boolean(me&&(row.owner_id===me.id||projectCollaborator(pid,me.id)||canEditEditorial(me))));
+    const localQuests=localQuestForContext('project',pid,me,Boolean(me&&(row.owner_id===me.id||projectCollaborator(pid,me.id)||canEditEditorial(me))));
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
     const variations=childProjects('Project',pid,uid);
     let sourceProject=null;
     if(row.parent_type==='Project'&&row.parent_id){const sourceRow=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,row.parent_id);if(sourceRow&&canViewProject(sourceRow,me))sourceProject=projectRow(sourceRow,me);}
-    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),unfinished,commons,handoffCards,gatherKits,comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),unfinished,commons,handoffCards,gatherKits,localQuests,comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -2944,6 +3120,57 @@ function routeApi(req, res, url) {
     const u=requireUser(req,res);if(!u)return;const row=db.prepare('SELECT * FROM gather_kits WHERE id=?').get(gatherMatch[1]);if(!row)return sendJson(res,404,{error:'Gather Kit not found.'});if(!canEditGather(row,u))return sendJson(res,403,{error:'Only the kit maker or a Workshop editor can remove this Gather Kit.'});db.prepare("DELETE FROM saved_items WHERE item_type='gather' AND item_id=?").run(row.id);db.prepare("DELETE FROM collection_items WHERE item_type='gather' AND item_id=?").run(row.id);db.prepare('DELETE FROM gather_kits WHERE id=?').run(row.id);audit(u.id,'gather.delete','gather_kit',row.id,{});return sendJson(res,200,{ok:true});
   }
 
+  // v10.5 — Local Quests: small, place-aware creative prompts with private field notes.
+  if(pathname==='/api/quests'&&method==='GET'){
+    const mine=url.searchParams.get('mine')==='1';let viewer=me;if(mine){viewer=requireUser(req,res);if(!viewer)return;}
+    const where=[],args=[];if(mine){where.push('q.user_id=?');args.push(viewer.id)}else where.push("q.status='Published'");
+    const projectId=String(url.searchParams.get('projectId')||'').trim(),crewId=String(url.searchParams.get('crewId')||'').trim(),questType=String(url.searchParams.get('questType')||'').trim(),status=String(url.searchParams.get('status')||'').trim();
+    if(projectId){where.push('q.project_id=?');args.push(projectId)}if(crewId){where.push('q.crew_id=?');args.push(crewId)}if(LOCAL_QUEST_TYPE_SET.has(questType)){where.push('q.quest_type=?');args.push(questType)}if(mine&&LOCAL_QUEST_STATUSES.has(status)){where.push('q.status=?');args.push(status)}
+    const rows=db.prepare(`${localQuestSelect()} WHERE ${where.join(' AND ')} ORDER BY q.updated_at DESC LIMIT 120`).all(...args);
+    const items=rows.filter(row=>localQuestVisible(row,viewer,mine)).map(row=>localQuestRow(row,viewer));
+    return sendJson(res,200,{items,questTypes:LOCAL_QUEST_TYPES,statuses:[...LOCAL_QUEST_STATUSES],orderedBy:'most recently updated',countsPublic:false,canCreate:Boolean(viewer)});
+  }
+  if(pathname==='/api/quests'&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    return readBody(req).then(body=>{
+      const value=localQuestInput(body),error=localQuestInputError(value);if(error)return sendJson(res,400,{error});
+      const linkCheck=localQuestLinkAccess(u,localQuestLinkValues(body));if(!linkCheck.ok)return sendJson(res,linkCheck.status,{error:linkCheck.error});const links=linkCheck.links,visibility=localQuestBoundVisibility(value.visibility,links),qid=id('quest'),ts=now();
+      db.prepare(`INSERT INTO local_quests (id,user_id,project_id,crew_id,title,quest_type,summary,prompt,timebox,place_hint,materials,access_notes,safety_notes,evidence_prompt,reflection_prompt,tags,visibility,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(qid,u.id,links.projectId||null,links.crewId||null,value.title,value.questType,value.summary,value.prompt,value.timebox,value.placeHint,JSON.stringify(value.materials),value.accessNotes,value.safetyNotes,value.evidencePrompt,value.reflectionPrompt,JSON.stringify(value.tags),visibility,value.status,1,ts,ts);
+      audit(u.id,'quest.create','local_quest',qid,{...links,questType:value.questType,visibility,status:value.status});const row=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(qid);return sendJson(res,201,{item:localQuestRow(row,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  const questSave=pathname.match(/^\/api\/quests\/([^/]+)\/save$/);
+  if(questSave&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(questSave[1]);if(!row||!localQuestVisible(row,u,true))return sendJson(res,404,{error:'Local Quest not found.'});const exists=db.prepare("SELECT 1 FROM saved_items WHERE user_id=? AND item_type='quest' AND item_id=?").get(u.id,row.id);if(exists){db.prepare("DELETE FROM saved_items WHERE user_id=? AND item_type='quest' AND item_id=?").run(u.id,row.id);db.prepare("DELETE FROM collection_items WHERE item_type='quest' AND item_id=? AND collection_id IN (SELECT id FROM collections WHERE user_id=?)").run(row.id,u.id)}else db.prepare('INSERT INTO saved_items (user_id,item_type,item_id,created_at) VALUES (?,?,?,?)').run(u.id,'quest',row.id,now());return sendJson(res,200,{saved:!exists});
+  }
+  const questStart=pathname.match(/^\/api\/quests\/([^/]+)\/start$/);
+  if(questStart&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(questStart[1]);if(!row||!localQuestVisible(row,u)||row.status!=='Published')return sendJson(res,404,{error:'Local Quest not found.'});const existing=db.prepare("SELECT * FROM local_quest_attempts WHERE quest_id=? AND user_id=? AND status IN ('Started','Completed') ORDER BY updated_at DESC LIMIT 1").get(row.id,u.id);if(existing)return sendJson(res,200,{attempt:localQuestAttemptRow(existing),existing:true});const ts=now(),aid=id('quest-attempt');db.prepare('INSERT INTO local_quest_attempts (id,quest_id,user_id,status,notes,evidence,reflection,visibility,started_at,completed_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(aid,row.id,u.id,'Started','','','', 'Private',ts,'',ts);audit(u.id,'quest.attempt.start','local_quest_attempt',aid,{questId:row.id});const attempt=db.prepare(`SELECT a.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM local_quest_attempts a JOIN users u ON u.id=a.user_id WHERE a.id=?`).get(aid);return sendJson(res,201,{attempt:localQuestAttemptRow(attempt),existing:false});
+  }
+  const questMatch=pathname.match(/^\/api\/quests\/([^/]+)$/);
+  if(questMatch&&method==='GET'){
+    const row=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(questMatch[1]);if(!row||!localQuestVisible(row,me,true))return sendJson(res,404,{error:'Local Quest not found.'});const canManage=canEditQuest(row,me);
+    const attempts=db.prepare(`SELECT a.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM local_quest_attempts a JOIN users u ON u.id=a.user_id WHERE a.quest_id=? AND a.status='Completed' AND a.visibility IN ('Public','Members') ORDER BY a.completed_at DESC,a.updated_at DESC LIMIT 30`).all(row.id).filter(a=>localQuestAttemptVisible(a,row,me)).map(localQuestAttemptRow);
+    const myAttempt=me?localQuestAttemptRow(db.prepare(`SELECT a.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM local_quest_attempts a JOIN users u ON u.id=a.user_id WHERE a.quest_id=? AND a.user_id=? ORDER BY a.updated_at DESC LIMIT 1`).get(row.id,me.id)):null;
+    return sendJson(res,200,{item:localQuestRow(row,me),attempts,myAttempt,canManage});
+  }
+  if(questMatch&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const old=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(questMatch[1]);if(!old)return sendJson(res,404,{error:'Local Quest not found.'});if(!canEditQuest(old,u))return sendJson(res,403,{error:'Only the quest maker or a Workshop editor can change this Local Quest.'});
+    return readBody(req).then(body=>{
+      const value=localQuestInput(body,old),error=localQuestInputError(value);if(error)return sendJson(res,400,{error});const linkCheck=localQuestLinkAccess(u,localQuestLinkValues(body,old));if(!linkCheck.ok)return sendJson(res,linkCheck.status,{error:linkCheck.error});const links=linkCheck.links,visibility=localQuestBoundVisibility(value.visibility,links),version=Number(old.version||1)+1,ts=now();
+      db.prepare(`UPDATE local_quests SET project_id=?,crew_id=?,title=?,quest_type=?,summary=?,prompt=?,timebox=?,place_hint=?,materials=?,access_notes=?,safety_notes=?,evidence_prompt=?,reflection_prompt=?,tags=?,visibility=?,status=?,version=?,updated_at=? WHERE id=?`).run(links.projectId||null,links.crewId||null,value.title,value.questType,value.summary,value.prompt,value.timebox,value.placeHint,JSON.stringify(value.materials),value.accessNotes,value.safetyNotes,value.evidencePrompt,value.reflectionPrompt,JSON.stringify(value.tags),visibility,value.status,version,ts,old.id);
+      audit(u.id,'quest.update','local_quest',old.id,{...links,questType:value.questType,visibility,status:value.status,version});const fresh=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(old.id);return sendJson(res,200,{item:localQuestRow(fresh,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  if(questMatch&&method==='DELETE'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare('SELECT * FROM local_quests WHERE id=?').get(questMatch[1]);if(!row)return sendJson(res,404,{error:'Local Quest not found.'});if(!canEditQuest(row,u))return sendJson(res,403,{error:'Only the quest maker or a Workshop editor can remove this Local Quest.'});db.prepare("DELETE FROM saved_items WHERE item_type='quest' AND item_id=?").run(row.id);db.prepare("DELETE FROM collection_items WHERE item_type='quest' AND item_id=?").run(row.id);db.prepare('DELETE FROM local_quests WHERE id=?').run(row.id);audit(u.id,'quest.delete','local_quest',row.id,{});return sendJson(res,200,{ok:true});
+  }
+  const questAttemptMatch=pathname.match(/^\/api\/quest-attempts\/([^/]+)$/);
+  if(questAttemptMatch&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const old=db.prepare('SELECT * FROM local_quest_attempts WHERE id=?').get(questAttemptMatch[1]);if(!old)return sendJson(res,404,{error:'Local Quest attempt not found.'});if(old.user_id!==u.id)return sendJson(res,403,{error:'Only the maker of this field note can change it.'});const quest=db.prepare(`${localQuestSelect()} WHERE q.id=?`).get(old.quest_id);if(!quest||!localQuestVisible(quest,u,true))return sendJson(res,404,{error:'Local Quest not found.'});
+    return readBody(req).then(body=>{const status=QUEST_ATTEMPT_STATUSES.has(String(body.status??old.status))?String(body.status??old.status):old.status,notes=String(body.notes??old.notes??'').trim().slice(0,2400),evidence=String(body.evidence??old.evidence??'').trim().slice(0,2400),reflection=String(body.reflection??old.reflection??'').trim().slice(0,1800);if(status==='Completed'&&!notes&&!evidence&&!reflection)return sendJson(res,400,{error:'Add at least one field note, evidence note, or reflection before completing the quest.'});const requested=localQuestAttemptVisibility(body.visibility??old.visibility,'Private'),visibility=status==='Completed'?localQuestBoundVisibility(requested,{projectId:quest.project_id||'',crewId:quest.crew_id||''}):'Private',ts=now(),completedAt=status==='Completed'?(old.completed_at||ts):'';db.prepare('UPDATE local_quest_attempts SET status=?,notes=?,evidence=?,reflection=?,visibility=?,completed_at=?,updated_at=? WHERE id=?').run(status,notes,evidence,reflection,visibility,completedAt,ts,old.id);if(status==='Completed'&&old.status!=='Completed'&&quest.user_id!==u.id)notifyUser(quest.user_id,'collaboration',`${u.display_name} completed a field note for your Local Quest: ${quest.title}.`,`#/quest/${quest.id}`,u.id);audit(u.id,'quest.attempt.update','local_quest_attempt',old.id,{questId:quest.id,status,visibility});const fresh=db.prepare(`SELECT a.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM local_quest_attempts a JOIN users u ON u.id=a.user_id WHERE a.id=?`).get(old.id);return sendJson(res,200,{attempt:localQuestAttemptRow(fresh)});}).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+
 
   if(pathname==='/api/craft-progress' && method==='GET'){
     const u=requireUser(req,res);if(!u)return;return sendJson(res,200,{craft:craftProgressFor(u.id,true)});
@@ -3158,8 +3385,9 @@ function routeApi(req, res, url) {
     const commons=db.prepare(`${commonsSelect()} JOIN saved_items s ON s.item_id=e.id AND s.item_type='commons' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>commonsVisible(r,u,true)).map(r=>commonsEntryRow(r,u));
     const handoffCards=db.prepare(`${handoffSelect()} JOIN saved_items s ON s.item_id=h.id AND s.item_type='handoff' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>handoffVisible(r,u,true)).map(r=>handoffRow(r,u));
     const gatherKits=db.prepare(`${gatherSelect()} JOIN saved_items s ON s.item_id=g.id AND s.item_type='gather' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>gatherVisible(r,u,true)).map(r=>gatherRow(r,u));
+    const localQuests=db.prepare(`${localQuestSelect()} JOIN saved_items s ON s.item_id=q.id AND s.item_type='quest' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>localQuestVisible(r,u,true)).map(r=>localQuestRow(r,u));
     const collections=db.prepare(`SELECT c.*,(SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id=c.id) item_count FROM collections c WHERE c.user_id=? ORDER BY c.updated_at DESC`).all(u.id);
-    return sendJson(res,200,{projects:rows.map(r=>projectRow(r,u)),library,questions,shopNotes,buildAlongs,openBriefs,commons,handoffCards,gatherKits,collections,saved});
+    return sendJson(res,200,{projects:rows.map(r=>projectRow(r,u)),library,questions,shopNotes,buildAlongs,openBriefs,commons,handoffCards,gatherKits,localQuests,collections,saved});
   }
   if(pathname==='/api/question-of-the-week' && method==='GET'){
     const rows=db.prepare(`SELECT q.*,u.display_name author,(SELECT COUNT(*) FROM weekly_question_responses r WHERE r.question_id=q.id) response_count FROM weekly_questions q JOIN users u ON u.id=q.created_by WHERE q.status='Published' AND (q.visibility='Public' OR (?<>'' AND q.visibility='Members')) ORDER BY CASE WHEN q.starts_at<>'' THEN q.starts_at ELSE q.created_at END DESC`).all(me?.id||'');
@@ -3240,7 +3468,7 @@ function routeApi(req, res, url) {
   if(pathname==='/api/notification-preferences' && method==='PUT'){const u=requireUser(req,res);if(!u)return;return readBody(req).then(body=>{notificationPrefs(u.id);emailPrefs(u.id);for(const k of NOTIFICATION_KINDS){if(k in body)db.prepare(`UPDATE notification_preferences SET ${k}=? WHERE user_id=?`).run(body[k]?1:0,u.id)}for(const k of ['enabled','crew_attendance','account_security','moderation','gearhead']){if(k in (body.email||{}))db.prepare(`UPDATE email_preferences SET ${k}=? WHERE user_id=?`).run(body.email[k]?1:0,u.id)}return sendJson(res,200,{preferences:notificationPrefs(u.id),emailPreferences:emailPrefs(u.id)})});}
   if(pathname==='/api/search' && method==='GET'){
     const q=String(url.searchParams.get('q')||'').trim(), kind=String(url.searchParams.get('kind')||'all').trim();
-    const empty={q,kind,projects:[],openBenches:[],buildLogs:[],questions:[],discussions:[],shopNotes:[],communityBuilds:[],help:[],library:[],handoff:[],gather:[],people:[],crews:[],live:[],scrap:[],commons:[],wall:[],gearhead:[]}; if(!q)return sendJson(res,200,empty);
+    const empty={q,kind,projects:[],openBenches:[],buildLogs:[],questions:[],discussions:[],shopNotes:[],communityBuilds:[],help:[],library:[],handoff:[],gather:[],quests:[],people:[],crews:[],live:[],scrap:[],commons:[],wall:[],gearhead:[]}; if(!q)return sendJson(res,200,empty);
     const like=`%${q}%`,uid=me?.id||''; const out={...empty}; const want=k=>kind==='all'||kind===k;
     if(want('projects'))out.projects=filterVisibleProjects(db.prepare(projectSelect(uid)+` WHERE p.title LIKE ? OR p.description LIKE ? OR p.tags LIKE ? OR p.disciplines LIKE ? OR p.materials LIKE ? OR p.tools LIKE ? ORDER BY p.updated_at DESC LIMIT 80`).all(uid,like,like,like,like,like,like),me).slice(0,30).map(r=>projectRow(r,me));
     if(want('open'))out.openBenches=filterVisibleProjects(db.prepare(projectSelect(uid)+` WHERE p.open_signals IS NOT NULL AND p.open_signals<>'[]' AND p.open_signals<>'' AND (p.title LIKE ? OR p.description LIKE ? OR p.open_request LIKE ? OR p.tags LIKE ? OR p.disciplines LIKE ? OR p.tools LIKE ? OR p.open_signals LIKE ?) ORDER BY p.updated_at DESC LIMIT 80`).all(uid,like,like,like,like,like,like,like),me).slice(0,30).map(r=>({...projectRow(r,me),wayIn:me?projectWayIn(r,me):null}));
@@ -3251,6 +3479,7 @@ function routeApi(req, res, url) {
     if(want('library'))out.library=db.prepare(`SELECT * FROM library_items WHERE status='Published' AND (visibility='Public' OR (?<>'' AND visibility='Members')) AND (title LIKE ? OR summary LIKE ? OR body LIKE ? OR tags LIKE ? OR section LIKE ? OR type LIKE ?) ORDER BY featured DESC, created_at DESC LIMIT 30`).all(uid,like,like,like,like,like,like).map(r=>libraryRow(r,uid));
     if(want('handoff'))out.handoff=db.prepare(`${handoffSelect()} WHERE h.status='Published' AND (h.title LIKE ? OR h.summary LIKE ? OR h.practice LIKE ? OR h.tags LIKE ? OR h.steps LIKE ? OR h.common_mistakes LIKE ? OR h.troubleshooting LIKE ?) ORDER BY h.updated_at DESC LIMIT 30`).all(like,like,like,like,like,like,like).filter(x=>handoffVisible(x,me)).map(x=>handoffRow(x,me));
     if(want('gather'))out.gather=db.prepare(`${gatherSelect()} WHERE g.status='Published' AND (g.title LIKE ? OR g.summary LIKE ? OR g.event_type LIKE ? OR g.city_region LIKE ? OR g.roles LIKE ? OR g.stations LIKE ? OR g.supplies LIKE ? OR g.tags LIKE ?) ORDER BY g.updated_at DESC LIMIT 30`).all(like,like,like,like,like,like,like,like).filter(x=>gatherVisible(x,me)).map(x=>gatherRow(x,me));
+    if(want('quests'))out.quests=db.prepare(`${localQuestSelect()} WHERE q.status='Published' AND (q.title LIKE ? OR q.summary LIKE ? OR q.prompt LIKE ? OR q.quest_type LIKE ? OR q.place_hint LIKE ? OR q.materials LIKE ? OR q.tags LIKE ?) ORDER BY q.updated_at DESC LIMIT 30`).all(like,like,like,like,like,like,like).filter(x=>localQuestVisible(x,me)).map(x=>localQuestRow(x,me));
     if(want('people'))out.people=db.prepare(`SELECT id,display_name,bio,city_region,role,avatar_seed,skills,profile_visibility,location_visibility FROM users WHERE (profile_visibility='Public' OR (?<>'' AND profile_visibility='Members') OR id=?) AND (display_name LIKE ? OR bio LIKE ? OR city_region LIKE ? OR skills LIKE ? OR tools LIKE ? OR can_help LIKE ? OR want_learn LIKE ?) LIMIT 30`).all(uid,uid,like,like,like,like,like,like,like).filter(x=>visibleAuthor(me,x.id)).map(x=>({...x,skills:json(x.skills),city_region:(x.location_visibility==='Public'||(x.location_visibility==='Members'&&me)||x.id===me?.id)?x.city_region:''}));
     if(want('gearhead'))out.gearhead=db.prepare(`SELECT id,title,deck,entry_type,access_level,created_at FROM gearhead_entries WHERE status='Published' AND (title LIKE ? OR deck LIKE ? OR tags LIKE ?) ORDER BY created_at DESC LIMIT 30`).all(like,like,like).map(g=>({...g,locked:!canAccessLevel(g.access_level,me)}));
     if(want('crews'))out.crews=db.prepare(`SELECT DISTINCT c.* FROM maker_crews c LEFT JOIN maker_crew_postal_codes z ON z.crew_id=c.id WHERE c.status='Active' AND (c.visibility='Public' OR ?<>'') AND (c.code LIKE ? OR c.name LIKE ? OR c.city_region LIKE ? OR c.anchor_postal_code LIKE ? OR z.postal_code LIKE ?) ORDER BY c.name LIMIT 30`).all(uid,like,like,like,like,like).map(c=>crewRow(c,me));
@@ -3284,6 +3513,8 @@ function routeApi(req, res, url) {
     const handoffCards=db.prepare('SELECT * FROM handoff_cards WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id);
     const handoffFeedback=db.prepare('SELECT * FROM handoff_feedback WHERE user_id=? OR card_id IN (SELECT id FROM handoff_cards WHERE user_id=?) ORDER BY updated_at DESC').all(u.id,u.id);
     const gatherKits=db.prepare('SELECT * FROM gather_kits WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id);
+    const localQuests=db.prepare('SELECT * FROM local_quests WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id);
+    const localQuestAttempts=db.prepare('SELECT * FROM local_quest_attempts WHERE user_id=? OR quest_id IN (SELECT id FROM local_quests WHERE user_id=?) ORDER BY updated_at DESC').all(u.id,u.id);
     const questions=db.prepare('SELECT * FROM questions WHERE user_id=?').all(u.id);
     const questionAnswers=db.prepare('SELECT * FROM answers WHERE user_id=?').all(u.id);
     const shopNotes=db.prepare('SELECT * FROM shop_notes WHERE user_id=?').all(u.id);
@@ -3307,7 +3538,7 @@ function routeApi(req, res, url) {
     const crewBulletinPosts=db.prepare('SELECT * FROM maker_crew_bulletin_posts WHERE user_id=?').all(u.id);
     const crewRequests=db.prepare('SELECT * FROM maker_crew_requests WHERE requested_by=?').all(u.id);
     const craftProgress=db.prepare('SELECT requirement_id,checked,evidence_note,updated_at FROM craft_progress WHERE user_id=?').all(u.id);
-    return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,unfinishedEntries,commonsEntries,commonsResponses,handoffCards,handoffFeedback,gatherKits,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
+    return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,unfinishedEntries,commonsEntries,commonsResponses,handoffCards,handoffFeedback,gatherKits,localQuests,localQuestAttempts,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
   }
   if(pathname==='/api/health' && method==='GET'){ const ownerCount=db.prepare("SELECT COUNT(*) n FROM users WHERE role='Owner' AND account_status='Active'").get().n; return sendJson(res,200,{ok:true,version:APP_VERSION,time:now(),database:'ok',storage:{dataDir:DATA,databasePath:DB_PATH,railwayVolume:Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH),railwayVolumeMountPath:process.env.RAILWAY_VOLUME_MOUNT_PATH||'',externalDataDir:DATA!==path.join(ROOT,'data')},accounts:{activeOwners:ownerCount}}); }
   // v6.0 — THE GEARHEAD CREW
@@ -3517,7 +3748,8 @@ function routeApi(req, res, url) {
   if(pathname==='/api/admin/reset-demo' && method==='POST'){
     const u=requireUser(req,res); if(!u)return; if(u.role!=='Owner'&&u.role!=='Administrator')return sendJson(res,403,{error:'Admin only.'});
     db.exec('DELETE FROM gather_kits;');
-    db.exec(`DELETE FROM handoff_feedback; DELETE FROM handoff_cards; DELETE FROM commons_responses; DELETE FROM commons_entries; DELETE FROM identity_addresses; DELETE FROM membership_provider_events; DELETE FROM gearhead_after_hours_rsvps; DELETE FROM gearhead_requests; DELETE FROM gearhead_early_feedback; DELETE FROM gearhead_access_events; DELETE FROM gearhead_media; DELETE FROM gearhead_files; DELETE FROM gearhead_tutorial_steps; DELETE FROM gearhead_entries; DELETE FROM maker_crew_event_attendance; DELETE FROM maker_crew_events; DELETE FROM maker_crew_announcements; DELETE FROM maker_crew_bulletin_posts; DELETE FROM maker_crew_requests; DELETE FROM maker_crew_members; DELETE FROM maker_crew_postal_codes; DELETE FROM maker_crews; DELETE FROM peer_reflections; DELETE FROM work_submissions; DELETE FROM assignment_projects; DELETE FROM session_resources; DELETE FROM session_assignments; DELETE FROM workshop_sessions; DELETE FROM scrap_inquiries; DELETE FROM scrap_listings; DELETE FROM teardown_contributions; DELETE FROM teardown_clubs; DELETE FROM mystery_proposals; DELETE FROM mystery_items; DELETE FROM weekly_question_responses; DELETE FROM weekly_questions; DELETE FROM wall_items; DELETE FROM wall_exhibitions; DELETE FROM instrument_feedback; DELETE FROM field_instruments; DELETE FROM community_build_team_members; DELETE FROM community_build_teams; DELETE FROM project_tasks; DELETE FROM project_collaboration_invites; DELETE FROM tool_cabinet_items; DELETE FROM skill_contact_requests; DELETE FROM project_clinic_submissions; DELETE FROM live_event_attendance; DELETE FROM live_comments; DELETE FROM live_events; DELETE FROM critique_responses; DELETE FROM critiques; DELETE FROM moderation_actions; DELETE FROM audit_logs; DELETE FROM auth_tokens; DELETE FROM membership_invite_codes; DELETE FROM membership_connections; DELETE FROM github_cache; DELETE FROM project_release_files; DELETE FROM project_releases; DELETE FROM project_files; DELETE FROM content_reports; DELETE FROM discussion_replies; DELETE FROM discussion_topics; DELETE FROM collection_items; DELETE FROM collections; DELETE FROM email_deliveries; DELETE FROM email_preferences; DELETE FROM notification_preferences; DELETE FROM notifications; DELETE FROM project_follows; DELETE FROM saved_items; DELETE FROM answers; DELETE FROM questions; DELETE FROM comments; DELETE FROM build_log_entries; DELETE FROM project_collaborators; DELETE FROM projects; DELETE FROM shop_notes; DELETE FROM build_alongs; DELETE FROM open_briefs; DELETE FROM library_items; DELETE FROM sessions; DELETE FROM users;`); seedDemo(); seedBatch34Demo(); seedBatch78Demo(); seedBatch910Demo(); seedBatch101Demo(); seedBatch102Demo(); seedBatch103Demo(); seedBatch1718Demo(); seedBatch1920Demo(); seedBatch2122Demo(); seedBatch2324Demo(); seedBatch2526Demo(); seedParticipationDemo(); seedMakerCrewsDemo(); seedCrewIdentityAddresses(); seedGearheadDemo(); audit(u.id,'admin.demo.reset','system','demo'); return sendJson(res,200,{ok:true});
+    db.exec('DELETE FROM local_quest_attempts; DELETE FROM local_quests;');
+    db.exec(`DELETE FROM handoff_feedback; DELETE FROM handoff_cards; DELETE FROM commons_responses; DELETE FROM commons_entries; DELETE FROM identity_addresses; DELETE FROM membership_provider_events; DELETE FROM gearhead_after_hours_rsvps; DELETE FROM gearhead_requests; DELETE FROM gearhead_early_feedback; DELETE FROM gearhead_access_events; DELETE FROM gearhead_media; DELETE FROM gearhead_files; DELETE FROM gearhead_tutorial_steps; DELETE FROM gearhead_entries; DELETE FROM maker_crew_event_attendance; DELETE FROM maker_crew_events; DELETE FROM maker_crew_announcements; DELETE FROM maker_crew_bulletin_posts; DELETE FROM maker_crew_requests; DELETE FROM maker_crew_members; DELETE FROM maker_crew_postal_codes; DELETE FROM maker_crews; DELETE FROM peer_reflections; DELETE FROM work_submissions; DELETE FROM assignment_projects; DELETE FROM session_resources; DELETE FROM session_assignments; DELETE FROM workshop_sessions; DELETE FROM scrap_inquiries; DELETE FROM scrap_listings; DELETE FROM teardown_contributions; DELETE FROM teardown_clubs; DELETE FROM mystery_proposals; DELETE FROM mystery_items; DELETE FROM weekly_question_responses; DELETE FROM weekly_questions; DELETE FROM wall_items; DELETE FROM wall_exhibitions; DELETE FROM instrument_feedback; DELETE FROM field_instruments; DELETE FROM community_build_team_members; DELETE FROM community_build_teams; DELETE FROM project_tasks; DELETE FROM project_collaboration_invites; DELETE FROM tool_cabinet_items; DELETE FROM skill_contact_requests; DELETE FROM project_clinic_submissions; DELETE FROM live_event_attendance; DELETE FROM live_comments; DELETE FROM live_events; DELETE FROM critique_responses; DELETE FROM critiques; DELETE FROM moderation_actions; DELETE FROM audit_logs; DELETE FROM auth_tokens; DELETE FROM membership_invite_codes; DELETE FROM membership_connections; DELETE FROM github_cache; DELETE FROM project_release_files; DELETE FROM project_releases; DELETE FROM project_files; DELETE FROM content_reports; DELETE FROM discussion_replies; DELETE FROM discussion_topics; DELETE FROM collection_items; DELETE FROM collections; DELETE FROM email_deliveries; DELETE FROM email_preferences; DELETE FROM notification_preferences; DELETE FROM notifications; DELETE FROM project_follows; DELETE FROM saved_items; DELETE FROM answers; DELETE FROM questions; DELETE FROM comments; DELETE FROM build_log_entries; DELETE FROM project_collaborators; DELETE FROM projects; DELETE FROM shop_notes; DELETE FROM build_alongs; DELETE FROM open_briefs; DELETE FROM library_items; DELETE FROM sessions; DELETE FROM users;`); seedDemo(); seedBatch34Demo(); seedBatch78Demo(); seedBatch910Demo(); seedBatch101Demo(); seedBatch102Demo(); seedBatch103Demo(); seedBatch1718Demo(); seedBatch1920Demo(); seedBatch2122Demo(); seedBatch2324Demo(); seedBatch2526Demo(); seedParticipationDemo(); seedMakerCrewsDemo(); seedCrewIdentityAddresses(); seedGearheadDemo(); seedBatch105Demo(); audit(u.id,'admin.demo.reset','system','demo'); return sendJson(res,200,{ok:true});
   }
 
   return sendJson(res,404,{error:'API route not found.'});
