@@ -164,6 +164,8 @@ async function openMakeTogether(cdp){
     }
     check('Atmosphere recomposes between major modules',new Set(compositions).size>=6,`unique compositions: ${new Set(compositions).size}`);
 
+    await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_morgan'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
+    await waitForCondition(cdp,`state.me?.id==='u_morgan'`,'Handoff learner login');
     await setHash(cdp,'#/handoff',`Boolean(document.querySelector('.handoff-library-section'))`);
     check('Handoff hub renders a chronological, unranked field-card library',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-view')?.textContent||'';return t.includes('Handoff Field Cards')&&t.includes('MOST RECENTLY UPDATED')&&t.includes('NO RANKING')&&t.includes('Tune a Slow Environmental Sensor')})()`));
     await setHash(cdp,'#/handoff/handoff_demo_sensor',`Boolean(document.querySelector('.handoff-detail-view'))`);
