@@ -1,3 +1,10 @@
+# THE WORKSHOP v10.6.0 — Quest Trails
+
+- Added Quest Trails: ordered sequences of two to twelve published Local Quests.
+- Added context-aware Project and Maker Crew attachments, with visibility narrowing for non-public contexts or quest steps.
+- Added private per-member progress, step notes, save/edit/delete APIs, export/reset coverage, seeded examples, and discovery/context UI surfaces.
+- Bumped the application, PWA, service-worker, and cache-busting version markers to v10.6.0.
+
 # THE WORKSHOP v10.5.0 — Local Quests
 
 - Added durable **Local Quests** for small, place-aware prompts across noticing, meeting, repair, making, exploration, and documentation.

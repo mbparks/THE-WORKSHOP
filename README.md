@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.5.0**
+Current release: **v10.6.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -12,6 +12,15 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 > **Does this help someone make, understand, repair, design, discover, teach, or collaborate?**
 
 That is the product test for every feature.
+
+## What changed in v10.6.0
+
+### Quest Trails
+
+- Added ordered **Quest Trails**, each made from two to twelve existing published Local Quests.
+- Trails carry approximate place hints plus access and safety notes; they never expose precise locations, scores, rankings, streaks, or public completion totals.
+- Members get private per-trail progress, while makers get full create, edit, delete, save, search, export, and reset support.
+- Added context-aware visibility for Projects and Maker Crews, seeded public paths, and integrations across Home, Make Together, Project, Crew, Saved, Search, Start Something, and Local Quest navigation.
 
 ## What changed in v10.5.0
 
