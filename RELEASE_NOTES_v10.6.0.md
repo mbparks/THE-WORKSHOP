@@ -8,7 +8,7 @@ Status: ready for production publish
 - Quest Trails curate an ordered sequence of two to twelve existing published Local Quests.
 - Trails include step-to-step notes, an optional timebox, approximate place guidance, access notes, safety notes, tags, and optional Project or Maker Crew context.
 - Members can follow a trail at their own pace; each member’s started/completed step progress stays private.
-- Added create, edit, delete, save, search, export, account-cleanup, and demo-reset support, with seeded public examples.
+- Added create, edit, delete, save, search, export, account-cleanup, and demo-reset support, with public examples seeded only when `WORKSHOP_SEED_DEMO=1`.
 - Added Home, Make Together, Project, Maker Crew, Saved, Search, Start Something, and Local Quest navigation integrations.
 
 ## Safety and privacy
@@ -22,4 +22,4 @@ Status: ready for production publish
 
 - `WORKSHOP_DATA_DIR` remains external to the checkout so deployments do not replace mutable production state.
 - Back up production before significant updates.
-- After publish, verify `/api/health` reports `10.6.0` and that the seeded Quest Trail lane is available.
+- After publish, verify `/api/health` reports `10.6.0` and that `/api/quest-trails` responds. Demo/QA environments with `WORKSHOP_SEED_DEMO=1` also expose the seeded Quest Trail lane; production keeps demo records disabled.

@@ -20,7 +20,7 @@ That is the product test for every feature.
 - Added ordered **Quest Trails**, each made from two to twelve existing published Local Quests.
 - Trails carry approximate place hints plus access and safety notes; they never expose precise locations, scores, rankings, streaks, or public completion totals.
 - Members get private per-trail progress, while makers get full create, edit, delete, save, search, export, and reset support.
-- Added context-aware visibility for Projects and Maker Crews, seeded public paths, and integrations across Home, Make Together, Project, Crew, Saved, Search, Start Something, and Local Quest navigation.
+- Added context-aware visibility for Projects and Maker Crews, demo-seeded public paths, and integrations across Home, Make Together, Project, Crew, Saved, Search, Start Something, and Local Quest navigation.
 
 ## What changed in v10.5.0
 
