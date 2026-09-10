@@ -1,3 +1,12 @@
+# THE WORKSHOP v10.4.0 — Gather Kits
+
+- Added durable **Gather Kits** for communal making with structured welcomes, roles, stations, shared supplies, setup checklists, accessibility notes, safety boundaries, closing reflections, and follow-up.
+- Added scratch planning and safe **Use this kit** duplication into private drafts, with source attribution and unauthorized context links removed from copies.
+- Added Project, Maker Crew, Session, Live event, Crew meetup, and Project Clinic context with server-side visibility and attachment permissions.
+- Integrated Gather Kits into Project, Maker Crew, Live + Calendar, Sessions, Project Clinic, Make Together, Saved, Search, export, and Start Something without adding a detached feed or primary navigation module.
+- Added four seeded host plans and static, integration, and real-browser regression coverage.
+- Bumped the application, PWA, service-worker, and cache-busting version markers to v10.4.0.
+
 # THE WORKSHOP v10.3.0 — Handoff Field Cards
 
 - Added durable **Handoff Field Cards** for research, repair, teaching, and shop knowledge, with structured steps, tools, materials, access notes, safety notes, common mistakes, troubleshooting, tags, and versioning.

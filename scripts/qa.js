@@ -339,6 +339,14 @@ const checks=[
   ,['Handoff learner feedback stays private and unranked',server.includes('Only the card maker can review learner feedback')&&server.includes('countsPublic:false')&&app.includes('PRIVATE FEEDBACK · NO RATINGS')&&!app.includes('feedbackCount')]
   ,['Handoff Field Cards integrate with existing Workshop objects',app.includes("route==='handoff'")&&app.includes('handoff-library-section')&&app.includes('project-handoff')&&app.includes('crew-handoff')&&app.includes('handoff-public-section')&&app.includes('SEARCH_KINDS')]
   ,['v10.3 capability flag is published',server.includes('handoffFieldCards:true')&&server.includes('version:APP_VERSION')]
+  ,['Gather Kits have additive context-linked persistence',server.includes('CREATE TABLE IF NOT EXISTS gather_kits')&&server.includes('idx_gather_kits_project')&&server.includes('idx_gather_kits_crew_event')]
+  ,['Gather Kits expose create, edit, delete, save, and safe duplication routes',server.includes("pathname==='/api/gather'")&&server.includes('/duplicate$/')&&server.includes('/save$/')&&server.includes('Only the kit maker or a Workshop editor')]
+  ,['Gather Kit structure covers a complete communal run of show',server.includes('welcome_prompt')&&server.includes('setup_checklist')&&server.includes('accessibility_notes')&&server.includes('closing_reflection')&&app.includes('WELCOME · ROLES · STATIONS · CLOSE')]
+  ,['Gather Kit context attachments are server authorized',server.includes('gatherLinkAccess')&&server.includes('Only that Project team can attach a Gather Kit.')&&server.includes('Crew organizer access is required to attach a Gather Kit to that meetup.')]
+  ,['Gather Kit copies stay private and drop unauthorized context',server.includes("source.tags,'Private','Draft'")&&server.includes('dropUnauthorized:true')&&app.includes('Private Gather draft created')]
+  ,['Gather Kits integrate into existing Workshop objects',app.includes("route==='gather'")&&app.includes('project-gather')&&app.includes('crew-gather')&&app.includes('session-gather-section')&&app.includes('live-gather-section')&&app.includes('clinic-gather-section')&&app.includes('gather-public-section')]
+  ,['Gather Kits keep exact event details protected and avoid popularity mechanics',app.includes('exact venue and connection details stay on the protected event record')&&server.includes('countsPublic:false')&&!app.includes('gatherLikeCount')&&!app.includes('gatherFollowerCount')]
+  ,['v10.4 capability flag is published',server.includes('gatherKits:true')&&server.includes("const APP_VERSION = '10.4.0'")]
 
 
 ];

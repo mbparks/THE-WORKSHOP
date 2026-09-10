@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.3.0**
+Current release: **v10.4.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -14,6 +14,15 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 That is the product test for every feature.
 
 ---
+
+## What changed in v10.4.0
+
+### Gather Kits
+
+- Added reusable **Gather Kits** for repair clinics, craft nights, workshops, skill shares, and neighborhood making, with a welcome prompt, roles, stations, supplies, setup, accessibility, safety, closing reflection, and follow-up.
+- Hosts can start from scratch or use a published kit to create a private draft. Adaptations preserve their source without changing the original or carrying unauthorized context links.
+- Kits can stay attached to an existing Project, Maker Crew, Session, Live event, Crew meetup, or Project Clinic. Exact venue and connection details remain on protected event records; kits use approximate city or region only.
+- Gather Kits are integrated into Project, Maker Crew, Live + Calendar, Sessions, Project Clinic, Make Together, Saved, Search, and Start Something surfaces in chronological order with no rankings or popularity counts.
 
 ## What changed in v10.3.0
 

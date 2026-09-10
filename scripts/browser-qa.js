@@ -176,6 +176,20 @@ async function openMakeTogether(cdp){
     await evaluate(cdp,`(()=>{const f=document.querySelector('#handoff-feedback-form');f.querySelector('[name="helped"]').value='The browser sequence made the next measurement clear.';f.querySelector('[name="stuck"]').value='I needed one more settle-time check.';f.querySelector('[name="adapted"]').value='I used a USB power meter.';f.requestSubmit();return true})()`);
     await waitForCondition(cdp,`document.querySelector('.handoff-my-feedback')?.textContent.includes('YOUR PRIVATE NOTE')`,'private Handoff learner note');
     check('Learner sees only their private Handoff note in place',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-detail-view')?.textContent||'';return t.includes('YOUR PRIVATE NOTE')&&!t.includes('MAKER VIEW')&&!/\b\d+\s+feedback\b/i.test(t)})()`));
+    await setHash(cdp,'#/gather',`Boolean(document.querySelector('.gather-library-section'))`);
+    check('Gather hub renders chronological, unranked host plans',await evaluate(cdp,`(()=>{const t=document.querySelector('.gather-view')?.textContent||'';return document.querySelectorAll('.gather-kit-card').length>=4&&t.includes('Gather Kits')&&t.includes('MOST RECENTLY UPDATED')&&t.includes('NEVER RANKED')&&t.includes('Bring One Broken Thing')})()`));
+    check('Gather hub exposes bounded local search and type filters',await evaluate(cdp,`Boolean(document.querySelector('#gather-local-search'))&&document.querySelectorAll('#gather-type-filter option').length>=5`));
+    await setHash(cdp,'#/gather/gather_repair_clinic',`Boolean(document.querySelector('.gather-detail-view'))`);
+    check('Gather detail makes welcome, roles, stations, preparation, and closing usable',await evaluate(cdp,`(()=>{const t=document.querySelector('.gather-detail-view')?.textContent||'';return document.querySelectorAll('.gather-role-list li').length>=3&&document.querySelectorAll('.gather-station-list li').length>=3&&t.includes('Welcome the room')&&t.includes('Accessibility + participation')&&t.includes('Safety + stop conditions')&&t.includes('Close the loop')})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="use-gather"]')?.click()`);
+    await waitForCondition(cdp,`location.hash.startsWith('#/gather/gather_')&&document.querySelector('.gather-detail-meta')?.textContent.includes('Private · Draft')`,'private Gather adaptation');
+    const browserGatherCopyId=await evaluate(cdp,`location.hash.split('/').pop()`);
+    check('Use this kit creates a private attributed draft without unauthorized context',await evaluate(cdp,`(()=>{const links=document.querySelector('.gather-context-links')?.textContent||'';return links.includes('ADAPTED FROM')&&!links.includes('PROJECT ·')&&!links.includes('CREW ·')&&Boolean(document.querySelector('[data-action="edit-gather"]'))})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="edit-gather"]')?.click()`);
+    await waitForCondition(cdp,`Boolean(document.querySelector('#gather-form'))`,'Gather editor');
+    check('Gather editor labels access, safety, and approximate location without an address field',await evaluate(cdp,`(()=>{const f=document.querySelector('#gather-form'),t=f?.textContent||'';return t.includes('Approximate city / region')&&t.includes('Accessibility + participation notes')&&t.includes('Safety notes + stop conditions')&&!f.querySelector('[name="address"]')&&!f.querySelector('[name="exactAddress"]')})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
+    await evaluate(cdp,`fetch('/api/gather/'+${JSON.stringify(browserGatherCopyId)},{method:'DELETE'})`);
     await setHash(cdp,'#/library',`Boolean(document.querySelector('.handoff-library-section'))`);
     check('Library keeps Handoff Field Cards beside the Shop Manual',await evaluate(cdp,`document.querySelector('.handoff-library-section')?.textContent.includes('What another maker can use')&&Boolean(document.querySelector('#library-grid'))`));
 
@@ -196,14 +210,17 @@ async function openMakeTogether(cdp){
     await setHash(cdp,'#/projects/p_lora');
     check('Projects expose the Commons exchange surface',await evaluate(cdp,`Boolean(document.querySelector('#project-commons'))&&Boolean(document.querySelector('[href="#project-commons"]'))`));
     check('Projects expose the Handoff Field Card surface',await evaluate(cdp,`Boolean(document.querySelector('#project-handoff'))&&document.querySelector('#project-handoff')?.textContent.includes('Tune a Slow Environmental Sensor')&&Boolean(document.querySelector('[href="#project-handoff"]'))`));
+    check('Projects expose attached Gather Kits in local object navigation',await evaluate(cdp,`Boolean(document.querySelector('#project-gather'))&&document.querySelector('#project-gather')?.textContent.includes('First Solder Joint Workshop')&&Boolean(document.querySelector('[href="#project-gather"]'))`));
     await openMakeTogether(cdp);
     check('Make Together carries Commons without creating a new feed module',await evaluate(cdp,`Boolean(document.querySelector('.commons-public-section'))&&document.querySelector('.commons-public-section')?.textContent.includes('NO COUNTS')`));
     check('Make Together carries Handoff Cards without feedback totals',await evaluate(cdp,`Boolean(document.querySelector('.handoff-public-section'))&&document.querySelector('.handoff-public-section')?.textContent.includes('Tune a Slow Environmental Sensor')&&document.querySelector('.handoff-public-section')?.textContent.includes('NO COUNTS')&&!document.querySelector('.handoff-public-section')?.textContent.includes('feedback')`));
+    check('Make Together carries Gather Kits as project-centered host plans',await evaluate(cdp,`Boolean(document.querySelector('.gather-public-section'))&&document.querySelector('.gather-public-section')?.textContent.includes('Bring One Broken Thing')&&document.querySelector('.gather-public-section')?.textContent.includes('NO COUNTS')`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await evaluate(cdp,`document.querySelector('#start-button')?.click()`);
     await waitForCondition(cdp,`document.querySelector('.start-intent-group')`,'Start Something Commons link');
     check('Start Something links the Commons into the existing intent flow',await evaluate(cdp,`Boolean(document.querySelector('.start-intent-group a[href="#/commons"]'))`));
     check('Start Something offers Handoff Cards in the document intent',await evaluate(cdp,`[...document.querySelectorAll('.start-intent-group')].find(x=>x.textContent.includes('DOCUMENT SOMETHING'))?.textContent.includes('Handoff Card')`));
+    check('Start Something offers Gather Kits in a communal-making intent',await evaluate(cdp,`[...document.querySelectorAll('.start-intent-group')].find(x=>x.textContent.includes('GATHER PEOPLE'))?.textContent.includes('Gather Kit')`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
 
     await setHash(cdp,'#/home');
@@ -348,6 +365,7 @@ async function openMakeTogether(cdp){
       await setHash(cdp,`#/crew/${encodeURIComponent(crewId)}`);
       check('Maker Crew page exposes local object navigation',await evaluate(cdp,`document.querySelectorAll('.crew-local-nav a').length>=5`));
       check('Maker Crew page exposes local Handoff Cards',await evaluate(cdp,`Boolean(document.querySelector('#crew-handoff'))&&Boolean(document.querySelector('.crew-local-nav a[href$="/handoff"]'))`));
+      check('Maker Crew page keeps Gather Kits beside its meetups',await evaluate(cdp,`Boolean(document.querySelector('#crew-gather'))&&Boolean(document.querySelector('.crew-local-nav a[href$="/gather"]'))&&document.querySelector('#crew-gather')?.textContent.includes('Bring One Broken Thing')`));
       await evaluate(cdp,`document.querySelector('[data-action=\"crew-studio\"]')?.click()`);
       await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')`,'Crew Studio members');
       const beforeRole=await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent||''`);
@@ -387,6 +405,7 @@ async function openMakeTogether(cdp){
 
     await setHash(cdp,'#/live');
     check('Live page exposes calendar export',await evaluate(cdp,`Boolean(document.querySelector('a[href="/api/calendar.ics"]'))`));
+    check('Live + Calendar exposes Gather Kits without a new primary module',await evaluate(cdp,`Boolean(document.querySelector('a[href="#/gather"]'))&&[...document.querySelectorAll('.calendar-card')].some(x=>x.textContent.includes('GATHER KIT ATTACHED'))`));
     check('Owned Open Bench Hours appear in the existing calendar',await evaluate(cdp,`[...document.querySelectorAll('.calendar-card')].some(x=>x.textContent.includes('OPEN BENCH HOUR')&&x.textContent.includes('Browser QA knob test hour'))`));
     const liveHref=await evaluate(cdp,`document.querySelector('.calendar-card[href^="#/live/"]')?.getAttribute('href')||''`);
     if(liveHref){await setHash(cdp,liveHref);check('Live event exposes Interested and I’m Going attendance controls',await evaluate(cdp,`Boolean(document.querySelector('[data-action="live-attendance"][data-status="Interested"]'))&&Boolean(document.querySelector('[data-action="live-attendance"][data-status="Going"]'))`));}
@@ -396,6 +415,8 @@ async function openMakeTogether(cdp){
     check('Global search exposes Open Benches and Notes without new modules',await evaluate(cdp,`(()=>{const t=document.querySelector('.search-kind-bar')?.textContent||'';return t.includes('Open Benches')&&t.includes('Notes & Logs')})()`));
     await setHash(cdp,'#/search/low%20power/handoff',`Boolean(document.querySelector('.search-results'))`);
     check('Global search finds Handoff Cards as a bounded kind',await evaluate(cdp,`document.querySelector('.search-kind-bar a.active')?.textContent.includes('Handoff Cards')&&document.querySelector('.result-group')?.textContent.includes('Tune a Slow Environmental Sensor')`));
+    await setHash(cdp,'#/search/repair%20clinic/gather',`Boolean(document.querySelector('.search-results'))`);
+    check('Global search finds Gather Kits as a bounded kind',await evaluate(cdp,`document.querySelector('.search-kind-bar a.active')?.textContent.includes('Gather Kits')&&document.querySelector('.result-group')?.textContent.includes('Bring One Broken Thing')`));
 
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await setHash(cdp,'#/home');
