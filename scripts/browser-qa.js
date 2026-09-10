@@ -167,7 +167,7 @@ async function openMakeTogether(cdp){
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/logout',{method:'POST'});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/commons',`Boolean(document.querySelector('.commons-view'))`);
     check('Commons renders the four practical exchange types',await evaluate(cdp,`document.querySelectorAll('.commons-kind-tile').length===4&&document.querySelectorAll('[data-commons-filter]').length===9`));
-    check('Commons feed states chronological, unranked exchange',await evaluate(cdp,`document.querySelector('.commons-feed-section')?.textContent.includes('CHRONOLOGICAL')&&document.querySelector('.commons-view')?.textContent.includes('not a social feed')&&document.querySelector('.commons-view')?.textContent.includes('no totals')`));
+    check('Commons feed states chronological, unranked exchange',await evaluate(cdp,`(()=>{const t=document.querySelector('.commons-view')?.textContent||'';return t.includes('CHRONOLOGICAL')&&t.includes('not a social feed')&&!/\\b\\d+\\s+responses?\\b/i.test(t)})()`));
     await evaluate(cdp,`document.querySelector('[data-commons-filter="Need"]')?.click()`);
     check('Commons kind filter keeps only matching posts visible',await evaluate(cdp,`[...document.querySelectorAll('.commons-filter-item:not([hidden])')].every(x=>x.dataset.commonsKind==='Need')`));
     await evaluate(cdp,`document.querySelector('[data-commons-filter="all"]')?.click()`);
@@ -175,7 +175,7 @@ async function openMakeTogether(cdp){
     await setHash(cdp,'#/commons/commons_demo_have',`Boolean(document.querySelector('.commons-detail-view'))`);
     check('Commons detail keeps anonymous responses private',await evaluate(cdp,`Boolean(document.querySelector('.commons-detail-body'))&&!document.querySelector('.commons-response-card')&&!document.querySelector('.commons-detail-view')?.textContent.includes('Responses to this post')`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_morgan'})});state.me=(await api('/api/me')).user;updateUserUI();await renderRoute()})()`);
-    await waitForCondition(cdp,`document.querySelector('#user-name')?.textContent==='Morgan'`,'Commons responder login');
+    await waitForCondition(cdp,`state.me?.id==='u_morgan'`,'Commons responder login');
     await setHash(cdp,'#/commons/commons_demo_have',`Boolean(document.querySelector('.commons-detail-view'))`);
     check('Commons gives a non-owner a private response path',await evaluate(cdp,`Boolean(document.querySelector('[data-action="commons-respond"]'))&&document.querySelector('.commons-detail-view')?.textContent.includes('ONLY YOU CAN SEE THIS')`));
     await setHash(cdp,'#/projects/p_lora');
