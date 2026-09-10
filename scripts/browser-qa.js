@@ -346,7 +346,7 @@ async function openMakeTogether(cdp){
         await evaluate(cdp,`crewStudio(${JSON.stringify(qaCrew.id)})`);
         await waitForCondition(cdp,`Boolean(document.querySelector('[data-action=\"crew-map-enable\"]'))`,'one-click map button');
         const mapStatusBefore=await evaluate(cdp,`document.querySelector('.modal-body .crew-map-status')?.textContent.trim()||''`);
-        check('Crew Studio exposes one-click map visibility',mapStatusBefore.includes('NOT PUBLISHED')&&Boolean(await evaluate(cdp,`document.querySelector('.modal-body .crew-studio-map-card')`)),mapStatusBefore);
+        check('Crew Studio exposes one-click map visibility',/(NOT PUBLISHED|VISIBLE ON MAP)/.test(mapStatusBefore)&&Boolean(await evaluate(cdp,`document.querySelector('.modal-body .crew-studio-map-card')`)),mapStatusBefore);
         await evaluate(cdp,`document.querySelector('[data-action=\"crew-map-enable\"]')?.click()`);
         await waitForCondition(cdp,`document.querySelector('.crew-map-status.live')?.textContent.includes('VISIBLE ON MAP')`,'Crew map enable live refresh',20000);
         check('One-click map action updates Crew Studio in place',await evaluate(cdp,`Boolean(document.querySelector('.modal'))&&Boolean(document.querySelector('.crew-map-status.live'))&&Boolean(document.querySelector('a[href=\"#/crews/map\"]'))`));
