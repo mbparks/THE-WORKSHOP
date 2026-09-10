@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.2.0**
+Current release: **v10.3.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -14,6 +14,15 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 That is the product test for every feature.
 
 ---
+
+## What changed in v10.3.0
+
+### Handoff Field Cards
+
+- Added durable **Handoff Field Cards** for research, repair, teaching, and shop knowledge, with structured steps, tools, materials, access notes, safety notes, common mistakes, troubleshooting, tags, and versioning.
+- Cards can stay attached to an existing Project or Maker Crew with Public, Workshop-member, or private visibility; server-side access, drafts, saves, export, and account cleanup are enforced.
+- Added a private learner loop for what helped, where someone got stuck, what they adapted, and access or clarity notes. Maker review stays private and carries no ratings, counts, rankings, or streaks.
+- Handoff Cards are integrated into the existing Library, Project, Maker Crew, Make Together, Saved, Search, and Start Something surfaces without creating a detached social feed or primary module.
 
 ## What changed in v10.2.0
 

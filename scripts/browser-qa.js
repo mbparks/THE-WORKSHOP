@@ -164,6 +164,19 @@ async function openMakeTogether(cdp){
     }
     check('Atmosphere recomposes between major modules',new Set(compositions).size>=6,`unique compositions: ${new Set(compositions).size}`);
 
+    await setHash(cdp,'#/handoff',`Boolean(document.querySelector('.handoff-library-section'))`);
+    check('Handoff hub renders a chronological, unranked field-card library',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-view')?.textContent||'';return t.includes('Handoff Field Cards')&&t.includes('MOST RECENTLY UPDATED')&&t.includes('NO RANKING')&&t.includes('Tune a Slow Environmental Sensor')})()`));
+    await setHash(cdp,'#/handoff/handoff_demo_sensor',`Boolean(document.querySelector('.handoff-detail-view'))`);
+    check('Handoff detail exposes a usable sequence and private learning loop',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-detail-view')?.textContent||'';return document.querySelectorAll('.handoff-step').length>0&&t.includes('Learning loop')&&t.includes('PRIVATE FEEDBACK')&&t.includes('LEAVE PRIVATE LEARNER FEEDBACK')})()`));
+    await evaluate(cdp,`document.querySelector('[data-action="handoff-feedback"]')?.click()`);
+    await waitForCondition(cdp,`document.querySelector('#handoff-feedback-form')`,'Handoff learner feedback form');
+    check('Handoff learner feedback form labels adaptation and access',await evaluate(cdp,`(()=>{const t=document.querySelector('#handoff-feedback-form')?.textContent||'';return t.includes('What helped?')&&t.includes('Where did you get stuck?')&&t.includes('Access or clarity note')&&document.querySelectorAll('#handoff-feedback-form textarea').length===4})()`));
+    await evaluate(cdp,`(()=>{const f=document.querySelector('#handoff-feedback-form');f.querySelector('[name="helped"]').value='The browser sequence made the next measurement clear.';f.querySelector('[name="stuck"]').value='I needed one more settle-time check.';f.querySelector('[name="adapted"]').value='I used a USB power meter.';f.requestSubmit();return true})()`);
+    await waitForCondition(cdp,`document.querySelector('.handoff-my-feedback')?.textContent.includes('YOUR PRIVATE NOTE')`,'private Handoff learner note');
+    check('Learner sees only their private Handoff note in place',await evaluate(cdp,`(()=>{const t=document.querySelector('.handoff-detail-view')?.textContent||'';return t.includes('YOUR PRIVATE NOTE')&&!t.includes('MAKER VIEW')&&!/\b\d+\s+feedback\b/i.test(t)})()`));
+    await setHash(cdp,'#/library',`Boolean(document.querySelector('.handoff-library-section'))`);
+    check('Library keeps Handoff Field Cards beside the Shop Manual',await evaluate(cdp,`document.querySelector('.handoff-library-section')?.textContent.includes('What another maker can use')&&document.querySelector('.library-shelf')`));
+
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/logout',{method:'POST'});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await setHash(cdp,'#/commons',`Boolean(document.querySelector('.commons-view'))`);
     check('Commons renders the four practical exchange types',await evaluate(cdp,`document.querySelectorAll('.commons-kind-tile').length===4&&document.querySelectorAll('[data-commons-filter]').length===9`));
@@ -180,12 +193,15 @@ async function openMakeTogether(cdp){
     check('Commons gives a non-owner a private response path',await evaluate(cdp,`Boolean(document.querySelector('[data-action="commons-respond"]'))&&document.querySelector('.commons-detail-view')?.textContent.includes('ONLY YOU CAN SEE THIS')`));
     await setHash(cdp,'#/projects/p_lora');
     check('Projects expose the Commons exchange surface',await evaluate(cdp,`Boolean(document.querySelector('#project-commons'))&&Boolean(document.querySelector('[href="#project-commons"]'))`));
+    check('Projects expose the Handoff Field Card surface',await evaluate(cdp,`Boolean(document.querySelector('#project-handoff'))&&document.querySelector('#project-handoff')?.textContent.includes('Tune a Slow Environmental Sensor')&&Boolean(document.querySelector('[href="#project-handoff"]'))`));
     await openMakeTogether(cdp);
     check('Make Together carries Commons without creating a new feed module',await evaluate(cdp,`Boolean(document.querySelector('.commons-public-section'))&&document.querySelector('.commons-public-section')?.textContent.includes('NO COUNTS')`));
+    check('Make Together carries Handoff Cards without feedback totals',await evaluate(cdp,`Boolean(document.querySelector('.handoff-public-section'))&&document.querySelector('.handoff-public-section')?.textContent.includes('Tune a Slow Environmental Sensor')&&document.querySelector('.handoff-public-section')?.textContent.includes('NO COUNTS')&&!document.querySelector('.handoff-public-section')?.textContent.includes('feedback')`));
     await evaluate(cdp,`(async()=>{await fetch('/api/auth/dev-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:'u_mike'})});state.me=(await api('/api/me')).user;updateUserUI()})()`);
     await evaluate(cdp,`document.querySelector('#start-button')?.click()`);
     await waitForCondition(cdp,`document.querySelector('.start-intent-group')`,'Start Something Commons link');
     check('Start Something links the Commons into the existing intent flow',await evaluate(cdp,`Boolean(document.querySelector('.start-intent-group a[href="#/commons"]'))`));
+    check('Start Something offers Handoff Cards in the document intent',await evaluate(cdp,`[...document.querySelectorAll('.start-intent-group')].find(x=>x.textContent.includes('DOCUMENT SOMETHING'))?.textContent.includes('Handoff Card')`));
     await evaluate(cdp,`document.querySelector('[data-action="close-overlay"]')?.click()`);
 
     await setHash(cdp,'#/home');
@@ -329,6 +345,7 @@ async function openMakeTogether(cdp){
     if(crewId){
       await setHash(cdp,`#/crew/${encodeURIComponent(crewId)}`);
       check('Maker Crew page exposes local object navigation',await evaluate(cdp,`document.querySelectorAll('.crew-local-nav a').length>=5`));
+      check('Maker Crew page exposes local Handoff Cards',await evaluate(cdp,`Boolean(document.querySelector('#crew-handoff'))&&Boolean(document.querySelector('.crew-local-nav a[href$="/handoff"]'))`));
       await evaluate(cdp,`document.querySelector('[data-action=\"crew-studio\"]')?.click()`);
       await waitForCondition(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')`,'Crew Studio members');
       const beforeRole=await evaluate(cdp,`document.querySelector('.modal-body [data-crew-member=\"u_rin\"]')?.textContent||''`);
@@ -375,6 +392,8 @@ async function openMakeTogether(cdp){
     await setHash(cdp,'#/search/gear/all');
     check('Global search follows consolidated IA',await evaluate(cdp,`(()=>{const t=document.querySelector('#route-view')?.textContent||'';return t.includes('Community Builds')&&t.includes('Help + Critique')})()`));
     check('Global search exposes Open Benches and Notes without new modules',await evaluate(cdp,`(()=>{const t=document.querySelector('.search-kind-bar')?.textContent||'';return t.includes('Open Benches')&&t.includes('Notes & Logs')})()`));
+    await setHash(cdp,'#/search/low%20power/handoff',`Boolean(document.querySelector('.search-results'))`);
+    check('Global search finds Handoff Cards as a bounded kind',await evaluate(cdp,`document.querySelector('.search-kind-bar a.active')?.textContent.includes('Handoff Cards')&&document.querySelector('.result-group')?.textContent.includes('Tune a Slow Environmental Sensor')`));
 
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await setHash(cdp,'#/home');

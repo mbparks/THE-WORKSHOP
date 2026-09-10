@@ -1,3 +1,12 @@
+# THE WORKSHOP v10.3.0 — Handoff Field Cards
+
+- Added durable **Handoff Field Cards** for research, repair, teaching, and shop knowledge, with structured steps, tools, materials, access notes, safety notes, common mistakes, troubleshooting, tags, and versioning.
+- Added Project and Maker Crew context, Public / Members / Private visibility, drafts, saves, search, export, account cleanup, and server-side access enforcement.
+- Added a private learner feedback loop for what helped, where a maker got stuck, what they adapted, and access or clarity notes; maker review stays private and carries no rating or popularity totals.
+- Integrated Handoff Cards into the existing Library, Project, Maker Crew, Make Together, Saved, Search, and Start Something surfaces without adding a detached social feed or primary module.
+- Added a seeded field card and static/integration/browser QA coverage.
+- Bumped the application, PWA, service-worker, and cache-busting version markers to v10.3.0.
+
 # THE WORKSHOP v10.2.0 — Commons
 
 - Added **Commons**, a chronological exchange layer for Have, Need, Teach, and Help posts.

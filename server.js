@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '10.2.0';
+const APP_VERSION = '10.3.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -520,6 +520,21 @@ function initSchema() {
     CREATE TABLE IF NOT EXISTS library_items (
       id TEXT PRIMARY KEY, type TEXT NOT NULL, title TEXT NOT NULL, section TEXT NOT NULL, summary TEXT NOT NULL, tags TEXT DEFAULT '[]', url TEXT DEFAULT '', created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS handoff_cards (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, crew_id TEXT REFERENCES maker_crews(id) ON DELETE SET NULL,
+      title TEXT NOT NULL, summary TEXT NOT NULL, practice TEXT DEFAULT '', difficulty TEXT DEFAULT 'Approachable',
+      estimated_time TEXT DEFAULT '', tools TEXT DEFAULT '[]', materials TEXT DEFAULT '[]', access_notes TEXT DEFAULT '',
+      safety_notes TEXT DEFAULT '', steps TEXT DEFAULT '[]', common_mistakes TEXT DEFAULT '', troubleshooting TEXT DEFAULT '',
+      tags TEXT DEFAULT '[]', visibility TEXT NOT NULL DEFAULT 'Public', status TEXT NOT NULL DEFAULT 'Draft',
+      version INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS handoff_feedback (
+      id TEXT PRIMARY KEY, card_id TEXT NOT NULL REFERENCES handoff_cards(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, card_version INTEGER NOT NULL DEFAULT 1,
+      helped TEXT DEFAULT '', stuck TEXT DEFAULT '', adapted TEXT DEFAULT '', access_feedback TEXT DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'Open', owner_note TEXT DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    );
     CREATE TABLE IF NOT EXISTS discussion_topics (
       id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), area TEXT NOT NULL, category TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
       project_id TEXT REFERENCES projects(id) ON DELETE SET NULL, status TEXT DEFAULT 'Open', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
@@ -896,6 +911,11 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_commons_crew ON commons_entries(crew_id,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commons_responses_entry ON commons_responses(entry_id,status,updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_commons_responses_user ON commons_responses(user_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_handoff_cards_status ON handoff_cards(status,visibility,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_handoff_cards_project ON handoff_cards(project_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_handoff_cards_crew ON handoff_cards(crew_id,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_handoff_feedback_card ON handoff_feedback(card_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_handoff_feedback_user ON handoff_feedback(user_id,updated_at DESC);
   `);
 }
 
@@ -1276,6 +1296,34 @@ function seedBatch102Demo(){
   }
 }
 if (SEED_DEMO) seedBatch102Demo();
+function seedBatch103Demo(){
+  const cardId='handoff_demo_sensor',ts=now();
+  if(db.prepare('SELECT 1 FROM handoff_cards WHERE id=?').get(cardId))return;
+  const owner=db.prepare("SELECT id FROM users WHERE id='u_lee'").get()||db.prepare("SELECT id FROM users WHERE role='Owner' ORDER BY created_at LIMIT 1").get();
+  const project=db.prepare("SELECT id FROM projects WHERE id='p_lora'").get()||db.prepare("SELECT id FROM projects WHERE visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
+  if(!owner)return;
+  db.prepare(`INSERT INTO handoff_cards (id,user_id,project_id,crew_id,title,summary,practice,difficulty,estimated_time,tools,materials,access_notes,safety_notes,steps,common_mistakes,troubleshooting,tags,visibility,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+    cardId,owner.id,project?.id||null,null,
+    'Tune a Slow Environmental Sensor for Low Power',
+    'A practical handoff for getting a weatherproof sensor node from “it runs on the bench” to a useful, repeatable low-power test.',
+    'Embedded sensing · field testing','Intermediate','2–3 hours',
+    JSON.stringify(['multimeter','USB power meter','soldering iron']),
+    JSON.stringify(['sensor node','known load or reference sensor','notebook']),
+    'Work in a well-lit space and leave enough slack to probe power without disturbing the enclosure.',
+    'Disconnect power before changing wiring. Let outdoor or wet test fixtures dry before opening them.',
+    JSON.stringify([
+      {title:'Record the baseline',body:'Run the current firmware from a known supply for ten minutes. Write down voltage, average current, sampling interval, and what the node reports.'},
+      {title:'Separate the loads',body:'Measure the idle draw, sensor draw, radio burst, and regulator or indicator draw separately. One measurement at a time is more useful than a single impressive total.'},
+      {title:'Make one change',body:'Change only the largest repeatable load: a sleep interval, a regulator path, an indicator, or a radio setting. Keep the rest of the setup unchanged.'},
+      {title:'Repeat the same test',body:'Run the same ten-minute test again and record what changed, what did not, and whether the measurement is stable enough to trust.'}
+    ]),
+    'A low average current can hide a short radio burst, a meter that is averaging too aggressively, or a sensor that never actually sleeps.',
+    'If the readings jump around, shorten the wiring, check the meter range, and compare the node against a known load before changing firmware.',
+    JSON.stringify(['power budgeting','embedded systems','measurement','repairable electronics']),
+    'Public','Published',1,ts,ts
+  );
+}
+if (SEED_DEMO) seedBatch103Demo();
 function seedBatch78Demo(){
   const ba=db.prepare('SELECT * FROM build_alongs WHERE id=?').get('ba1');
   if(ba && json(ba.bom).length===0){
@@ -1546,7 +1594,7 @@ function notifyAdmins(kind,body,href,subject,text,settingKey=''){
 }
 function emailUser(userId,prefKey,kind,subject,text){const u=db.prepare('SELECT email FROM users WHERE id=?').get(userId);if(!u)return;const prefs=emailPrefs(userId);if(Number(prefs.enabled)!==1||Number(prefs[prefKey]??1)!==1)return;queueEmail({kind,to:u.email,subject,text});}
 function assertSavable(type,itemId){
-  const map={project:['projects','id'],library:['library_items','id'],question:['questions','id'],'shop-note':['shop_notes','id'],'build-along':['build_alongs','id'],'open-brief':['open_briefs','id'],commons:['commons_entries','id']};
+  const map={project:['projects','id'],library:['library_items','id'],handoff:['handoff_cards','id'],question:['questions','id'],'shop-note':['shop_notes','id'],'build-along':['build_alongs','id'],'open-brief':['open_briefs','id'],commons:['commons_entries','id']};
   const spec=map[type]; if(!spec)return false; return Boolean(db.prepare(`SELECT 1 FROM ${spec[0]} WHERE ${spec[1]}=?`).get(itemId));
 }
 
@@ -1569,6 +1617,51 @@ function libraryRow(r,viewerId=''){
   const sourceIds=capabilityList(r.source_project_ids),sourceProjects=[];
   for(const pid of sourceIds){const p=db.prepare('SELECT id,title,visibility,owner_id,status,stage FROM projects WHERE id=?').get(pid);if(p&&canViewProject(p,viewer))sourceProjects.push({id:p.id,title:p.title,status:p.status,stage:p.stage});}
   return {...r,tags:json(r.tags),tools:capabilityList(r.tools),materials:capabilityList(r.materials),sourceProjectIds:sourceIds,sourceProjects,author,saved:Boolean(saved),featured:Boolean(r.featured)};
+}
+const HANDOFF_STATUSES=new Set(['Draft','Published','Archived']);
+const HANDOFF_FEEDBACK_STATUSES=new Set(['Open','Reviewed','Addressed','Withdrawn']);
+function handoffVisibility(value,fallback='Public'){
+  const v=String(value||fallback);return ['Public','Members','Private'].includes(v)?v:fallback;
+}
+function normalizeHandoffSteps(value){
+  let raw=value;
+  if(typeof raw==='string'){
+    const text=raw.trim();
+    if(text.startsWith('[')){try{raw=JSON.parse(text)}catch{raw=text}}
+    else raw=text;
+  }
+  if(Array.isArray(raw))return raw.map((step,i)=>({title:String(step?.title||`Step ${i+1}`).trim().slice(0,160),body:String(step?.body??step?.text??'').trim().slice(0,1800),check:String(step?.check??'').trim().slice(0,300)})).filter(step=>step.body);
+  return String(raw||'').split(/\n\s*\n|\n(?=\d+[.)]\s)/).map((body,i)=>({title:`Step ${i+1}`,body:String(body).replace(/^\s*\d+[.)]\s*/,'').trim().slice(0,1800),check:''})).filter(step=>step.body);
+}
+function handoffSelect(){return `SELECT h.*,u.display_name author,u.id author_id,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) author_callsign,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility,mc.name crew_name,mc.code crew_code,mc.visibility crew_visibility,mc.status crew_status FROM handoff_cards h JOIN users u ON u.id=h.user_id LEFT JOIN projects p ON p.id=h.project_id LEFT JOIN maker_crews mc ON mc.id=h.crew_id`}
+function handoffCrewVisible(row,viewer){
+  if(!row?.crew_id)return true;
+  const crew=db.prepare('SELECT * FROM maker_crews WHERE id=?').get(row.crew_id);
+  if(!crew||!canSeeCrew(crew,viewer))return false;
+  return crew.visibility==='Public'&&row.visibility==='Public' || Boolean(viewer&&(viewer.id===row.user_id||hasRole(viewer,['Owner','Administrator','Editor','Moderator'])||crewRole(row.crew_id,viewer.id)));
+}
+function handoffVisible(row,viewer,includePrivate=false){
+  if(!row||!visibleAuthor(viewer,row.user_id)||!canAccessLevel(row.visibility||'Public',viewer,row.user_id))return false;
+  if(row.project_id){
+    const project=row.project_visibility!==undefined?{id:row.project_id,visibility:row.project_visibility,owner_id:row.project_owner_id}:db.prepare('SELECT * FROM projects WHERE id=?').get(row.project_id);
+    if(!project||!canViewProject(project,viewer))return false;
+  }
+  if(!handoffCrewVisible(row,viewer))return false;
+  if(!includePrivate&&row.status!=='Published')return false;
+  if(row.status==='Archived'&&!includePrivate)return false;
+  return true;
+}
+function canEditHandoff(row,u){return Boolean(u&&row&&(row.user_id===u.id||canEditEditorial(u)));}
+function handoffFeedbackRow(row){
+  if(!row)return null;
+  return {id:row.id,cardId:row.card_id,userId:row.user_id,author:row.author||'',callsign:row.callsign||'',cardVersion:Number(row.card_version||1),helped:row.helped||'',stuck:row.stuck||'',adapted:row.adapted||'',accessFeedback:row.access_feedback||'',status:row.status||'Open',ownerNote:row.owner_note||'',createdAt:row.created_at,updatedAt:row.updated_at};
+}
+function handoffRow(row,viewer=null){
+  if(!row)return null;
+  const isOwner=Boolean(viewer&&viewer.id===row.user_id),canEdit=canEditHandoff(row,viewer);
+  const saved=viewer?Boolean(db.prepare("SELECT 1 FROM saved_items WHERE user_id=? AND item_type='handoff' AND item_id=?").get(viewer.id,row.id)):false;
+  const mine=viewer&&!isOwner?db.prepare('SELECT * FROM handoff_feedback WHERE card_id=? AND user_id=? ORDER BY updated_at DESC LIMIT 1').get(row.id,viewer.id):null;
+  return {id:row.id,userId:row.user_id,author:row.author||'',authorCallsign:row.author_callsign||'',title:row.title,summary:row.summary||'',practice:row.practice||'',difficulty:row.difficulty||'',estimatedTime:row.estimated_time||'',tools:capabilityList(row.tools),materials:capabilityList(row.materials),accessNotes:row.access_notes||'',safetyNotes:row.safety_notes||'',steps:normalizeHandoffSteps(row.steps),commonMistakes:row.common_mistakes||'',troubleshooting:row.troubleshooting||'',tags:capabilityList(row.tags),projectId:row.project_id||'',projectTitle:row.project_title||'',crewId:row.crew_id||'',crewName:row.crew_name||'',crewCode:row.crew_code||'',visibility:handoffVisibility(row.visibility),status:row.status||'Draft',version:Number(row.version||1),createdAt:row.created_at,updatedAt:row.updated_at,isOwner,canEdit,canFeedback:Boolean(viewer&&!isOwner&&!canEdit&&row.status==='Published'&&handoffVisible(row,viewer)),myFeedbackStatus:mine?.status||'',saved};
 }
 function childProjects(parentType,parentId,viewerId=''){
   const viewer=viewerId?db.prepare('SELECT * FROM users WHERE id=?').get(viewerId):null;
@@ -1651,8 +1744,10 @@ function crewPayload(c,viewer){
   const sessions=db.prepare(`SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.crew_id=? AND s.status<>'Draft' AND (s.visibility='Public' OR ?<>'') ORDER BY s.starts_at DESC`).all(c.id,uid).map(r=>workshopSessionRow(r,uid));
   const handbook=db.prepare(`SELECT h.*,u.display_name author FROM maker_crew_handbook_entries h JOIN users u ON u.id=h.created_by WHERE h.crew_id=? AND h.status='Published' AND (h.visibility='Public' OR ?<>'') ORDER BY h.category,h.updated_at DESC`).all(c.id,uid);
   const commons=db.prepare(`${commonsSelect()} WHERE e.crew_id=? AND e.status='Open' ORDER BY e.updated_at DESC LIMIT 24`).all(c.id).filter(r=>commonsVisible(r,viewer)).map(r=>commonsEntryRow(r,viewer));
+  const handoffRows=db.prepare(`${handoffSelect()} WHERE h.crew_id=? ORDER BY h.updated_at DESC LIMIT 24`).all(c.id);
+  const handoffCards=handoffRows.filter(r=>handoffVisible(r,viewer,Boolean(viewer&&((crewRole(c.id,viewer.id))||canEditEditorial(viewer))))).map(r=>handoffRow(r,viewer));
   const localNeeds=bulletin.filter(b=>['Need a Hand','Need a Tool','Have Material','Looking for Knowledge','Project Needs a Home'].includes(b.post_type));
-  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,commons,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
+  return {...base,members,projects,questions,scrap,tools,events,announcements,bulletin,localNeeds,commons,handoffCards,handbook,sessions,canOrganize:isCrewOrganizer(c.id,viewer)};
 }
 
 
@@ -1785,7 +1880,7 @@ function routeApi(req, res, url) {
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
   if(pathname==='/api/version-diagnostics'&&method==='GET')return sendJson(res,200,{serverVersion:APP_VERSION,schemaVersion:db.prepare('SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1').get()?.version||'',time:now()});
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,unfinishedInPublic:true,commons:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,unfinishedInPublic:true,commons:true,handoffFieldCards:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
   if(pathname==='/api/identity/check'&&method==='GET'){
     const entityType=String(url.searchParams.get('entityType')||''),entityId=String(url.searchParams.get('entityId')||'');const s=identityAddressState(url.searchParams.get('address')||'',entityType,entityId);return sendJson(res,200,s);
@@ -1950,6 +2045,7 @@ function routeApi(req, res, url) {
     const along = db.prepare('SELECT * FROM build_alongs ORDER BY created_at DESC LIMIT 1').get();
     const brief = db.prepare('SELECT * FROM open_briefs ORDER BY created_at DESC LIMIT 1').get();
     const library = db.prepare("SELECT * FROM library_items WHERE status='Published' ORDER BY featured DESC, created_at DESC LIMIT 20").all().filter(r=>canAccessLevel(r.visibility||'Public',me,r.created_by||'')).slice(0,4).map(r=>libraryRow(r,uid));
+    const handoffCards=db.prepare(`${handoffSelect()} WHERE h.status='Published' ORDER BY h.updated_at DESC LIMIT 4`).all().filter(r=>handoffVisible(r,me)).map(r=>handoffRow(r,me));
     const liveEvent = db.prepare(`SELECT e.*,p.title project_title FROM live_events e LEFT JOIN projects p ON p.id=e.project_id WHERE e.status IN ('Live','Scheduled') ORDER BY CASE e.status WHEN 'Live' THEN 0 ELSE 1 END,e.starts_at ASC`).all().find(e=>canAccessLevel(e.visibility||'Public',me,e.created_by)&&(!e.project_id||canViewLinkedProject(e.project_id,me)));
     const wallExhibition=db.prepare("SELECT * FROM wall_exhibitions WHERE status='Published' AND visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
     const activeSession=db.prepare("SELECT s.*,u.display_name host FROM workshop_sessions s JOIN users u ON u.id=s.host_id WHERE s.status IN ('Active','Upcoming') ORDER BY CASE s.status WHEN 'Active' THEN 0 ELSE 1 END,s.starts_at").all().find(x=>canSeeSession(x,me));
@@ -1959,7 +2055,7 @@ function routeApi(req, res, url) {
     for(const r of db.prepare(`SELECT e.created_at,e.id,e.title,c.id crew_id,c.name crew_name,c.visibility,c.status FROM maker_crew_events e JOIN maker_crews c ON c.id=e.crew_id WHERE e.status<>'Cancelled' ORDER BY e.created_at DESC LIMIT 8`).all()){if(canSeeCrew(r,me))activity.push({kind:'MAKER CREW',at:r.created_at,actor:r.crew_name,title:r.title,copy:'scheduled a meetup',href:`#/crew/${r.crew_id}/meetups`})}
     for(const r of db.prepare(`SELECT t.created_at,t.title,t.source_type,t.source_id,u.display_name,u.id user_id FROM community_build_teams t JOIN users u ON u.id=t.created_by ORDER BY t.created_at DESC LIMIT 8`).all()){activity.push({kind:'BUILD TOGETHER',at:r.created_at,actor:r.display_name,actorId:r.user_id,title:r.title,copy:'formed a Community Build team',href:'#/community-builds'})}
     const aroundWorkshop=activity.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,8);
-    return sendJson(res,200,{projects,recommendedProjects,outsideLaneProject,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null,aroundWorkshop});
+    return sendJson(res,200,{projects,recommendedProjects,outsideLaneProject,continueProject,notes,questions,buildAlong:buildAlongRow(along),openBrief:openBriefRow(brief),library,handoffCards,liveEvent,wallExhibition,activeSession:activeSession?workshopSessionRow(activeSession,uid):null,aroundWorkshop});
   }
 
   if (pathname === '/api/projects' && method === 'GET') {
@@ -2020,13 +2116,15 @@ function routeApi(req, res, url) {
     const unfinished=unfinishedRows.filter(r=>canViewProject({id:r.project_id,visibility:r.project_visibility,owner_id:r.project_owner_id},me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>unfinishedRow(r,me));
     const commonsRows=db.prepare(`${commonsSelect()} WHERE e.status='Open' ORDER BY e.updated_at DESC LIMIT 60`).all();
     const commons=commonsRows.filter(r=>commonsVisible(r,me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>commonsEntryRow(r,me)).slice(0,18);
+    const handoffRows=db.prepare(`${handoffSelect()} WHERE h.status='Published' ORDER BY h.updated_at DESC LIMIT 30`).all();
+    const handoffCards=handoffRows.filter(r=>handoffVisible(r,me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>handoffRow(r,me)).slice(0,12);
     if(me){
       const responseRows=db.prepare(`SELECT r.id response_id,r.message response_message,r.status response_status,r.updated_at response_updated_at,e.*,owner.display_name author,owner.id author_id,responder.display_name responder_name,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=owner.id AND ia.status='current' LIMIT 1) author_callsign,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility,mc.name crew_name,mc.code crew_code FROM commons_responses r JOIN commons_entries e ON e.id=r.entry_id JOIN users owner ON owner.id=e.user_id JOIN users responder ON responder.id=r.user_id LEFT JOIN projects p ON p.id=e.project_id LEFT JOIN maker_crews mc ON mc.id=e.crew_id WHERE e.user_id=? AND r.status='Open' ORDER BY r.updated_at`).all(me.id);
       for(const r of responseRows)if(commonsVisible(r,me,true))myWork.push({id:r.response_id,kind:'COMMONS RESPONSE',status:'NEEDS REPLY',title:r.title,copy:`${r.responder_name}: ${r.response_message}`,projectId:r.project_id||'',at:r.response_updated_at,href:`#/commons/${r.id}`});
     }
     const actionRank=s=>s==='NEEDS REPLY'?0:s==='CONFIRMED'?1:s==='PENDING'||s==='OFFERED'?2:3;
     myWork.sort((a,b)=>actionRank(a.status)-actionRank(b.status)||String(a.at||'').localeCompare(String(b.at||'')));
-    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),unfinished,commons,orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented',unfinished:'most recently updated',commons:'most recently updated'},countsPublic:false,privateWork:Boolean(me)});
+    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),unfinished,commons,handoffCards,orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented',unfinished:'most recently updated',commons:'most recently updated',handoffCards:'most recently updated'},countsPublic:false,privateWork:Boolean(me)});
   }
 
   if(pathname==='/api/unfinished' && method==='GET'){
@@ -2208,13 +2306,15 @@ function routeApi(req, res, url) {
     const unfinished=unfinishedRows.filter(r=>canViewProject({id:r.project_id,visibility:r.project_visibility,owner_id:r.project_owner_id},me)&&canAccessLevel(r.visibility,me,r.user_id)&&!relationshipHidden(me?.id,r.user_id)).map(r=>unfinishedRow(r,me));
     const commonsRows=db.prepare(`${commonsSelect()} WHERE e.project_id=? AND (e.status='Open' OR e.user_id=? OR e.project_id IN (SELECT id FROM projects WHERE owner_id=?)) ORDER BY e.updated_at DESC`).all(pid,me?.id||'',me?.id||'');
     const commons=commonsRows.filter(r=>commonsVisible(r,me,true)).map(r=>commonsEntryRow(r,me));
+    const handoffRows=db.prepare(`${handoffSelect()} WHERE h.project_id=? ORDER BY h.updated_at DESC`).all(pid);
+    const handoffCards=handoffRows.filter(r=>handoffVisible(r,me,Boolean(me&&(me.id===r.user_id||row.owner_id===me.id||canEditEditorial(me))))).map(r=>handoffRow(r,me));
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
     const variations=childProjects('Project',pid,uid);
     let sourceProject=null;
     if(row.parent_type==='Project'&&row.parent_id){const sourceRow=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,row.parent_id);if(sourceRow&&canViewProject(sourceRow,me))sourceProject=projectRow(sourceRow,me);}
-    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),unfinished,commons,comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),unfinished,commons,handoffCards,comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -2518,7 +2618,10 @@ function routeApi(req, res, url) {
     if(mine){const u=requireUser(req,res);if(!u)return;where.push('author_id=?');args.push(u.id)} else {where.push("status='Published'");where.push("(visibility='Public' OR (?<>'' AND visibility='Members'))");args.push(me?.id||'')}
     if(section){where.push('section=?');args.push(section)} if(type){where.push('type=?');args.push(type)} if(tag){where.push('tags LIKE ?');args.push(`%${tag}%`)}
     const rows=db.prepare(`SELECT * FROM library_items ${where.length?'WHERE '+where.join(' AND '):''} ORDER BY featured DESC, COALESCE(NULLIF(updated_at,''),created_at) DESC`).all(...args).map(r=>libraryRow(r,me?.id||''));
-    return sendJson(res,200,{items:rows,canEdit:canEditEditorial(me)});
+    const handoffWhere=mine?'(h.user_id=? OR EXISTS(SELECT 1 FROM handoff_feedback hf WHERE hf.card_id=h.id AND hf.user_id=?))':"h.status='Published'";
+    const handoffArgs=mine?[me?.id||'',me?.id||'']:[];
+    const handoffCards=db.prepare(`${handoffSelect()} WHERE ${handoffWhere} ORDER BY h.updated_at DESC LIMIT 60`).all(...handoffArgs).filter(r=>handoffVisible(r,me,mine)).map(r=>handoffRow(r,me));
+    return sendJson(res,200,{items:rows,handoffCards,canEdit:canEditEditorial(me)});
   }
   if(pathname==='/api/library' && method==='POST'){
     const u=requireUser(req,res);if(!u)return;if(!canEditEditorial(u))return sendJson(res,403,{error:'Library resources are curated by Workshop editors.'});
@@ -2535,6 +2638,80 @@ function routeApi(req, res, url) {
   }
   const librarySave=pathname.match(/^\/api\/library\/([^/]+)\/save$/);
   if(librarySave && method==='POST'){const u=requireUser(req,res);if(!u)return;const exists=db.prepare(`SELECT 1 FROM saved_items WHERE user_id=? AND item_type='library' AND item_id=?`).get(u.id,librarySave[1]);if(exists){db.prepare(`DELETE FROM saved_items WHERE user_id=? AND item_type='library' AND item_id=?`).run(u.id,librarySave[1]);db.prepare(`DELETE FROM collection_items WHERE item_type='library' AND item_id=? AND collection_id IN (SELECT id FROM collections WHERE user_id=?)`).run(librarySave[1],u.id)}else db.prepare(`INSERT INTO saved_items VALUES (?,?,?,?)`).run(u.id,'library',librarySave[1],now());return sendJson(res,200,{saved:!exists});}
+
+  // v10.3 — Handoff Field Cards: durable, project-linked teaching notes with private learner feedback.
+  if(pathname==='/api/handoff' && method==='GET'){
+    const mine=url.searchParams.get('mine')==='1';let viewer=me;if(mine){viewer=requireUser(req,res);if(!viewer)return;}
+    const where=[],args=[];
+    if(mine){where.push('(h.user_id=? OR EXISTS(SELECT 1 FROM handoff_feedback hf WHERE hf.card_id=h.id AND hf.user_id=?))');args.push(viewer.id,viewer.id);}else where.push("h.status='Published'");
+    const projectId=String(url.searchParams.get('projectId')||'').trim(),crewId=String(url.searchParams.get('crewId')||'').trim(),practice=String(url.searchParams.get('practice')||'').trim(),difficulty=String(url.searchParams.get('difficulty')||'').trim(),status=String(url.searchParams.get('status')||'').trim();
+    if(projectId){where.push('h.project_id=?');args.push(projectId)}
+    if(crewId){where.push('h.crew_id=?');args.push(crewId)}
+    if(practice){where.push('h.practice LIKE ?');args.push(`%${practice}%`)}
+    if(difficulty){where.push('h.difficulty=?');args.push(difficulty)}
+    if(mine&&HANDOFF_STATUSES.has(status)){where.push('h.status=?');args.push(status)}
+    const rows=db.prepare(`${handoffSelect()} WHERE ${where.join(' AND ')} ORDER BY h.updated_at DESC LIMIT 120`).all(...args);
+    const items=rows.filter(row=>handoffVisible(row,viewer,mine)).map(row=>handoffRow(row,viewer));
+    return sendJson(res,200,{items,orderedBy:'most recently updated',canCreate:Boolean(viewer),practices:[...new Set(items.map(x=>x.practice).filter(Boolean))],difficulties:[...new Set(items.map(x=>x.difficulty).filter(Boolean))],countsPublic:false});
+  }
+  if(pathname==='/api/handoff' && method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    return readBody(req).then(body=>{
+      const title=String(body.title||'').trim(),summary=String(body.summary||'').trim(),projectId=String(body.projectId||'').trim(),crewId=String(body.crewId||'').trim();
+      if(!title||!summary)return sendJson(res,400,{error:'A Handoff Field Card needs a title and a clear purpose.'});
+      if(title.length>180||summary.length>1200)return sendJson(res,400,{error:'Keep the card title to 180 characters and purpose to 1200 characters.'});
+      const steps=normalizeHandoffSteps(body.steps??body.stepsText);if(!steps.length)return sendJson(res,400,{error:'Add at least one useful handoff step.'});
+      const project=projectId?db.prepare('SELECT * FROM projects WHERE id=?').get(projectId):null;
+      if(projectId&&(!project||!canViewProject(project,u)))return sendJson(res,404,{error:'Linked project not found.'});
+      if(project&&(project.owner_id!==u.id&&!projectCollaborator(project.id,u.id)&&!canEditEditorial(u)))return sendJson(res,403,{error:'Only the project team can attach a Handoff Card to that Project.'});
+      const crew=crewId?db.prepare('SELECT * FROM maker_crews WHERE id=?').get(crewId):null;
+      if(crewId&&(!crew||!canSeeCrew(crew,u)))return sendJson(res,404,{error:'Linked Maker Crew not found.'});
+      if(crewId&&!crewRole(crewId,u.id)&&!canEditEditorial(u))return sendJson(res,403,{error:'Active Maker Crew membership is required for that Handoff context.'});
+      let visibility=handoffVisibility(body.visibility,'Public');if(crew&&crew.visibility!=='Public'&&visibility==='Public')visibility='Members';
+      const status=body.status==='Published'?'Published':'Draft',ts=now(),hid=id('handoff');
+      db.prepare(`INSERT INTO handoff_cards (id,user_id,project_id,crew_id,title,summary,practice,difficulty,estimated_time,tools,materials,access_notes,safety_notes,steps,common_mistakes,troubleshooting,tags,visibility,status,version,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(hid,u.id,projectId||null,crewId||null,title,summary,String(body.practice||'').trim().slice(0,160),String(body.difficulty||'Approachable').trim().slice(0,80),String(body.estimatedTime||'').trim().slice(0,120),JSON.stringify(parseList(body.tools)),JSON.stringify(parseList(body.materials)),String(body.accessNotes||'').trim().slice(0,1800),String(body.safetyNotes||'').trim().slice(0,1800),JSON.stringify(steps),String(body.commonMistakes||'').trim().slice(0,1800),String(body.troubleshooting||'').trim().slice(0,1800),JSON.stringify(parseList(body.tags)),visibility,status,1,ts,ts);
+      audit(u.id,'handoff.create','handoff_card',hid,{projectId,crewId,visibility,status});
+      const row=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(hid);return sendJson(res,201,{item:handoffRow(row,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  const handoffMatch=pathname.match(/^\/api\/handoff\/([^/]+)$/);
+  if(handoffMatch&&method==='GET'){
+    const row=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(handoffMatch[1]);
+    if(!row||!handoffVisible(row,me,true)||((row.status!=='Published')&&!canEditHandoff(row,me)))return sendJson(res,404,{error:'Handoff Field Card not found.'});
+    const canManage=canEditHandoff(row,me);
+    const feedbackRows=canManage?db.prepare(`SELECT f.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM handoff_feedback f JOIN users u ON u.id=f.user_id WHERE f.card_id=? ORDER BY f.updated_at DESC`).all(row.id).map(handoffFeedbackRow):me?db.prepare(`SELECT f.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM handoff_feedback f JOIN users u ON u.id=f.user_id WHERE f.card_id=? AND f.user_id=? ORDER BY f.updated_at DESC`).all(row.id,me.id).map(handoffFeedbackRow):[];
+    return sendJson(res,200,{item:handoffRow(row,me),feedback:feedbackRows,myFeedback:feedbackRows.find(x=>x.userId===me?.id)||null,canManage});
+  }
+  if(handoffMatch&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const old=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(handoffMatch[1]);if(!old)return sendJson(res,404,{error:'Handoff Field Card not found.'});if(!canEditHandoff(old,u))return sendJson(res,403,{error:'Only the card maker or a Workshop editor can change this Handoff Card.'});
+    return readBody(req).then(body=>{
+      const title=String(body.title??old.title).trim(),summary=String(body.summary??old.summary).trim(),projectId=String(body.projectId??old.project_id??'').trim(),crewId=String(body.crewId??old.crew_id??'').trim();
+      if(!title||!summary)return sendJson(res,400,{error:'A Handoff Field Card needs a title and a clear purpose.'});
+      const steps=normalizeHandoffSteps(body.steps!==undefined?body.steps:(body.stepsText!==undefined?body.stepsText:json(old.steps)));if(!steps.length)return sendJson(res,400,{error:'Add at least one useful handoff step.'});
+      const project=projectId?db.prepare('SELECT * FROM projects WHERE id=?').get(projectId):null;if(projectId&&(!project||!canViewProject(project,u)))return sendJson(res,404,{error:'Linked project not found.'});if(project&&(project.owner_id!==u.id&&!projectCollaborator(project.id,u.id)&&!canEditEditorial(u)))return sendJson(res,403,{error:'Only the project team can attach a Handoff Card to that Project.'});
+      const crew=crewId?db.prepare('SELECT * FROM maker_crews WHERE id=?').get(crewId):null;if(crewId&&(!crew||!canSeeCrew(crew,u)))return sendJson(res,404,{error:'Linked Maker Crew not found.'});if(crewId&&!crewRole(crewId,u.id)&&!canEditEditorial(u))return sendJson(res,403,{error:'Active Maker Crew membership is required for that Handoff context.'});
+      let visibility=handoffVisibility(body.visibility??old.visibility,'Public');if(crew&&crew.visibility!=='Public'&&visibility==='Public')visibility='Members';const status=HANDOFF_STATUSES.has(String(body.status??old.status))?String(body.status??old.status):old.status,ts=now(),version=Number(old.version||1)+1;
+      db.prepare(`UPDATE handoff_cards SET project_id=?,crew_id=?,title=?,summary=?,practice=?,difficulty=?,estimated_time=?,tools=?,materials=?,access_notes=?,safety_notes=?,steps=?,common_mistakes=?,troubleshooting=?,tags=?,visibility=?,status=?,version=?,updated_at=? WHERE id=?`).run(projectId||null,crewId||null,title,summary,String(body.practice??old.practice).trim().slice(0,160),String(body.difficulty??old.difficulty).trim().slice(0,80),String(body.estimatedTime??old.estimated_time).trim().slice(0,120),JSON.stringify(parseList(body.tools??json(old.tools))),JSON.stringify(parseList(body.materials??json(old.materials))),String(body.accessNotes??old.access_notes).trim().slice(0,1800),String(body.safetyNotes??old.safety_notes).trim().slice(0,1800),JSON.stringify(steps),String(body.commonMistakes??old.common_mistakes).trim().slice(0,1800),String(body.troubleshooting??old.troubleshooting).trim().slice(0,1800),JSON.stringify(parseList(body.tags??json(old.tags))),visibility,status,version,ts,old.id);
+      audit(u.id,'handoff.update','handoff_card',old.id,{projectId,crewId,visibility,status,version});const fresh=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(old.id);return sendJson(res,200,{item:handoffRow(fresh,u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  if(handoffMatch&&method==='DELETE'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare('SELECT * FROM handoff_cards WHERE id=?').get(handoffMatch[1]);if(!row)return sendJson(res,404,{error:'Handoff Field Card not found.'});if(!canEditHandoff(row,u))return sendJson(res,403,{error:'Only the card maker or a Workshop editor can remove this Handoff Card.'});db.prepare("DELETE FROM saved_items WHERE item_type='handoff' AND item_id=?").run(row.id);db.prepare('DELETE FROM handoff_cards WHERE id=?').run(row.id);audit(u.id,'handoff.delete','handoff_card',row.id,{});return sendJson(res,200,{ok:true});
+  }
+  const handoffSave=pathname.match(/^\/api\/handoff\/([^/]+)\/save$/);
+  if(handoffSave&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(handoffSave[1]);if(!row||!handoffVisible(row,u,true))return sendJson(res,404,{error:'Handoff Field Card not found.'});const exists=db.prepare("SELECT 1 FROM saved_items WHERE user_id=? AND item_type='handoff' AND item_id=?").get(u.id,row.id);if(exists){db.prepare("DELETE FROM saved_items WHERE user_id=? AND item_type='handoff' AND item_id=?").run(u.id,row.id);db.prepare("DELETE FROM collection_items WHERE item_type='handoff' AND item_id=? AND collection_id IN (SELECT id FROM collections WHERE user_id=?)").run(row.id,u.id)}else db.prepare('INSERT INTO saved_items (user_id,item_type,item_id,created_at) VALUES (?,?,?,?)').run(u.id,'handoff',row.id,now());return sendJson(res,200,{saved:!exists});
+  }
+  const handoffFeedbackMatch=pathname.match(/^\/api\/handoff\/([^/]+)\/feedback$/);
+  if(handoffFeedbackMatch&&method==='POST'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare(`${handoffSelect()} WHERE h.id=?`).get(handoffFeedbackMatch[1]);if(!row||!handoffVisible(row,u)||row.user_id===u.id)return sendJson(res,404,{error:'This Handoff Card is not open for learner feedback.'});
+    return readBody(req).then(body=>{const helped=String(body.helped||'').trim(),stuck=String(body.stuck||'').trim(),adapted=String(body.adapted||'').trim(),accessFeedback=String(body.accessFeedback||'').trim();if(!helped&&!stuck&&!adapted&&!accessFeedback)return sendJson(res,400,{error:'Leave at least one useful observation from trying the card.'});if([helped,stuck,adapted,accessFeedback].some(x=>x.length>1800))return sendJson(res,400,{error:'Keep each feedback field to 1800 characters or fewer.'});const existing=db.prepare("SELECT id FROM handoff_feedback WHERE card_id=? AND user_id=? AND status<>'Withdrawn' LIMIT 1").get(row.id,u.id);if(existing)return sendJson(res,409,{error:'You already have an open learner note on this card.'});const fid=id('handoff-feedback'),ts=now();db.prepare('INSERT INTO handoff_feedback (id,card_id,user_id,card_version,helped,stuck,adapted,access_feedback,status,owner_note,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').run(fid,row.id,u.id,Number(row.version||1),helped,stuck,adapted,accessFeedback,'Open','',ts,ts);notifyUser(row.user_id,'collaboration',`${u.display_name} left learner feedback on ${row.title}.`,`#/handoff/${row.id}`,u.id);audit(u.id,'handoff.feedback.create','handoff_feedback',fid,{cardId:row.id,cardVersion:Number(row.version||1)});const fresh=db.prepare(`SELECT f.*,u.display_name author,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM handoff_feedback f JOIN users u ON u.id=f.user_id WHERE f.id=?`).get(fid);return sendJson(res,201,{feedback:handoffFeedbackRow(fresh)});}).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  const handoffFeedbackDetail=pathname.match(/^\/api\/handoff-feedback\/([^/]+)$/);
+  if(handoffFeedbackDetail&&method==='PUT'){
+    const u=requireUser(req,res);if(!u)return;const row=db.prepare(`SELECT f.*,h.title card_title,h.user_id owner_id FROM handoff_feedback f JOIN handoff_cards h ON h.id=f.card_id WHERE f.id=?`).get(handoffFeedbackDetail[1]);if(!row)return sendJson(res,404,{error:'Learner feedback not found.'});
+    return readBody(req).then(body=>{const status=String(body.status||'');if(!HANDOFF_FEEDBACK_STATUSES.has(status))return sendJson(res,400,{error:'Choose a valid feedback status.'});const manager=Boolean(u.id===row.owner_id||canEditEditorial(u));if(status==='Withdrawn'){if(row.user_id!==u.id)return sendJson(res,403,{error:'Only the learner can withdraw this feedback.'});}else if(!manager)return sendJson(res,403,{error:'Only the card maker can review learner feedback.'});const note=manager?String(body.ownerNote??row.owner_note).trim().slice(0,1800):row.owner_note,ts=now();db.prepare('UPDATE handoff_feedback SET status=?,owner_note=?,updated_at=? WHERE id=?').run(status,note,ts,row.id);if(manager&&u.id!==row.user_id)notifyUser(row.user_id, 'collaboration', `The maker reviewed your learner feedback on ${row.card_title}.`,`#/handoff/${row.card_id}`,u.id);audit(u.id,'handoff.feedback.update','handoff_feedback',row.id,{cardId:row.card_id,status});return sendJson(res,200,{ok:true,status});}).catch(e=>sendJson(res,400,{error:e.message}));
+  }
 
 
   if(pathname==='/api/craft-progress' && method==='GET'){
@@ -2743,8 +2920,9 @@ function routeApi(req, res, url) {
     const buildAlongs=db.prepare(`SELECT b.* FROM build_alongs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='build-along' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(r=>({...buildAlongRow(r),fit:workFit({tools:r.tools,skills:r.skills},u)}));
     const openBriefs=db.prepare(`SELECT b.* FROM open_briefs b JOIN saved_items s ON s.item_id=b.id AND s.item_type='open-brief' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).map(r=>({...openBriefRow(r),fit:workFit({skills:r.recommended_skills},u)}));
     const commons=db.prepare(`${commonsSelect()} JOIN saved_items s ON s.item_id=e.id AND s.item_type='commons' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>commonsVisible(r,u,true)).map(r=>commonsEntryRow(r,u));
+    const handoffCards=db.prepare(`${handoffSelect()} JOIN saved_items s ON s.item_id=h.id AND s.item_type='handoff' WHERE s.user_id=? ORDER BY s.created_at DESC`).all(u.id).filter(r=>handoffVisible(r,u,true)).map(r=>handoffRow(r,u));
     const collections=db.prepare(`SELECT c.*,(SELECT COUNT(*) FROM collection_items ci WHERE ci.collection_id=c.id) item_count FROM collections c WHERE c.user_id=? ORDER BY c.updated_at DESC`).all(u.id);
-    return sendJson(res,200,{projects:rows.map(r=>projectRow(r,u)),library,questions,shopNotes,buildAlongs,openBriefs,commons,collections,saved});
+    return sendJson(res,200,{projects:rows.map(r=>projectRow(r,u)),library,questions,shopNotes,buildAlongs,openBriefs,commons,handoffCards,collections,saved});
   }
   if(pathname==='/api/question-of-the-week' && method==='GET'){
     const rows=db.prepare(`SELECT q.*,u.display_name author,(SELECT COUNT(*) FROM weekly_question_responses r WHERE r.question_id=q.id) response_count FROM weekly_questions q JOIN users u ON u.id=q.created_by WHERE q.status='Published' AND (q.visibility='Public' OR (?<>'' AND q.visibility='Members')) ORDER BY CASE WHEN q.starts_at<>'' THEN q.starts_at ELSE q.created_at END DESC`).all(me?.id||'');
@@ -2825,7 +3003,7 @@ function routeApi(req, res, url) {
   if(pathname==='/api/notification-preferences' && method==='PUT'){const u=requireUser(req,res);if(!u)return;return readBody(req).then(body=>{notificationPrefs(u.id);emailPrefs(u.id);for(const k of NOTIFICATION_KINDS){if(k in body)db.prepare(`UPDATE notification_preferences SET ${k}=? WHERE user_id=?`).run(body[k]?1:0,u.id)}for(const k of ['enabled','crew_attendance','account_security','moderation','gearhead']){if(k in (body.email||{}))db.prepare(`UPDATE email_preferences SET ${k}=? WHERE user_id=?`).run(body.email[k]?1:0,u.id)}return sendJson(res,200,{preferences:notificationPrefs(u.id),emailPreferences:emailPrefs(u.id)})});}
   if(pathname==='/api/search' && method==='GET'){
     const q=String(url.searchParams.get('q')||'').trim(), kind=String(url.searchParams.get('kind')||'all').trim();
-    const empty={q,kind,projects:[],openBenches:[],buildLogs:[],questions:[],discussions:[],shopNotes:[],communityBuilds:[],help:[],library:[],people:[],crews:[],live:[],scrap:[],commons:[],wall:[],gearhead:[]}; if(!q)return sendJson(res,200,empty);
+    const empty={q,kind,projects:[],openBenches:[],buildLogs:[],questions:[],discussions:[],shopNotes:[],communityBuilds:[],help:[],library:[],handoff:[],people:[],crews:[],live:[],scrap:[],commons:[],wall:[],gearhead:[]}; if(!q)return sendJson(res,200,empty);
     const like=`%${q}%`,uid=me?.id||''; const out={...empty}; const want=k=>kind==='all'||kind===k;
     if(want('projects'))out.projects=filterVisibleProjects(db.prepare(projectSelect(uid)+` WHERE p.title LIKE ? OR p.description LIKE ? OR p.tags LIKE ? OR p.disciplines LIKE ? OR p.materials LIKE ? OR p.tools LIKE ? ORDER BY p.updated_at DESC LIMIT 80`).all(uid,like,like,like,like,like,like),me).slice(0,30).map(r=>projectRow(r,me));
     if(want('open'))out.openBenches=filterVisibleProjects(db.prepare(projectSelect(uid)+` WHERE p.open_signals IS NOT NULL AND p.open_signals<>'[]' AND p.open_signals<>'' AND (p.title LIKE ? OR p.description LIKE ? OR p.open_request LIKE ? OR p.tags LIKE ? OR p.disciplines LIKE ? OR p.tools LIKE ? OR p.open_signals LIKE ?) ORDER BY p.updated_at DESC LIMIT 80`).all(uid,like,like,like,like,like,like,like),me).slice(0,30).map(r=>({...projectRow(r,me),wayIn:me?projectWayIn(r,me):null}));
@@ -2834,6 +3012,7 @@ function routeApi(req, res, url) {
     if(want('discussions'))out.discussions=db.prepare(`SELECT t.*,u.display_name author FROM discussion_topics t JOIN users u ON u.id=t.user_id WHERE t.title LIKE ? OR t.body LIKE ? OR t.area LIKE ? OR t.category LIKE ? ORDER BY t.updated_at DESC LIMIT 30`).all(like,like,like,like).filter(x=>visibleAuthor(me,x.user_id));
     if(want('notes'))out.shopNotes=db.prepare(`SELECT n.*,u.display_name author FROM shop_notes n JOIN users u ON u.id=n.user_id WHERE n.status='Published' AND (n.visibility='Public' OR (?<>'' AND n.visibility='Members')) AND (n.title LIKE ? OR n.body LIKE ?) ORDER BY n.created_at DESC LIMIT 30`).all(uid,like,like).filter(x=>visibleAuthor(me,x.user_id)&&canViewLinkedProject(x.project_id,me));
     if(want('library'))out.library=db.prepare(`SELECT * FROM library_items WHERE status='Published' AND (visibility='Public' OR (?<>'' AND visibility='Members')) AND (title LIKE ? OR summary LIKE ? OR body LIKE ? OR tags LIKE ? OR section LIKE ? OR type LIKE ?) ORDER BY featured DESC, created_at DESC LIMIT 30`).all(uid,like,like,like,like,like,like).map(r=>libraryRow(r,uid));
+    if(want('handoff'))out.handoff=db.prepare(`${handoffSelect()} WHERE h.status='Published' AND (h.title LIKE ? OR h.summary LIKE ? OR h.practice LIKE ? OR h.tags LIKE ? OR h.steps LIKE ? OR h.common_mistakes LIKE ? OR h.troubleshooting LIKE ?) ORDER BY h.updated_at DESC LIMIT 30`).all(like,like,like,like,like,like,like).filter(x=>handoffVisible(x,me)).map(x=>handoffRow(x,me));
     if(want('people'))out.people=db.prepare(`SELECT id,display_name,bio,city_region,role,avatar_seed,skills,profile_visibility,location_visibility FROM users WHERE (profile_visibility='Public' OR (?<>'' AND profile_visibility='Members') OR id=?) AND (display_name LIKE ? OR bio LIKE ? OR city_region LIKE ? OR skills LIKE ? OR tools LIKE ? OR can_help LIKE ? OR want_learn LIKE ?) LIMIT 30`).all(uid,uid,like,like,like,like,like,like,like).filter(x=>visibleAuthor(me,x.id)).map(x=>({...x,skills:json(x.skills),city_region:(x.location_visibility==='Public'||(x.location_visibility==='Members'&&me)||x.id===me?.id)?x.city_region:''}));
     if(want('gearhead'))out.gearhead=db.prepare(`SELECT id,title,deck,entry_type,access_level,created_at FROM gearhead_entries WHERE status='Published' AND (title LIKE ? OR deck LIKE ? OR tags LIKE ?) ORDER BY created_at DESC LIMIT 30`).all(like,like,like).map(g=>({...g,locked:!canAccessLevel(g.access_level,me)}));
     if(want('crews'))out.crews=db.prepare(`SELECT DISTINCT c.* FROM maker_crews c LEFT JOIN maker_crew_postal_codes z ON z.crew_id=c.id WHERE c.status='Active' AND (c.visibility='Public' OR ?<>'') AND (c.code LIKE ? OR c.name LIKE ? OR c.city_region LIKE ? OR c.anchor_postal_code LIKE ? OR z.postal_code LIKE ?) ORDER BY c.name LIMIT 30`).all(uid,like,like,like,like,like).map(c=>crewRow(c,me));
@@ -2857,7 +3036,7 @@ function routeApi(req, res, url) {
     return sendJson(res,200,out);
   }
   if(pathname==='/api/export' && method==='GET'){
-    const u=requireUser(req,res); if(!u)return; const projects=db.prepare('SELECT * FROM projects WHERE owner_id=?').all(u.id); const pids=projects.map(p=>p.id); const logs=pids.length?db.prepare(`SELECT * FROM build_log_entries WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const unfinishedEntries=db.prepare('SELECT * FROM unfinished_entries WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const commonsEntries=db.prepare('SELECT * FROM commons_entries WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const commonsResponses=db.prepare('SELECT * FROM commons_responses WHERE user_id=? OR entry_id IN (SELECT id FROM commons_entries WHERE user_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const questions=db.prepare('SELECT * FROM questions WHERE user_id=?').all(u.id); const questionAnswers=db.prepare('SELECT * FROM answers WHERE user_id=?').all(u.id); const shopNotes=db.prepare('SELECT * FROM shop_notes WHERE user_id=?').all(u.id); const discussions=db.prepare('SELECT * FROM discussion_topics WHERE user_id=?').all(u.id); const discussionReplies=db.prepare('SELECT * FROM discussion_replies WHERE user_id=?').all(u.id); const savedItems=db.prepare('SELECT * FROM saved_items WHERE user_id=?').all(u.id); const projectFollows=db.prepare('SELECT * FROM project_follows WHERE user_id=?').all(u.id); const collections=db.prepare('SELECT * FROM collections WHERE user_id=?').all(u.id); const collectionItems=collections.length?db.prepare(`SELECT * FROM collection_items WHERE collection_id IN (${collections.map(()=>'?').join(',')})`).all(...collections.map(c=>c.id)):[]; const projectFiles=pids.length?db.prepare(`SELECT id,project_id,uploader_id,logical_name,original_name,mime_type,size_bytes,version,notes,sha256,created_at FROM project_files WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const projectReleases=pids.length?db.prepare(`SELECT * FROM project_releases WHERE project_id IN (${pids.map(()=>'?').join(',')}) ORDER BY created_at`).all(...pids):[]; const releaseIds=projectReleases.map(r=>r.id); const projectReleaseFiles=releaseIds.length?db.prepare(`SELECT * FROM project_release_files WHERE release_id IN (${releaseIds.map(()=>'?').join(',')})`).all(...releaseIds):[]; const clinicSubmissions=db.prepare('SELECT * FROM project_clinic_submissions WHERE user_id=?').all(u.id); const skillContactRequests=db.prepare('SELECT * FROM skill_contact_requests WHERE from_user_id=? OR to_user_id=?').all(u.id,u.id); const teardownContributions=db.prepare('SELECT * FROM teardown_contributions WHERE user_id=?').all(u.id); const scrapListings=db.prepare('SELECT * FROM scrap_listings WHERE user_id=?').all(u.id); const scrapInquiries=db.prepare('SELECT * FROM scrap_inquiries WHERE sender_id=?').all(u.id); const crewMemberships=db.prepare(`SELECT m.*,c.code,c.name,c.city_region FROM maker_crew_members m JOIN maker_crews c ON c.id=m.crew_id WHERE m.user_id=?`).all(u.id); const crewAttendance=db.prepare(`SELECT a.*,e.title event_title,e.crew_id FROM maker_crew_event_attendance a JOIN maker_crew_events e ON e.id=a.event_id WHERE a.user_id=?`).all(u.id); const crewBulletinPosts=db.prepare('SELECT * FROM maker_crew_bulletin_posts WHERE user_id=?').all(u.id); const crewRequests=db.prepare('SELECT * FROM maker_crew_requests WHERE requested_by=?').all(u.id); const craftProgress=db.prepare('SELECT requirement_id,checked,evidence_note,updated_at FROM craft_progress WHERE user_id=?').all(u.id); return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,unfinishedEntries,commonsEntries,commonsResponses,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
+    const u=requireUser(req,res); if(!u)return; const projects=db.prepare('SELECT * FROM projects WHERE owner_id=?').all(u.id); const pids=projects.map(p=>p.id); const logs=pids.length?db.prepare(`SELECT * FROM build_log_entries WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const unfinishedEntries=db.prepare('SELECT * FROM unfinished_entries WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const commonsEntries=db.prepare('SELECT * FROM commons_entries WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const commonsResponses=db.prepare('SELECT * FROM commons_responses WHERE user_id=? OR entry_id IN (SELECT id FROM commons_entries WHERE user_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const handoffCards=db.prepare('SELECT * FROM handoff_cards WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const handoffFeedback=db.prepare('SELECT * FROM handoff_feedback WHERE user_id=? OR card_id IN (SELECT id FROM handoff_cards WHERE user_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const questions=db.prepare('SELECT * FROM questions WHERE user_id=?').all(u.id); const questionAnswers=db.prepare('SELECT * FROM answers WHERE user_id=?').all(u.id); const shopNotes=db.prepare('SELECT * FROM shop_notes WHERE user_id=?').all(u.id); const discussions=db.prepare('SELECT * FROM discussion_topics WHERE user_id=?').all(u.id); const discussionReplies=db.prepare('SELECT * FROM discussion_replies WHERE user_id=?').all(u.id); const savedItems=db.prepare('SELECT * FROM saved_items WHERE user_id=?').all(u.id); const projectFollows=db.prepare('SELECT * FROM project_follows WHERE user_id=?').all(u.id); const collections=db.prepare('SELECT * FROM collections WHERE user_id=?').all(u.id); const collectionItems=collections.length?db.prepare(`SELECT * FROM collection_items WHERE collection_id IN (${collections.map(()=>'?').join(',')})`).all(...collections.map(c=>c.id)):[]; const projectFiles=pids.length?db.prepare(`SELECT id,project_id,uploader_id,logical_name,original_name,mime_type,size_bytes,version,notes,sha256,created_at FROM project_files WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const projectReleases=pids.length?db.prepare(`SELECT * FROM project_releases WHERE project_id IN (${pids.map(()=>'?').join(',')}) ORDER BY created_at`).all(...pids):[]; const releaseIds=projectReleases.map(r=>r.id); const projectReleaseFiles=releaseIds.length?db.prepare(`SELECT * FROM project_release_files WHERE release_id IN (${releaseIds.map(()=>'?').join(',')})`).all(...releaseIds):[]; const clinicSubmissions=db.prepare('SELECT * FROM project_clinic_submissions WHERE user_id=?').all(u.id); const skillContactRequests=db.prepare('SELECT * FROM skill_contact_requests WHERE from_user_id=? OR to_user_id=?').all(u.id,u.id); const teardownContributions=db.prepare('SELECT * FROM teardown_contributions WHERE user_id=?').all(u.id); const scrapListings=db.prepare('SELECT * FROM scrap_listings WHERE user_id=?').all(u.id); const scrapInquiries=db.prepare('SELECT * FROM scrap_inquiries WHERE sender_id=?').all(u.id); const crewMemberships=db.prepare(`SELECT m.*,c.code,c.name,c.city_region FROM maker_crew_members m JOIN maker_crews c ON c.id=m.crew_id WHERE m.user_id=?`).all(u.id); const crewAttendance=db.prepare(`SELECT a.*,e.title event_title,e.crew_id FROM maker_crew_event_attendance a JOIN maker_crew_events e ON e.id=a.event_id WHERE a.user_id=?`).all(u.id); const crewBulletinPosts=db.prepare('SELECT * FROM maker_crew_bulletin_posts WHERE user_id=?').all(u.id); const crewRequests=db.prepare('SELECT * FROM maker_crew_requests WHERE requested_by=?').all(u.id); const craftProgress=db.prepare('SELECT requirement_id,checked,evidence_note,updated_at FROM craft_progress WHERE user_id=?').all(u.id); return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,unfinishedEntries,commonsEntries,commonsResponses,handoffCards,handoffFeedback,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
   }
   if(pathname==='/api/health' && method==='GET'){ const ownerCount=db.prepare("SELECT COUNT(*) n FROM users WHERE role='Owner' AND account_status='Active'").get().n; return sendJson(res,200,{ok:true,version:APP_VERSION,time:now(),database:'ok',storage:{dataDir:DATA,databasePath:DB_PATH,railwayVolume:Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH),railwayVolumeMountPath:process.env.RAILWAY_VOLUME_MOUNT_PATH||'',externalDataDir:DATA!==path.join(ROOT,'data')},accounts:{activeOwners:ownerCount}}); }
   // v6.0 — THE GEARHEAD CREW
@@ -3066,7 +3245,7 @@ function routeApi(req, res, url) {
   if(pathname==='/api/admin/settings' && method==='PUT'){const u=requireRole(req,res,['Owner','Administrator']);if(!u)return;return readBody(req).then(body=>{for(const [k,v] of Object.entries(body)){if(!['siteName','registrationMode','maintenanceMessage'].includes(k))continue;db.prepare('INSERT INTO site_settings (key,value,updated_at) VALUES (?,?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at').run(k,String(v),now())}audit(u.id,'admin.settings.update','system','settings',body);return sendJson(res,200,{ok:true});});}
   if(pathname==='/api/admin/reset-demo' && method==='POST'){
     const u=requireUser(req,res); if(!u)return; if(u.role!=='Owner'&&u.role!=='Administrator')return sendJson(res,403,{error:'Admin only.'});
-    db.exec(`DELETE FROM commons_responses; DELETE FROM commons_entries; DELETE FROM identity_addresses; DELETE FROM membership_provider_events; DELETE FROM gearhead_after_hours_rsvps; DELETE FROM gearhead_requests; DELETE FROM gearhead_early_feedback; DELETE FROM gearhead_access_events; DELETE FROM gearhead_media; DELETE FROM gearhead_files; DELETE FROM gearhead_tutorial_steps; DELETE FROM gearhead_entries; DELETE FROM maker_crew_event_attendance; DELETE FROM maker_crew_events; DELETE FROM maker_crew_announcements; DELETE FROM maker_crew_bulletin_posts; DELETE FROM maker_crew_requests; DELETE FROM maker_crew_members; DELETE FROM maker_crew_postal_codes; DELETE FROM maker_crews; DELETE FROM peer_reflections; DELETE FROM work_submissions; DELETE FROM assignment_projects; DELETE FROM session_resources; DELETE FROM session_assignments; DELETE FROM workshop_sessions; DELETE FROM scrap_inquiries; DELETE FROM scrap_listings; DELETE FROM teardown_contributions; DELETE FROM teardown_clubs; DELETE FROM mystery_proposals; DELETE FROM mystery_items; DELETE FROM weekly_question_responses; DELETE FROM weekly_questions; DELETE FROM wall_items; DELETE FROM wall_exhibitions; DELETE FROM instrument_feedback; DELETE FROM field_instruments; DELETE FROM community_build_team_members; DELETE FROM community_build_teams; DELETE FROM project_tasks; DELETE FROM project_collaboration_invites; DELETE FROM tool_cabinet_items; DELETE FROM skill_contact_requests; DELETE FROM project_clinic_submissions; DELETE FROM live_event_attendance; DELETE FROM live_comments; DELETE FROM live_events; DELETE FROM critique_responses; DELETE FROM critiques; DELETE FROM moderation_actions; DELETE FROM audit_logs; DELETE FROM auth_tokens; DELETE FROM membership_invite_codes; DELETE FROM membership_connections; DELETE FROM github_cache; DELETE FROM project_release_files; DELETE FROM project_releases; DELETE FROM project_files; DELETE FROM content_reports; DELETE FROM discussion_replies; DELETE FROM discussion_topics; DELETE FROM collection_items; DELETE FROM collections; DELETE FROM email_deliveries; DELETE FROM email_preferences; DELETE FROM notification_preferences; DELETE FROM notifications; DELETE FROM project_follows; DELETE FROM saved_items; DELETE FROM answers; DELETE FROM questions; DELETE FROM comments; DELETE FROM build_log_entries; DELETE FROM project_collaborators; DELETE FROM projects; DELETE FROM shop_notes; DELETE FROM build_alongs; DELETE FROM open_briefs; DELETE FROM library_items; DELETE FROM sessions; DELETE FROM users;`); seedDemo(); seedBatch34Demo(); seedBatch78Demo(); seedBatch910Demo(); seedBatch101Demo(); seedBatch102Demo(); seedBatch1718Demo(); seedBatch1920Demo(); seedBatch2122Demo(); seedBatch2324Demo(); seedBatch2526Demo(); seedParticipationDemo(); seedMakerCrewsDemo(); seedCrewIdentityAddresses(); seedGearheadDemo(); audit(u.id,'admin.demo.reset','system','demo'); return sendJson(res,200,{ok:true});
+    db.exec(`DELETE FROM handoff_feedback; DELETE FROM handoff_cards; DELETE FROM commons_responses; DELETE FROM commons_entries; DELETE FROM identity_addresses; DELETE FROM membership_provider_events; DELETE FROM gearhead_after_hours_rsvps; DELETE FROM gearhead_requests; DELETE FROM gearhead_early_feedback; DELETE FROM gearhead_access_events; DELETE FROM gearhead_media; DELETE FROM gearhead_files; DELETE FROM gearhead_tutorial_steps; DELETE FROM gearhead_entries; DELETE FROM maker_crew_event_attendance; DELETE FROM maker_crew_events; DELETE FROM maker_crew_announcements; DELETE FROM maker_crew_bulletin_posts; DELETE FROM maker_crew_requests; DELETE FROM maker_crew_members; DELETE FROM maker_crew_postal_codes; DELETE FROM maker_crews; DELETE FROM peer_reflections; DELETE FROM work_submissions; DELETE FROM assignment_projects; DELETE FROM session_resources; DELETE FROM session_assignments; DELETE FROM workshop_sessions; DELETE FROM scrap_inquiries; DELETE FROM scrap_listings; DELETE FROM teardown_contributions; DELETE FROM teardown_clubs; DELETE FROM mystery_proposals; DELETE FROM mystery_items; DELETE FROM weekly_question_responses; DELETE FROM weekly_questions; DELETE FROM wall_items; DELETE FROM wall_exhibitions; DELETE FROM instrument_feedback; DELETE FROM field_instruments; DELETE FROM community_build_team_members; DELETE FROM community_build_teams; DELETE FROM project_tasks; DELETE FROM project_collaboration_invites; DELETE FROM tool_cabinet_items; DELETE FROM skill_contact_requests; DELETE FROM project_clinic_submissions; DELETE FROM live_event_attendance; DELETE FROM live_comments; DELETE FROM live_events; DELETE FROM critique_responses; DELETE FROM critiques; DELETE FROM moderation_actions; DELETE FROM audit_logs; DELETE FROM auth_tokens; DELETE FROM membership_invite_codes; DELETE FROM membership_connections; DELETE FROM github_cache; DELETE FROM project_release_files; DELETE FROM project_releases; DELETE FROM project_files; DELETE FROM content_reports; DELETE FROM discussion_replies; DELETE FROM discussion_topics; DELETE FROM collection_items; DELETE FROM collections; DELETE FROM email_deliveries; DELETE FROM email_preferences; DELETE FROM notification_preferences; DELETE FROM notifications; DELETE FROM project_follows; DELETE FROM saved_items; DELETE FROM answers; DELETE FROM questions; DELETE FROM comments; DELETE FROM build_log_entries; DELETE FROM project_collaborators; DELETE FROM projects; DELETE FROM shop_notes; DELETE FROM build_alongs; DELETE FROM open_briefs; DELETE FROM library_items; DELETE FROM sessions; DELETE FROM users;`); seedDemo(); seedBatch34Demo(); seedBatch78Demo(); seedBatch910Demo(); seedBatch101Demo(); seedBatch102Demo(); seedBatch103Demo(); seedBatch1718Demo(); seedBatch1920Demo(); seedBatch2122Demo(); seedBatch2324Demo(); seedBatch2526Demo(); seedParticipationDemo(); seedMakerCrewsDemo(); seedCrewIdentityAddresses(); seedGearheadDemo(); audit(u.id,'admin.demo.reset','system','demo'); return sendJson(res,200,{ok:true});
   }
 
   return sendJson(res,404,{error:'API route not found.'});
