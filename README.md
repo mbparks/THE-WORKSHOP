@@ -1,7 +1,7 @@
 # THE WORKSHOP
 
 **The Green Shoe Garage Maker Community**  
-Current release: **v10.0.0**
+Current release: **v10.1.0**
 
 THE WORKSHOP is a project-centered maker community for design, experimentation, repair, craft, engineering, art, and collaborative learning.
 
@@ -14,6 +14,14 @@ THE WORKSHOP intentionally avoids follower counts, popularity ranking, public li
 That is the product test for every feature.
 
 ---
+
+## What changed in v10.1.0
+
+### Unfinished in Public
+
+- Project owners and collaborators can publish an honest working snapshot: what exists, what is stuck, the next tiny step, and what help would matter.
+- Snapshots live inside the existing Project workflow and appear chronologically in Make Together; they do not create a new primary module, feed, scoreboard, or popularity signal.
+- Public, Workshop-member, private, and draft visibility are enforced on the server. Drafts and private snapshots never enter the public gallery.
 
 ## What changed in v10.0.0
 

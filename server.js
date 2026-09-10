@@ -20,7 +20,7 @@ const UPLOADS = path.join(DATA, 'uploads');
 const DEV_AUTH = process.env.WORKSHOP_DEV_AUTH !== undefined ? process.env.WORKSHOP_DEV_AUTH !== '0' : process.env.NODE_ENV !== 'production';
 const SEED_DEMO = process.env.WORKSHOP_SEED_DEMO !== undefined ? process.env.WORKSHOP_SEED_DEMO !== '0' : process.env.NODE_ENV !== 'production';
 const DB_PATH = process.env.WORKSHOP_DB || path.join(DATA, 'workshop.db');
-const APP_VERSION = '10.0.0';
+const APP_VERSION = '10.1.0';
 const TERMS_VERSION = '2026-08-16';
 const BACKUPS = process.env.WORKSHOP_BACKUP_DIR ? path.resolve(process.env.WORKSHOP_BACKUP_DIR) : path.join(DATA, 'backups');
 const PUBLIC_URL = process.env.WORKSHOP_PUBLIC_URL || '';
@@ -344,6 +344,16 @@ function projectRow(r,viewer=null) {
   };
 }
 
+function unfinishedRow(r,viewer=null){
+  if(!r)return null;
+  return {
+    id:r.id, projectId:r.project_id, projectTitle:r.project_title||'', userId:r.user_id, author:r.author||r.owner_name||'',
+    exists:r.exists_text||'', stuck:r.stuck_text||'', nextStep:r.next_step||'', helpNeeded:r.help_needed||'',
+    visibility:r.visibility||'Public', status:r.status||'Published', createdAt:r.created_at, updatedAt:r.updated_at,
+    isOwner:Boolean(viewer&&(viewer.id===r.user_id||viewer.id===r.project_owner_id)), canEdit:Boolean(viewer&&(viewer.id===r.user_id||viewer.id===r.project_owner_id||hasRole(viewer,['Owner','Administrator','Editor'])))
+  };
+}
+
 const OPEN_BENCH_HOUR_FORMATS=new Set(['Project Talk','Video / Voice','In Person','Other']);
 function openBenchHourStatus(row){
   if(row.status!=='Scheduled')return row.status;
@@ -419,6 +429,11 @@ function initSchema() {
     CREATE TABLE IF NOT EXISTS build_log_entries (
       id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id),
       type TEXT NOT NULL, title TEXT DEFAULT '', body TEXT NOT NULL, created_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS unfinished_entries (
+      id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      exists_text TEXT NOT NULL, stuck_text TEXT NOT NULL, next_step TEXT NOT NULL, help_needed TEXT DEFAULT '',
+      visibility TEXT NOT NULL DEFAULT 'Public', status TEXT NOT NULL DEFAULT 'Published', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS comments (
       id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id), body TEXT NOT NULL, created_at TEXT NOT NULL
@@ -827,6 +842,8 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_clinic_user ON project_clinic_submissions(user_id, updated_at DESC);
     CREATE INDEX IF NOT EXISTS idx_skill_requests_to ON skill_contact_requests(to_user_id, status, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_membership_user ON membership_connections(user_id,status,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_unfinished_public ON unfinished_entries(status,visibility,updated_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_unfinished_project ON unfinished_entries(project_id,updated_at DESC);
   `);
 }
 
@@ -1179,6 +1196,20 @@ ensureColumn('email_preferences','gearhead_digest',"INTEGER DEFAULT 1");
 ensureColumn('email_preferences','gearhead_digest_frequency',"TEXT DEFAULT 'Monthly'");
 if (SEED_DEMO) seedDemo();
 if (SEED_DEMO) seedBatch34Demo();
+function seedBatch101Demo(){
+  const owner=db.prepare("SELECT id FROM users WHERE role IN ('Owner','Editor','Administrator') ORDER BY created_at LIMIT 1").get();
+  const project=db.prepare("SELECT id FROM projects WHERE visibility='Public' ORDER BY updated_at DESC LIMIT 1").get();
+  if(!owner||!project||db.prepare('SELECT 1 FROM unfinished_entries WHERE id=?').get('unfinished_demo'))return;
+  const ts=now();
+  db.prepare('INSERT INTO unfinished_entries (id,project_id,user_id,exists_text,stuck_text,next_step,help_needed,visibility,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(
+    'unfinished_demo',project.id,owner.id,
+    'The project has a working first prototype and a notebook record of the last test.',
+    'The enclosure still traps heat, and I do not yet know whether the vent geometry or the sensor placement is the main cause.',
+    'Build one vented nose variant and compare it with the current enclosure over the same afternoon.',
+    'If you have experience with passive ventilation or small outdoor enclosures, I would value a concrete example or a failure story.',
+    'Public','Published',ts,ts);
+}
+if (SEED_DEMO) seedBatch101Demo();
 function seedBatch78Demo(){
   const ba=db.prepare('SELECT * FROM build_alongs WHERE id=?').get('ba1');
   if(ba && json(ba.bom).length===0){
@@ -1687,7 +1718,7 @@ function routeApi(req, res, url) {
 
   if (pathname === '/api/image-proxy' && method === 'GET') return proxyImage(res,url.searchParams.get('url')||'');
   if(pathname==='/api/version-diagnostics'&&method==='GET')return sendJson(res,200,{serverVersion:APP_VERSION,schemaVersion:db.prepare('SELECT version FROM schema_migrations ORDER BY applied_at DESC LIMIT 1').get()?.version||'',time:now()});
-  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
+  if (pathname === '/api/meta' && method === 'GET') return sendJson(res, 200, { name:'THE WORKSHOP', version:APP_VERSION, mode:DEV_AUTH?'development':'production', backend:'Node + SQLite', nativeUploads:true, passwordAuth:true, moderationConsole:true, productionHardening:true,designCritique:true,liveEvents:true,toolCabinet:true,collaborativeProjects:true,fieldInstrumentLab:false,theWall:true,questionOfTheWeek:true,whatIsThis:true,teardownClub:true,scrapBin:true,richFileVersioning:true,githubIntegration:true,offlinePwa:true,supporterMembership:true,workshopSessions:true,assignments:true,showTheWork:true,walkTheBenches:true,makerId:true,sessionStudio:true,makerCrews:true,globalIdentityNamespace:true,callsigns:true,crewHandles:true,projectComments:true,projectFollowing:true,callsignMentions:true,askThisMaker:true,collaborationPhase2:true,communityBuildTeams:true,skillMatches:true,collaborationCredits:true,helpRouting:true,crewDiscovery:true,crewMeetups:true,crewBulletin:true,accountManagement:true,adminPasswordReset:true,transactionalEmail:true,remoteImageProxy:true,gearheadCrew:true,gearheadContent:true,gearheadStudio:true,gearheadProtectedFiles:true,gearheadTutorials:true,gearheadEarlyAccess:true,gearheadAfterHours:true,gearheadFileVault:true,gearheadRequests:true,gearheadEarlyFeedback:true,gearheadAfterHoursRsvp:true,gearheadMembershipLifecycle:true,gearheadArchive:true,gearheadPreviews:true,gearheadReleasePipeline:true,gearheadDigest:true,gearheadContributions:true,gearheadCrewProjects:true,gearheadStudio2:true,gearheadSecurityHardening:true,stripeGearheadMembership:true,gearheadMembershipSelfService:true,gearheadVideoPipeline:true,gearheadTemplates:true,craftPath:true,benchEmbeds:true,makerCrew2:true,failureLibrary:true,personalNotebook:true,workshopMap:true,projectLabels:true,workshopPrompts:true,communityBuildAggregate:true,helpAggregate:true,calendarAggregate:true,icsExport:true,mediaLibrary:true,memberMuteBlock:true,projectPrivacyHardened:true,openBench:true,benchHandshakes:true,waysIn:true,unifiedDiscovery:true,usefulResponses:true,makerVariations:true,openBenchHours:true,makeTogether:true,unfinishedInPublic:true,browserQa:true,membershipProvider:MEMBERSHIP_PROVIDER,emailProvider:EMAIL_PROVIDER,emailConfigured:emailConfigured(),termsVersion:TERMS_VERSION });
   if (pathname === '/api/me' && method === 'GET') return sendJson(res, 200, { user:safeUser(me) });
   if(pathname==='/api/identity/check'&&method==='GET'){
     const entityType=String(url.searchParams.get('entityType')||''),entityId=String(url.searchParams.get('entityId')||'');const s=identityAddressState(url.searchParams.get('address')||'',entityType,entityId);return sendJson(res,200,s);
@@ -1918,9 +1949,54 @@ function routeApi(req, res, url) {
       for(const h of db.prepare(`SELECT h.id,h.status,h.message,h.updated_at,p.id project_id,p.title,p.visibility project_visibility,p.owner_id project_owner_id,u.display_name maker FROM open_bench_handshakes h JOIN projects p ON p.id=h.project_id JOIN users u ON u.id=h.user_id WHERE p.owner_id=? AND h.status='Offered' ORDER BY h.updated_at`).all(me.id))if(canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},me))myWork.push({id:h.id,kind:'BENCH HANDSHAKE',status:'NEEDS REPLY',title:h.title,copy:`${h.maker}: ${h.message}`,projectId:h.project_id,at:h.updated_at,href:`#/projects/${h.project_id}`});
       for(const h of db.prepare(`SELECT h.id,h.status,h.message,h.owner_note,h.updated_at,p.id project_id,p.title,p.visibility project_visibility,p.owner_id project_owner_id,u.display_name host FROM open_bench_handshakes h JOIN projects p ON p.id=h.project_id JOIN users u ON u.id=p.owner_id WHERE h.user_id=? AND h.status IN ('Offered','Acknowledged') ORDER BY h.updated_at`).all(me.id))if(canViewProject({id:h.project_id,visibility:h.project_visibility,owner_id:h.project_owner_id},me))myWork.push({id:h.id,kind:'MY BENCH HANDSHAKE',status:h.status==='Acknowledged'?'HANDSHAKE MADE':'OFFERED',title:h.title,copy:h.owner_note||`Offer to ${h.host}: ${h.message}`,projectId:h.project_id,at:h.updated_at,href:`#/projects/${h.project_id}`});
     }
+    const unfinishedRows=db.prepare(`SELECT e.*,u.display_name author,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility FROM unfinished_entries e JOIN users u ON u.id=e.user_id JOIN projects p ON p.id=e.project_id WHERE e.status='Published' AND e.visibility='Public' ORDER BY e.updated_at DESC LIMIT 30`).all();
+    const unfinished=unfinishedRows.filter(r=>canViewProject({id:r.project_id,visibility:r.project_visibility,owner_id:r.project_owner_id},me)&&!relationshipHidden(me?.id,r.user_id)).map(r=>unfinishedRow(r,me));
     const actionRank=s=>s==='NEEDS REPLY'?0:s==='CONFIRMED'?1:s==='PENDING'||s==='OFFERED'?2:3;
     myWork.sort((a,b)=>actionRank(a.status)-actionRank(b.status)||String(a.at||'').localeCompare(String(b.at||'')));
-    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented'},countsPublic:false,privateWork:Boolean(me)});
+    return sendJson(res,200,{openProjects,hours,myWork,outcomes:outcomes.slice(0,12),unfinished,orderedBy:{openProjects:'recent project updates',hours:'soonest first',outcomes:'most recently documented',unfinished:'most recently updated'},countsPublic:false,privateWork:Boolean(me)});
+  }
+
+  if(pathname==='/api/unfinished' && method==='GET'){
+    const mine=url.searchParams.get('mine')==='1',projectId=String(url.searchParams.get('projectId')||'').trim();
+    let viewer=me;
+    if(mine){viewer=requireUser(req,res);if(!viewer)return;}
+    const rows=db.prepare(`SELECT e.*,u.display_name author,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility
+      FROM unfinished_entries e JOIN users u ON u.id=e.user_id JOIN projects p ON p.id=e.project_id
+      WHERE ${projectId?'e.project_id=? AND ':''}${mine?'(e.user_id=? OR p.owner_id=?) AND ':'e.status=\'Published\' AND '}1=1 ORDER BY e.updated_at DESC`).all(...(projectId?[projectId]:[]),...(mine?[viewer.id,viewer.id]:[]));
+    const items=rows.filter(r=>canViewProject({id:r.project_id,visibility:r.project_visibility,owner_id:r.project_owner_id},viewer)&&canAccessLevel(r.visibility,viewer,r.user_id)&&(!relationshipHidden(viewer?.id,r.user_id))).map(r=>unfinishedRow(r,viewer));
+    return sendJson(res,200,{items,orderedBy:'most recently updated',canCreate:Boolean(viewer)});
+  }
+  if(pathname==='/api/unfinished' && method==='POST'){
+    const u=requireUser(req,res);if(!u)return;
+    return readBody(req).then(body=>{
+      const project=db.prepare('SELECT * FROM projects WHERE id=?').get(String(body.projectId||'').trim());
+      if(!project||!canViewProject(project,u))return sendJson(res,404,{error:'Project not found.'});
+      if(project.owner_id!==u.id&&!projectCollaborator(project.id,u.id))return sendJson(res,403,{error:'Only project owners and collaborators can publish an unfinished snapshot.'});
+      const exists=String(body.exists||'').trim(),stuck=String(body.stuck||'').trim(),nextStep=String(body.nextStep||'').trim(),helpNeeded=String(body.helpNeeded||'').trim();
+      if(!exists||!stuck||!nextStep)return sendJson(res,400,{error:'Describe what exists, what is stuck, and the next tiny step.'});
+      if([exists,stuck,nextStep,helpNeeded].some(x=>x.length>2400))return sendJson(res,400,{error:'Keep each unfinished-work field to 2400 characters or fewer.'});
+      const visibility=['Public','Members','Private'].includes(String(body.visibility||''))?String(body.visibility):'Public';
+      const status=body.status==='Draft'?'Draft':'Published',ts=now(),eid=id('unfinished');
+      db.prepare('INSERT INTO unfinished_entries (id,project_id,user_id,exists_text,stuck_text,next_step,help_needed,visibility,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)').run(eid,project.id,u.id,exists,stuck,nextStep,helpNeeded,visibility,status,ts,ts);
+      audit(u.id,'unfinished.create','unfinished_entry',eid,{projectId:project.id,status,visibility});
+      return sendJson(res,201,{item:unfinishedRow(db.prepare(`SELECT e.*,u.display_name author,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility FROM unfinished_entries e JOIN users u ON u.id=e.user_id JOIN projects p ON p.id=e.project_id WHERE e.id=?`).get(eid),u)});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
+  }
+  const unfinishedMatch=pathname.match(/^\/api\/unfinished\/([^/]+)$/);
+  if(unfinishedMatch && (method==='PUT'||method==='DELETE')){
+    const u=requireUser(req,res);if(!u)return;
+    const old=db.prepare(`SELECT e.*,p.owner_id project_owner_id FROM unfinished_entries e JOIN projects p ON p.id=e.project_id WHERE e.id=?`).get(unfinishedMatch[1]);
+    if(!old)return sendJson(res,404,{error:'Unfinished snapshot not found.'});
+    if(old.user_id!==u.id&&old.project_owner_id!==u.id&&!hasRole(u,['Owner','Administrator','Editor'])&&!projectCollaborator(old.project_id,u.id))return sendJson(res,403,{error:'You cannot change this unfinished snapshot.'});
+    if(method==='DELETE'){db.prepare('DELETE FROM unfinished_entries WHERE id=?').run(old.id);audit(u.id,'unfinished.delete','unfinished_entry',old.id,{});return sendJson(res,200,{ok:true});}
+    return readBody(req).then(body=>{
+      const exists=String(body.exists??old.exists_text).trim(),stuck=String(body.stuck??old.stuck_text).trim(),nextStep=String(body.nextStep??old.next_step).trim(),helpNeeded=String(body.helpNeeded??old.help_needed).trim();
+      if(!exists||!stuck||!nextStep)return sendJson(res,400,{error:'Describe what exists, what is stuck, and the next tiny step.'});
+      const visibility=['Public','Members','Private'].includes(String(body.visibility||''))?String(body.visibility):old.visibility,status=body.status==='Draft'?'Draft':body.status==='Published'?'Published':old.status,ts=now();
+      db.prepare('UPDATE unfinished_entries SET exists_text=?,stuck_text=?,next_step=?,help_needed=?,visibility=?,status=?,updated_at=? WHERE id=?').run(exists,stuck,nextStep,helpNeeded,visibility,status,ts,old.id);
+      audit(u.id,'unfinished.update','unfinished_entry',old.id,{status,visibility});
+      return sendJson(res,200,{ok:true});
+    }).catch(e=>sendJson(res,400,{error:e.message}));
   }
 
   if (pathname === '/api/projects' && method === 'POST') {
@@ -1982,13 +2058,15 @@ function routeApi(req, res, url) {
     const clinics=db.prepare(`SELECT c.*,e.title event_title FROM project_clinic_submissions c LEFT JOIN live_events e ON e.id=c.event_id WHERE c.project_id=? AND (c.status IN ('Selected','Reviewed') OR c.user_id=?) ORDER BY c.updated_at DESC`).all(pid,me?.id||'');
     const collaborators=db.prepare(`SELECT pc.user_id,pc.role,u.display_name,u.avatar_seed,(SELECT address FROM identity_addresses ia WHERE ia.entity_type='user' AND ia.entity_id=u.id AND ia.status='current' LIMIT 1) callsign FROM project_collaborators pc JOIN users u ON u.id=pc.user_id WHERE pc.project_id=? ORDER BY u.display_name`).all(pid);
     const tasks=db.prepare(`SELECT t.*,u.display_name assignee_name,c.display_name creator_name FROM project_tasks t LEFT JOIN users u ON u.id=t.assignee_id JOIN users c ON c.id=t.created_by WHERE t.project_id=? ORDER BY CASE t.status WHEN 'To Do' THEN 0 WHEN 'Doing' THEN 1 ELSE 2 END,t.updated_at DESC`).all(pid);
+    const unfinishedRows=db.prepare(`SELECT e.*,u.display_name author,p.title project_title,p.owner_id project_owner_id,p.visibility project_visibility FROM unfinished_entries e JOIN users u ON u.id=e.user_id JOIN projects p ON p.id=e.project_id WHERE e.project_id=? AND (e.status='Published' OR e.user_id=? OR p.owner_id=?) ORDER BY e.updated_at DESC`).all(pid,me?.id||'',me?.id||'');
+    const unfinished=unfinishedRows.filter(r=>canViewProject({id:r.project_id,visibility:r.project_visibility,owner_id:r.project_owner_id},me)&&canAccessLevel(r.visibility,me,r.user_id)&&!relationshipHidden(me?.id,r.user_id)).map(r=>unfinishedRow(r,me));
     const pendingInvite=me?db.prepare(`SELECT i.*,u.display_name inviter_name FROM project_collaboration_invites i JOIN users u ON u.id=i.from_user_id WHERE i.project_id=? AND i.to_user_id=? AND i.status='Pending' ORDER BY i.created_at DESC LIMIT 1`).get(pid,me.id):null;
     const canCollaborate=Boolean(me&&(row.owner_id===me.id||collaborators.some(c=>c.user_id===me.id)));
     const assignmentLink=db.prepare(`SELECT a.id assignment_id,a.title assignment_title,s.id session_id,s.title session_title,s.theme session_theme,ws.confirmation_code FROM assignment_projects ap JOIN session_assignments a ON a.id=ap.assignment_id JOIN workshop_sessions s ON s.id=a.session_id LEFT JOIN work_submissions ws ON ws.assignment_id=a.id AND ws.project_id=ap.project_id WHERE ap.project_id=?`).get(pid);
     const variations=childProjects('Project',pid,uid);
     let sourceProject=null;
     if(row.parent_type==='Project'&&row.parent_id){const sourceRow=db.prepare(projectSelect(uid)+' WHERE p.id=?').get(uid,row.parent_id);if(sourceRow&&canViewProject(sourceRow,me))sourceProject=projectRow(sourceRow,me);}
-    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
+    return sendJson(res,200,{project:projectRow(row,me),sourceProject,variations,logs:logs.map(l=>({...l,attachments:json(l.attachments)})),unfinished,comments,handshakes,benchHours,files,releases,critiques,clinics,collaborators,tasks,pendingInvite,canCollaborate,assignmentLink:assignmentLink||null});
   }
   if (projectMatch && method === 'PUT') {
     const u=requireUser(req,res); if(!u)return;
@@ -2629,7 +2707,7 @@ function routeApi(req, res, url) {
     return sendJson(res,200,out);
   }
   if(pathname==='/api/export' && method==='GET'){
-    const u=requireUser(req,res); if(!u)return; const projects=db.prepare('SELECT * FROM projects WHERE owner_id=?').all(u.id); const pids=projects.map(p=>p.id); const logs=pids.length?db.prepare(`SELECT * FROM build_log_entries WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const questions=db.prepare('SELECT * FROM questions WHERE user_id=?').all(u.id); const questionAnswers=db.prepare('SELECT * FROM answers WHERE user_id=?').all(u.id); const shopNotes=db.prepare('SELECT * FROM shop_notes WHERE user_id=?').all(u.id); const discussions=db.prepare('SELECT * FROM discussion_topics WHERE user_id=?').all(u.id); const discussionReplies=db.prepare('SELECT * FROM discussion_replies WHERE user_id=?').all(u.id); const savedItems=db.prepare('SELECT * FROM saved_items WHERE user_id=?').all(u.id); const projectFollows=db.prepare('SELECT * FROM project_follows WHERE user_id=?').all(u.id); const collections=db.prepare('SELECT * FROM collections WHERE user_id=?').all(u.id); const collectionItems=collections.length?db.prepare(`SELECT * FROM collection_items WHERE collection_id IN (${collections.map(()=>'?').join(',')})`).all(...collections.map(c=>c.id)):[]; const projectFiles=pids.length?db.prepare(`SELECT id,project_id,uploader_id,logical_name,original_name,mime_type,size_bytes,version,notes,sha256,created_at FROM project_files WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const projectReleases=pids.length?db.prepare(`SELECT * FROM project_releases WHERE project_id IN (${pids.map(()=>'?').join(',')}) ORDER BY created_at`).all(...pids):[]; const releaseIds=projectReleases.map(r=>r.id); const projectReleaseFiles=releaseIds.length?db.prepare(`SELECT * FROM project_release_files WHERE release_id IN (${releaseIds.map(()=>'?').join(',')})`).all(...releaseIds):[]; const clinicSubmissions=db.prepare('SELECT * FROM project_clinic_submissions WHERE user_id=?').all(u.id); const skillContactRequests=db.prepare('SELECT * FROM skill_contact_requests WHERE from_user_id=? OR to_user_id=?').all(u.id,u.id); const teardownContributions=db.prepare('SELECT * FROM teardown_contributions WHERE user_id=?').all(u.id); const scrapListings=db.prepare('SELECT * FROM scrap_listings WHERE user_id=?').all(u.id); const scrapInquiries=db.prepare('SELECT * FROM scrap_inquiries WHERE sender_id=?').all(u.id); const crewMemberships=db.prepare(`SELECT m.*,c.code,c.name,c.city_region FROM maker_crew_members m JOIN maker_crews c ON c.id=m.crew_id WHERE m.user_id=?`).all(u.id); const crewAttendance=db.prepare(`SELECT a.*,e.title event_title,e.crew_id FROM maker_crew_event_attendance a JOIN maker_crew_events e ON e.id=a.event_id WHERE a.user_id=?`).all(u.id); const crewBulletinPosts=db.prepare('SELECT * FROM maker_crew_bulletin_posts WHERE user_id=?').all(u.id); const crewRequests=db.prepare('SELECT * FROM maker_crew_requests WHERE requested_by=?').all(u.id); const craftProgress=db.prepare('SELECT requirement_id,checked,evidence_note,updated_at FROM craft_progress WHERE user_id=?').all(u.id); return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
+    const u=requireUser(req,res); if(!u)return; const projects=db.prepare('SELECT * FROM projects WHERE owner_id=?').all(u.id); const pids=projects.map(p=>p.id); const logs=pids.length?db.prepare(`SELECT * FROM build_log_entries WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const unfinishedEntries=db.prepare('SELECT * FROM unfinished_entries WHERE user_id=? OR project_id IN (SELECT id FROM projects WHERE owner_id=?) ORDER BY updated_at DESC').all(u.id,u.id); const questions=db.prepare('SELECT * FROM questions WHERE user_id=?').all(u.id); const questionAnswers=db.prepare('SELECT * FROM answers WHERE user_id=?').all(u.id); const shopNotes=db.prepare('SELECT * FROM shop_notes WHERE user_id=?').all(u.id); const discussions=db.prepare('SELECT * FROM discussion_topics WHERE user_id=?').all(u.id); const discussionReplies=db.prepare('SELECT * FROM discussion_replies WHERE user_id=?').all(u.id); const savedItems=db.prepare('SELECT * FROM saved_items WHERE user_id=?').all(u.id); const projectFollows=db.prepare('SELECT * FROM project_follows WHERE user_id=?').all(u.id); const collections=db.prepare('SELECT * FROM collections WHERE user_id=?').all(u.id); const collectionItems=collections.length?db.prepare(`SELECT * FROM collection_items WHERE collection_id IN (${collections.map(()=>'?').join(',')})`).all(...collections.map(c=>c.id)):[]; const projectFiles=pids.length?db.prepare(`SELECT id,project_id,uploader_id,logical_name,original_name,mime_type,size_bytes,version,notes,sha256,created_at FROM project_files WHERE project_id IN (${pids.map(()=>'?').join(',')})`).all(...pids):[]; const projectReleases=pids.length?db.prepare(`SELECT * FROM project_releases WHERE project_id IN (${pids.map(()=>'?').join(',')}) ORDER BY created_at`).all(...pids):[]; const releaseIds=projectReleases.map(r=>r.id); const projectReleaseFiles=releaseIds.length?db.prepare(`SELECT * FROM project_release_files WHERE release_id IN (${releaseIds.map(()=>'?').join(',')})`).all(...releaseIds):[]; const clinicSubmissions=db.prepare('SELECT * FROM project_clinic_submissions WHERE user_id=?').all(u.id); const skillContactRequests=db.prepare('SELECT * FROM skill_contact_requests WHERE from_user_id=? OR to_user_id=?').all(u.id,u.id); const teardownContributions=db.prepare('SELECT * FROM teardown_contributions WHERE user_id=?').all(u.id); const scrapListings=db.prepare('SELECT * FROM scrap_listings WHERE user_id=?').all(u.id); const scrapInquiries=db.prepare('SELECT * FROM scrap_inquiries WHERE sender_id=?').all(u.id); const crewMemberships=db.prepare(`SELECT m.*,c.code,c.name,c.city_region FROM maker_crew_members m JOIN maker_crews c ON c.id=m.crew_id WHERE m.user_id=?`).all(u.id); const crewAttendance=db.prepare(`SELECT a.*,e.title event_title,e.crew_id FROM maker_crew_event_attendance a JOIN maker_crew_events e ON e.id=a.event_id WHERE a.user_id=?`).all(u.id); const crewBulletinPosts=db.prepare('SELECT * FROM maker_crew_bulletin_posts WHERE user_id=?').all(u.id); const crewRequests=db.prepare('SELECT * FROM maker_crew_requests WHERE requested_by=?').all(u.id); const craftProgress=db.prepare('SELECT requirement_id,checked,evidence_note,updated_at FROM craft_progress WHERE user_id=?').all(u.id); return sendJson(res,200,{exportedAt:now(),version:APP_VERSION,user:safeUser(u),craftProgress,projects:projects.map(p=>({...p,disciplines:json(p.disciplines),tags:json(p.tags),tools:json(p.tools)})),buildLogEntries:logs,unfinishedEntries,questions,questionAnswers,shopNotes,discussions,discussionReplies,savedItems,projectFollows,collections,collectionItems,notificationPreferences:notificationPrefs(u.id),projectFiles,projectReleases,projectReleaseFiles,clinicSubmissions,skillContactRequests,teardownContributions,scrapListings,scrapInquiries,crewMemberships,crewAttendance,crewBulletinPosts,crewRequests});
   }
   if(pathname==='/api/health' && method==='GET'){ const ownerCount=db.prepare("SELECT COUNT(*) n FROM users WHERE role='Owner' AND account_status='Active'").get().n; return sendJson(res,200,{ok:true,version:APP_VERSION,time:now(),database:'ok',storage:{dataDir:DATA,databasePath:DB_PATH,railwayVolume:Boolean(process.env.RAILWAY_VOLUME_MOUNT_PATH),railwayVolumeMountPath:process.env.RAILWAY_VOLUME_MOUNT_PATH||'',externalDataDir:DATA!==path.join(ROOT,'data')},accounts:{activeOwners:ownerCount}}); }
   // v6.0 — THE GEARHEAD CREW

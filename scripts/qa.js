@@ -319,6 +319,14 @@ const checks=[
   ,['Make Together closes the loop with useful responses and variations',server.includes("kind:'MAKER VARIATION'")&&server.includes('c.usefulness_note')&&app.includes('What Shared Work Changed')&&app.includes('NO SCOREBOARD')]
   ,['Make Together is discoverable from Builds Home and Start Something',app.includes("href:'#/make-together',label:'MAKE TOGETHER'")&&app.includes('OPEN MAKE TOGETHER →')&&app.includes('<strong>Make Together</strong>')]
   ,['v10 capability flag is published',server.includes('makeTogether:true')]
+  ,['Unfinished snapshots have additive project-linked persistence',server.includes('CREATE TABLE IF NOT EXISTS unfinished_entries')&&server.includes('idx_unfinished_project')&&server.includes("pathname==='/api/unfinished'")]
+  ,['Unfinished snapshots capture the four useful questions',server.includes('exists_text')&&server.includes('stuck_text')&&server.includes('next_step')&&server.includes('help_needed')&&app.includes('WHAT EXISTS')&&app.includes('WHAT IS STUCK')&&app.includes('NEXT TINY STEP')&&app.includes('HELP NEEDED')]
+  ,['Unfinished visibility is server enforced',server.includes("canAccessLevel(r.visibility,viewer,r.user_id)")&&server.includes("e.status='Published'")&&server.includes("['Public','Members','Private']")]
+  ,['Unfinished work stays chronological and unranked',server.includes("unfinished:'most recently updated'")&&app.includes('PROCESS · NOT PERFORMANCE')&&app.includes('never become a scoreboard')]
+  ,['Unfinished work is integrated into Project and Make Together surfaces',server.includes('unfinished,comments')&&app.includes('id="project-unfinished"')&&app.includes('unfinished-public-section')]
+  ,['Unfinished drafts remain private until published',server.includes("status=body.status==='Draft'?'Draft':'Published'")&&server.includes("e.status='Published' OR e.user_id=?")&&app.includes('Keep as draft')]
+  ,['Unfinished snapshots are included in personal export',server.includes('unfinishedEntries')&&server.includes("SELECT * FROM unfinished_entries WHERE user_id=?")]
+  ,['v10.1 capability flag is published',server.includes('unfinishedInPublic:true')&&app.includes("version:'10.1.0'")]
 
 
 ];

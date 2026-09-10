@@ -1,4 +1,4 @@
-# THE WORKSHOP v10.0.0 — Navigation and Information Architecture
+# THE WORKSHOP v10.1.0 — Navigation and Information Architecture
 
 THE WORKSHOP exposes a small number of durable destinations. Specialized content types remain available inside those destinations rather than each becoming a global module.
 
@@ -43,6 +43,8 @@ GEARHEAD CREW
 ```
 
 Desktop contextual navigation and the mobile **MODULES** switcher share the same `NAV_MODULES` definition in `public/app.js`.
+
+**Unfinished in Public** is intentionally integrated into Project pages and Make Together rather than becoming a new primary destination. This keeps the Project as the durable home for work while giving incomplete work a visible, chronological place in the existing collaboration path.
 
 ## Route families
 

@@ -1,3 +1,12 @@
+# THE WORKSHOP v10.1.0 — Unfinished in Public
+
+- Added Project-linked **Unfinished in Public** snapshots for what exists, what is stuck, the next tiny step, and help needed.
+- Added draft, public, member-only, and private visibility with server-side enforcement and chronological ordering.
+- Integrated unfinished snapshots into Project pages and the existing Make Together hub without adding a primary navigation module.
+- Added owner/collaborator editing and removal while preserving the Project and Notebook as the durable record.
+- Added seeded unfinished-work examples and static/integration QA coverage for publication, privacy, drafts, edits, and deletion.
+- Bumped the service-worker/application cache version to v10.1.0.
+
 # THE WORKSHOP v10.0.0 — Make Together
 
 - Added **Make Together**, one project-centered participation hub for Open Bench invitations, Bench Handshakes, Open Bench Hours, and documented outcomes.
